@@ -24,6 +24,7 @@ export const SCHEMA = {
   fin_categories: { id: 'text', name: 'text', kind: 'text', budget: 'int', sort: 'int', archived: 'int' },
   fin_tx: { id: 'text', date: 'text', description: 'text', category_id: 'text', kind: 'text', amount: 'int', note: 'text' },
   fin_budgets: { id: 'text', year: 'int', month: 'int', category_id: 'text', amount: 'int' },
+  wealth: { id: 'text', date: 'text', category: 'text', name: 'text', value: 'int', note: 'text' },
   habits: { id: 'text', name: 'text', color: 'text', sort: 'int', archived: 'int' },
   habit_logs: { id: 'text', habit_id: 'text', date: 'text' },
   focus_sessions: { id: 'text', start: 'text', minutes: 'int', label: 'text', kind: 'text' },

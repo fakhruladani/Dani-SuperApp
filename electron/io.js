@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as db from './db.js';
 import { MONTH_ID, parseLocal, pad } from '../shared/recur.js';
+import { wealthSummary } from '../shared/wealth.js';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -45,6 +46,16 @@ export async function exportFinanceXlsx(year, filePath) {
     const t = ws.addRow({ k: 'Total', i: { formula: `SUM(D2:D${Math.max(2, n)})` }, o: { formula: `SUM(E2:E${Math.max(2, n)})` } });
     t.font = { bold: true };
   }
+  // total wealth (all dates; only the newest value per asset counts)
+  const wrows = db.list('wealth', { order: 'date desc' });
+  const ws = wealthSummary(wrows);
+  const ww = wb.addWorksheet('Total Wealth');
+  head(ww, [{ header: 'Tanggal', key: 'd', width: 12 }, { header: 'Kategori', key: 'c', width: 18 }, { header: 'Nama aset', key: 'a', width: 28 }, { header: 'Nilai', key: 'v', width: 18, style: { numFmt: money } }, { header: 'Status', key: 's', width: 12 }, { header: 'Catatan', key: 'n', width: 30 }]);
+  wrows.forEach((r) => ww.addRow({ d: r.date, c: r.category, a: r.name, v: r.value, s: ws.currentIds.has(r.id) ? 'dihitung' : 'riwayat', n: r.note || '' }));
+  ww.addRow({});
+  ws.categories.forEach((c) => ww.addRow({ c: c.name, a: 'Total kategori', v: c.total }));
+  const tw = ww.addRow({ c: 'TOTAL BERSIH', v: ws.net });
+  tw.font = { bold: true };
   await wb.xlsx.writeFile(filePath);
   return filePath;
 }

@@ -5,6 +5,7 @@ import { Modal, Seg, Field } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
 import { rupiah, parseAmount, formatAmountInput } from '../lib/format.js';
 import { MONTH_ID, MONTH_SHORT, pad, toLocalDate } from '../../shared/recur.js';
+import { wealthSummary, fmtDateID } from '../../shared/wealth.js';
 
 
 function AmountInput({ value, onChange, className = 'field', ...rest }) {
@@ -310,6 +311,120 @@ function Categories({ cats }) {
   );
 }
 
+// Signed rupiah input (debts are negative): "-1.200.000" -> -1200000
+const parseSigned = (s) => (/^\s*[-−]/.test(String(s)) ? -1 : 1) * parseAmount(s);
+const fmtSigned = (v) => (v ? (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('id-ID') : '');
+function SignedInput({ value, onCommit, className = 'cell num', ...rest }) {
+  const [txt, setTxt] = useState(fmtSigned(value));
+  useEffect(() => { setTxt(fmtSigned(value)); }, [value]);
+  return <input inputMode="numeric" className={className} value={txt} onChange={(e) => { const neg = /^\s*[-−]/.test(e.target.value); const n = parseAmount(e.target.value); setTxt(n ? (neg ? '-' : '') + n.toLocaleString('id-ID') : neg ? '-' : ''); }} onBlur={() => onCommit?.(parseSigned(txt))} {...rest} />;
+}
+
+function WealthRow({ r, current, catColor, onUpdate }) {
+  const [x, setX] = useState(r);
+  useEffect(() => setX(r), [r]);
+  const commit = (patch) => { setX({ ...x, ...patch }); DB.save('wealth', { id: r.id, ...patch }); };
+  const old = !current;
+  return (
+    <tr style={old ? { color: 'var(--muted)' } : undefined}>
+      <td style={{ width: 136, padding: '6px 4px 6px 10px' }}><input type="date" className="cell num" aria-label="Tanggal" value={x.date} onChange={(e) => e.target.value && commit({ date: e.target.value })} /></td>
+      <td><span className="row" style={{ gap: 6 }}><span className="dot" style={{ background: catColor }} /><input className="cell" list="wl-cats" aria-label="Kategori" value={x.category || ''} onChange={(e) => setX({ ...x, category: e.target.value })} onBlur={() => commit({ category: x.category.trim() })} style={{ minWidth: 90 }} /></span></td>
+      <td><input className="cell" list="wl-names" aria-label="Nama aset" value={x.name || ''} onChange={(e) => setX({ ...x, name: e.target.value })} onBlur={() => commit({ name: x.name.trim() })} style={{ minWidth: 130, fontWeight: 600 }} /></td>
+      <td className="r"><SignedInput value={x.value} aria-label="Nilai" onCommit={(v) => v !== x.value && commit({ value: v })} style={{ textAlign: 'right', width: 130, textDecoration: old ? 'line-through' : 'none', color: x.value < 0 ? 'var(--neg)' : undefined }} /></td>
+      <td><input className="cell" aria-label="Catatan" value={x.note || ''} onChange={(e) => setX({ ...x, note: e.target.value })} onBlur={() => commit({ note: x.note })} style={{ minWidth: 90 }} /></td>
+      <td style={{ whiteSpace: 'nowrap', width: 1, padding: '6px 8px' }}>
+        {old ? <span className="mut" style={{ fontSize: 12, marginRight: 6 }}>riwayat</span> : <button className="icb sm" title="Perbarui nilai (baris baru tanggal hari ini)" aria-label="Perbarui nilai" onClick={() => onUpdate(x)}><Icon name="refresh" size="sm" /></button>}
+        <button className="icb sm" aria-label="Hapus baris" onClick={() => DB.remove('wealth', r.id)}><Icon name="trash" size="sm" /></button>
+      </td>
+    </tr>
+  );
+}
+
+function Wealth() {
+  const app = useApp();
+  const C = useMemo(() => themeColors(), [app.dark]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useQuery(() => DB.list('wealth', { order: 'date desc,updated_at desc' }), [], ['wealth']);
+  const [showOld, setShowOld] = useState(true);
+  const today = toLocalDate(new Date());
+  const empty = { date: today, category: '', name: '', value: 0, note: '' };
+  const [nr, setNr] = useState(empty);
+  const all = rows.data || [];
+  const s = useMemo(() => wealthSummary(all), [all]);
+  const colorOf = (cat) => { const i = s.categories.findIndex((c) => c.name.toLowerCase() === String(cat || '').trim().toLowerCase()); return C.c[(i < 0 ? 7 : i) % C.c.length]; };
+  const add = async (over = {}) => {
+    const r = { ...nr, ...over };
+    if (!r.name.trim() || !r.category.trim() || !r.value) { app.toast({ text: 'Isi kategori, nama aset, dan nilai', error: true }); return; }
+    await DB.save('wealth', { ...r, category: r.category.trim(), name: r.name.trim() });
+    setNr({ ...empty, date: r.date });
+    setTimeout(() => document.getElementById('wl-new-cat')?.focus(), 50);
+  };
+  const shown = all.filter((r) => showOld || s.currentIds.has(r.id));
+  const cats = s.categories.map((c) => c.name);
+  const names = [...new Set(all.filter((r) => !nr.category || r.category.toLowerCase() === nr.category.trim().toLowerCase()).map((r) => r.name))];
+  const change = s.prev ? s.net - s.prev.net : null;
+  const t = s.trend;
+  const min = Math.min(...t.map((x) => x.net)), max = Math.max(...t.map((x) => x.net));
+  const pts = t.map((x, i) => `${t.length > 1 ? (i / (t.length - 1)) * 240 : 120},${max === min ? 30 : 54 - ((x.net - min) / (max - min)) * 48}`).join(' ');
+
+  return (
+    <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
+      <datalist id="wl-cats">{cats.map((c) => <option key={c} value={c} />)}</datalist>
+      <datalist id="wl-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
+      <section className="card" style={{ flex: '999 1 640px', minWidth: 0, overflow: 'hidden' }}>
+        <div className="row wrap" style={{ padding: '12px 16px' }}>
+          <h2 className="h2 grow">Lembar kekayaan</h2>
+          <label className="row" style={{ gap: 8, fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={showOld} onChange={(e) => setShowOld(e.target.checked)} />Tampilkan riwayat nilai lama</label>
+        </div>
+        <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)', minHeight: 260 }}>
+          <table className="tbl">
+            <thead><tr><th>Tanggal</th><th>Kategori</th><th>Nama aset</th><th className="r">Nilai (Rp)</th><th>Catatan</th><th /></tr></thead>
+            <tbody>
+              {shown.map((r) => <WealthRow key={r.id} r={r} current={s.currentIds.has(r.id)} catColor={colorOf(r.category)} onUpdate={(x) => { setNr({ date: today, category: x.category, name: x.name, value: x.value, note: '' }); setTimeout(() => document.getElementById('wl-new-val')?.focus(), 50); }} />)}
+              <tr style={{ background: 'var(--accent-soft)' }}>
+                <td><input type="date" className="cell num" aria-label="Tanggal baru" value={nr.date} onChange={(e) => setNr({ ...nr, date: e.target.value || today })} /></td>
+                <td><input id="wl-new-cat" className="cell" list="wl-cats" aria-label="Kategori baru" placeholder="Ketik kategori…" value={nr.category} onChange={(e) => setNr({ ...nr, category: e.target.value })} /></td>
+                <td><input className="cell" list="wl-names" aria-label="Nama aset baru" placeholder="+ Nama aset" value={nr.name} onChange={(e) => setNr({ ...nr, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
+                <td className="r"><SignedInput id="wl-new-val" value={nr.value} aria-label="Nilai baru" placeholder="0" onCommit={(v) => setNr((x) => ({ ...x, value: v }))} onKeyDown={(e) => { if (e.key === 'Enter') add({ value: parseSigned(e.target.value) }); }} style={{ textAlign: 'right', width: 150 }} /></td>
+                <td><input className="cell" aria-label="Catatan baru" placeholder="catatan" value={nr.note} onChange={(e) => setNr({ ...nr, note: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
+                <td><button className="icb sm" aria-label="Tambah baris" onClick={() => add()}><Icon name="plus" size="sm" /></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="mut" style={{ padding: '10px 16px', fontSize: 12, lineHeight: 1.5 }}>Ganti nilai aset = tambah baris baru dengan kategori &amp; nama yang sama (atau klik ikon perbarui). Hanya nilai terbaru per aset yang dihitung; baris lama jadi riwayat. Utang ditulis negatif, mis. -1.200.000.</div>
+      </section>
+      <aside className="col" style={{ flex: '1 1 320px', gap: 16 }}>
+        <section className="card pad col" style={{ gap: 6, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
+          <span className="lbl" style={{ color: 'var(--accent-text)' }}>Total kekayaan bersih</span>
+          <span className={`num ${s.net < 0 ? 'dn' : ''}`} style={{ fontSize: 30, fontWeight: 800 }}>{rupiah(s.net)}</span>
+          {change != null && <span className={`num ${change >= 0 ? 'up' : 'dn'}`} style={{ fontSize: 13, fontWeight: 700 }}>{rupiah(change, { sign: true })}{s.prev.net ? ` (${change >= 0 ? '+' : '−'}${Math.abs((change / Math.abs(s.prev.net)) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%)` : ''} sejak {fmtDateID(s.prev.date)}</span>}
+          {t.length > 1 && <>
+            <svg viewBox="0 0 240 60" preserveAspectRatio="none" style={{ width: '100%', height: 60, marginTop: 6 }} aria-hidden="true"><polyline points={pts} style={{ fill: 'none', stroke: C.accent, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }} /></svg>
+            <span style={{ fontSize: 11, color: 'var(--accent-text)' }}>Tren total per akhir bulan ({t[0].label}–{t[t.length - 1].label})</span>
+          </>}
+        </section>
+        <section className="card pad col" style={{ gap: 12 }}>
+          <h2 className="h2">Per kategori</h2>
+          {s.categories.length === 0 && <span className="mut" style={{ fontSize: 13 }}>Belum ada data. Tambahkan baris aset di tabel.</span>}
+          {s.categories.map((c, i) => (
+            <div key={c.name} className="col" style={{ gap: 5 }}>
+              <div className="row" style={{ fontSize: 13, gap: 8 }}>
+                <span className="dot" style={{ background: C.c[i % C.c.length] }} />
+                <span className="grow" style={{ fontWeight: 600 }}>{c.name} <span className="mut" style={{ fontWeight: 500 }}>· {c.n}</span></span>
+                <span className={`num ${c.total < 0 ? 'dn' : ''}`} style={{ fontWeight: 700 }}>{rupiah(c.total)}</span>
+                <span className="num mut" style={{ width: 40, textAlign: 'right' }}>{c.total > 0 && s.assets ? Math.round((c.total / s.assets) * 100) + '%' : ''}</span>
+              </div>
+              <div className="bar"><span style={{ width: (s.assets ? Math.min(100, Math.round((Math.abs(c.total) / s.assets) * 100)) : 0) + '%', background: C.c[i % C.c.length] }} /></div>
+            </div>
+          ))}
+          <div className="row" style={{ fontSize: 13, paddingTop: 10, borderTop: '1px solid var(--border)' }}><span className="grow mut">Aset</span><span className="num" style={{ fontWeight: 700 }}>{rupiah(s.assets)}</span></div>
+          <div className="row" style={{ fontSize: 13 }}><span className="grow mut">Utang</span><span className="num dn" style={{ fontWeight: 700 }}>{rupiah(s.debts)}</span></div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
 export default function Finance() {
   const app = useApp();
   const now = new Date();
@@ -338,24 +453,25 @@ export default function Finance() {
   return (
     <div className="page">
       <div className="row wrap">
-        <div className="row" style={{ gap: 4 }}>
+        {tab !== 'wealth' && <div className="row" style={{ gap: 4 }}>
           <button className="icb" aria-label="Tahun sebelumnya" onClick={() => setYear(year - 1)}><Icon name="left" /></button>
           <label className="sr" htmlFor="fy">Tahun</label>
           <select id="fy" className="field num" value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ width: 'auto', fontSize: 18, fontWeight: 800, border: 0, background: 'transparent' }}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
           <button className="icb" aria-label="Tahun berikutnya" onClick={() => setYear(year + 1)}><Icon name="right" /></button>
-        </div>
-        <Seg label="Tampilan keuangan" value={tab} onChange={setTab} options={[{ value: 'month', label: 'Bulanan' }, { value: 'recap', label: 'Rekap tahunan' }, { value: 'cats', label: 'Kategori & anggaran' }]} />
+        </div>}
+        <Seg label="Tampilan keuangan" value={tab} onChange={setTab} options={[{ value: 'month', label: 'Bulanan' }, { value: 'recap', label: 'Rekap tahunan' }, { value: 'cats', label: 'Kategori & anggaran' }, { value: 'wealth', label: 'Total Wealth' }]} />
         <span className="grow" />
-        <button className="btn" onClick={doImport}><Icon name="upload" size="sm" />Impor CSV</button>
-        <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast('CSV diekspor'))}><Icon name="download" size="sm" />CSV</button>
-        <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast('Excel diekspor'))}><Icon name="table" size="sm" />Ekspor Excel {year}</button>
-        <button className="btn pri" onClick={() => setTxModal({ date: year === now.getFullYear() && month === now.getMonth() + 1 ? toLocalDate(now) : `${year}-${pad(month)}-01` })}><Icon name="plus" size="sm" />Transaksi</button>
+        {tab !== 'wealth' && <button className="btn" onClick={doImport}><Icon name="upload" size="sm" />Impor CSV</button>}
+        {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast('CSV diekspor'))}><Icon name="download" size="sm" />CSV</button>}
+        <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast('Excel diekspor'))}><Icon name="table" size="sm" />Ekspor Excel{tab !== 'wealth' ? ` ${year}` : ''}</button>
+        {tab !== 'wealth' && <button className="btn pri" onClick={() => setTxModal({ date: year === now.getFullYear() && month === now.getMonth() + 1 ? toLocalDate(now) : `${year}-${pad(month)}-01` })}><Icon name="plus" size="sm" />Transaksi</button>}
       </div>
       {cats.data && tab === 'month' && <Monthly year={year} month={month} setMonth={setMonth} cats={cats.data} />}
       {cats.data && tab === 'recap' && <Recap year={year} cats={cats.data} goMonth={(m) => { setMonth(m); setTab('month'); }} />}
       {cats.data && tab === 'cats' && <Categories cats={cats.data} />}
+      {tab === 'wealth' && <Wealth />}
       {txModal && cats.data && <TxModal initial={txModal} cats={cats.data} onClose={() => setTxModal(null)} />}
     </div>
   );
