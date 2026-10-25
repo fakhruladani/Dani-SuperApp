@@ -157,7 +157,7 @@ export async function buildBrief(now = Date.now()) {
   const ym = today.slice(0, 7);
   const budgets = db.finBudgets(d.getFullYear(), d.getMonth() + 1);
   const cap = budgets.reduce((s, b) => s + (b.budget || 0), 0);
-  const spent = budgets.reduce((s, b) => s + (b.spent || 0), 0);
+  const spent = budgets.filter((b) => b.budget > 0).reduce((s, b) => s + (b.spent || 0), 0);
   const over = budgets.filter((b) => b.budget > 0 && b.spent > b.budget).map((b) => b.name);
   return {
     date: today, events: occs.map((o) => ({ title: o.title, time: o.all_day ? 'Seharian' : fmtTime(o.occStart) })),

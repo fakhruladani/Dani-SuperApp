@@ -73,6 +73,7 @@ function Monthly({ year, month, setMonth, cats }) {
   const tin = (tx.data || []).filter((t) => t.kind === 'in').reduce((s, t) => s + t.amount, 0);
   const tout = (tx.data || []).filter((t) => t.kind === 'out').reduce((s, t) => s + t.amount, 0);
   const cap = (budgets.data || []).reduce((s, b) => s + (b.budget || 0), 0);
+  const spentBudgeted = (budgets.data || []).filter((b) => b.budget > 0).reduce((s, b) => s + b.spent, 0);
   const today = new Date();
   const isCur = today.getFullYear() === year && today.getMonth() + 1 === month;
   const daysLeft = isCur ? new Date(year, month, 0).getDate() - today.getDate() : 0;
@@ -100,7 +101,7 @@ function Monthly({ year, month, setMonth, cats }) {
         <div className="card stat"><span className="lbl">Pemasukan</span><span className="v num up">{rupiah(tin)}</span><span className="mut" style={{ fontSize: 12 }}>{(tx.data || []).filter((t) => t.kind === 'in').length} transaksi</span></div>
         <div className="card stat"><span className="lbl">Pengeluaran</span><span className="v num dn">{rupiah(tout)}</span><span className="mut" style={{ fontSize: 12 }}>{(tx.data || []).filter((t) => t.kind === 'out').length} transaksi</span></div>
         <div className="card stat"><span className="lbl">Selisih</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>{tin ? `${Math.round(((tin - tout) / tin) * 100)}% dari pemasukan` : '—'}</span></div>
-        <div className="card stat"><span className="lbl">Sisa anggaran</span><span className={`v num ${cap && cap - tout < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - tout) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? `dari ${rupiah(cap)}${isCur ? ` · ${daysLeft} hari lagi` : ''}` : 'atur di panel anggaran'}</span></div>
+        <div className="card stat"><span className="lbl">Sisa anggaran</span><span className={`v num ${cap && cap - spentBudgeted < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - spentBudgeted) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? `dari ${rupiah(cap)} (kategori beranggaran)${isCur ? ` · ${daysLeft} hari lagi` : ''}` : 'belum ada anggaran'}</span></div>
       </div>
       <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
         <section className="card" style={{ flex: '999 1 600px', minWidth: 0, overflow: 'hidden' }}>

@@ -355,7 +355,13 @@ app.on('window-all-closed', () => { /* stay in tray */ });
 app.whenReady().then(async () => {
   // allow geolocation for "Deteksi lokasi"; deny everything else
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(perm === 'geolocation' || perm === 'notifications'));
+  const hadData = fs.existsSync(path.join(app.getPath('userData'), 'data.db.enc'));
   await db.openDb({ dir: app.getPath('userData'), keyStore, wasmPath: require.resolve('sql.js/dist/sql-wasm.wasm') });
+  // data lives in %APPDATA% and survives updates; still keep a backup from before each version change
+  if (db.getSetting('app.version') !== app.getVersion()) {
+    if (hadData) { try { backupNow(`-sebelum-v${app.getVersion()}`); } catch (e) { console.error('[backup]', e); } }
+    db.setSetting('app.version', app.getVersion(), true);
+  }
   db.onChange((tables) => broadcast('db:changed', tables));
   registerIpc();
   applyTheme();

@@ -177,7 +177,7 @@ export default function Calendar() {
             <button className="btn" onClick={() => { apiCal().today(); setSel(toLocalDate(new Date())); }}>Hari ini</button>
             <button className="icb" aria-label="Sebelumnya" onClick={() => apiCal().prev()}><Icon name="left" /></button>
             <button className="icb" aria-label="Berikutnya" onClick={() => apiCal().next()}><Icon name="right" /></button>
-            <span className="grow" style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize' }}>{title}</span>
+            <span className="grow ellipsis" title={title} style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', minWidth: 120 }}>{title}</span>
             <Seg label="Tampilan" value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: 'Hari' }, { value: 'timeGridWeek', label: 'Minggu' }, { value: 'dayGridMonth', label: 'Bulan' }, { value: 'listMonth', label: 'Agenda' }]} />
           </div>
           <FullCalendar

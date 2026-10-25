@@ -135,7 +135,7 @@ export default function Home() {
   const todayEvents = (agenda.data || []).filter((o) => toLocalDate(o.occStart) === today && !o.holiday).length;
   const b = brief.data;
   const totalBudget = (fin.data?.budgets || []).reduce((s, x) => s + (x.budget || 0), 0);
-  const spent = (fin.data?.budgets || []).reduce((s, x) => s + (x.spent || 0), 0);
+  const spent = (fin.data?.budgets || []).filter((x) => x.budget > 0).reduce((s, x) => s + (x.spent || 0), 0);
   const usedPct = totalBudget ? Math.round((spent / totalBudget) * 100) : 0;
 
   return (
