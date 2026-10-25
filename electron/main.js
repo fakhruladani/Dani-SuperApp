@@ -8,6 +8,7 @@ import * as db from './db.js';
 import * as svc from './services.js';
 import * as sched from './scheduler.js';
 import * as io from './io.js';
+import { stickyColor } from '../shared/sticky.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -117,7 +118,44 @@ function toggleWidget() {
 }
 
 function broadcast(channel, data) {
-  for (const w of [mainWin, quickWin, widgetWin]) if (w && !w.isDestroyed()) w.webContents.send(channel, data);
+  for (const w of [mainWin, quickWin, widgetWin, ...stickyWins.values()]) if (w && !w.isDestroyed()) w.webContents.send(channel, data);
+}
+
+// ---------------- sticky notes (one floating window per note) ----------------
+const stickyWins = new Map();
+function openSticky(noteId) {
+  const note = db.get('notes', noteId);
+  if (!note) return false;
+  const existing = stickyWins.get(noteId);
+  if (existing && !existing.isDestroyed()) { existing.show(); existing.focus(); return true; }
+  let b = null;
+  try { b = JSON.parse(note.sticky_bounds || 'null'); } catch { b = null; }
+  const c = stickyColor(note.sticky_color);
+  const win = new BrowserWindow({
+    width: b?.w || 340, height: b?.h || 340, x: b?.x, y: b?.y, minWidth: 240, minHeight: 180,
+    frame: false, resizable: true, skipTaskbar: true, show: false, alwaysOnTop: !!note.sticky_top,
+    backgroundColor: effectiveDark() ? c.dark : c.light, title: note.title || 'Sticky note', icon: asset('icon.png'), webPreferences
+  });
+  if (note.sticky_top) win.setAlwaysOnTop(true, 'floating');
+  hardenWindow(win);
+  load(win, '/sticky/' + noteId);
+  win.once('ready-to-show', () => win.show());
+  let t = null;
+  const saveBounds = () => { clearTimeout(t); t = setTimeout(() => { if (win.isDestroyed()) return; const r = win.getBounds(); db.upsert('notes', { id: noteId, sticky_bounds: JSON.stringify({ x: r.x, y: r.y, w: r.width, h: r.height }) }, true); }, 400); };
+  win.on('moved', saveBounds);
+  win.on('resized', saveBounds);
+  win.on('closed', () => {
+    stickyWins.delete(noteId);
+    if (!quitting && db.get('notes', noteId)) db.upsert('notes', { id: noteId, sticky: 0 });
+  });
+  stickyWins.set(noteId, win);
+  if (!note.sticky) db.upsert('notes', { id: noteId, sticky: 1 });
+  return true;
+}
+function newSticky() {
+  const n = db.upsert('notes', { title: '', content: '', plain: '', ink: '[]', tag: '', pinned: 0, sticky_color: 'yellow' });
+  openSticky(n.id);
+  return n.id;
 }
 
 // ---------------- tray ----------------
@@ -128,6 +166,7 @@ function createTray() {
     { label: 'Buka Dani SuperApp', click: () => showMain() },
     { label: 'Catatan cepat', accelerator: db.getSetting('quickShortcut'), click: toggleQuick },
     { label: 'Widget mini', click: toggleWidget },
+    { label: 'Sticky note baru', click: () => newSticky() },
     { type: 'separator' },
     { label: 'Kalender', click: () => showMain({ nav: 'cal' }) },
     { label: 'Catatan', click: () => showMain({ nav: 'notes' }) },
@@ -236,7 +275,7 @@ const h = (name, fn) => { handlers[name] = fn; };
 h('db:list', (t, opts) => db.list(t, opts || {}));
 h('db:get', (t, id) => db.get(t, id));
 h('db:upsert', (t, row) => { if (t === 'settings') throw new Error('Gunakan settings:set'); return db.upsert(t, row); });
-h('db:remove', (t, id) => db.remove(t, id));
+h('db:remove', (t, id) => { if (t === 'notes') stickyWins.get(id)?.destroy(); return db.remove(t, id); });
 h('db:removeWhere', (t, where) => db.removeWhere(t, where));
 h('settings:all', () => db.allSettings());
 h('settings:set', (k, v) => {
@@ -330,13 +369,32 @@ h('shell:open', (url) => { if (/^https?:\/\//.test(String(url))) shell.openExter
 h('clipboard:write', (t) => { lastClip = String(t); clipboard.writeText(String(t)); });
 h('win:quick', () => toggleQuick());
 h('win:widget', () => toggleWidget());
+h('sticky:open', (id) => openSticky(String(id)));
+h('sticky:new', () => newSticky());
+h('sticky:setTop', (e, on) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const id = [...stickyWins].find(([, w]) => w === win)?.[0];
+  if (!win || !id) return false;
+  win.setAlwaysOnTop(!!on, 'floating');
+  db.upsert('notes', { id, sticky_top: on ? 1 : 0 });
+  return !!on;
+});
+h('sticky:setColor', (e, color) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const id = [...stickyWins].find(([, w]) => w === win)?.[0];
+  if (!win || !id) return false;
+  const c = stickyColor(color);
+  win.setBackgroundColor(effectiveDark() ? c.dark : c.light);
+  db.upsert('notes', { id, sticky_color: color });
+  return true;
+});
 h('win:hideSelf', (e) => { BrowserWindow.fromWebContents(e.sender)?.hide(); });
 h('win:closeSelf', (e) => { BrowserWindow.fromWebContents(e.sender)?.close(); });
 h('win:show', (nav) => showMain(nav));
 h('theme:get', () => ({ dark: effectiveDark(), setting: db.getSetting('theme', 'system') }));
 h('app:info', () => ({ version: app.getVersion(), packaged: app.isPackaged, dataDir: app.getPath('userData'), encrypted: safeStorage.isEncryptionAvailable(), backupDir: backupDir() }));
 
-const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf']);
+const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf', 'sticky:setTop', 'sticky:setColor']);
 function registerIpc() {
   ipcMain.handle('invoke', async (e, name, ...args) => {
     if (!trusted(e)) throw new Error('Untrusted sender');
@@ -371,6 +429,7 @@ app.whenReady().then(async () => {
   applyShortcut();
   setupClipboard();
   if (db.getSetting('widget.open', false)) toggleWidget();
+  for (const n of db.list('notes', { where: { sticky: 1 } })) openSticky(n.id); // reopen floating notes like Windows Sticky Notes
   nativeTheme.on('updated', () => { const c = themeColors(); try { mainWin?.setTitleBarOverlay({ color: c.surface, symbolColor: c.text, height: 44 }); } catch { /* */ } broadcast('theme:changed', { dark: effectiveDark(), setting: db.getSetting('theme', 'system') }); });
   sched.start({ notify, send: broadcast, backup: backupNow });
   const wake = () => { sched.wake(); broadcast('power:resume', Date.now()); };

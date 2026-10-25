@@ -15,6 +15,7 @@ export default function CommandPalette({ onClose }) {
     { title: 'Buka Kalender', icon: 'cal', run: () => app.nav('cal') },
     { title: 'Buat acara / pengingat baru', icon: 'bell', run: () => app.nav('cal', { newEvent: Date.now() }) },
     { title: 'Buat catatan baru', icon: 'note', run: () => app.nav('notes', { newNote: Date.now() }) },
+    { title: 'Sticky note baru (jendela mengambang)', icon: 'widget', run: () => api('sticky:new') },
     { title: 'Tambah transaksi', icon: 'wallet', run: () => app.nav('fin', { newTx: Date.now() }) },
     { title: 'Rekap keuangan tahunan', icon: 'table', run: () => app.nav('fin', { tab: 'recap' }) },
     { title: 'Market & berita', icon: 'chart', run: () => app.nav('market') },

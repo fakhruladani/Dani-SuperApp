@@ -95,7 +95,17 @@ function InkLayer({ tool, color, size, strokes, setStrokes, height }) {
   );
 }
 
-export default function NoteEditor({ note, onSave, onDelete, onPin, zoom, setZoom }) {
+// Shared by the main editor and floating sticky notes, so both keep the same formatting.
+export function noteExtensions(placeholder) {
+  return [
+    StarterKit.configure({ heading: { levels: [1, 2, 3] } }), Underline, TextStyle, FontFamily, FontSize, Color,
+    Highlight.configure({ multicolor: true }), TaskList, TaskItem.configure({ nested: true }),
+    TextAlign.configure({ types: ['heading', 'paragraph'] }), Link.configure({ openOnClick: false, autolink: true }),
+    Placeholder.configure({ placeholder })
+  ];
+}
+
+export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoom, setZoom }) {
   const [title, setTitle] = useState(note.title || '');
   const [strokes, setStrokesState] = useState(() => { try { return JSON.parse(note.ink || '[]'); } catch { return []; } });
   const [history, setHistory] = useState([]);
@@ -109,13 +119,15 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, zoom, setZoo
   const pageRef = useRef();
   const saveT = useRef();
   const latest = useRef({});
+  const lastContent = useRef(note.content || '');
 
   const flush = useCallback(() => {
     clearTimeout(saveT.current);
     const l = latest.current;
     if (!l.dirty) return;
     l.dirty = false;
-    onSave({ id: note.id, title: l.title, content: JSON.stringify(l.json), plain: l.plain, ink: JSON.stringify(l.strokes) });
+    lastContent.current = JSON.stringify(l.json);
+    onSave({ id: note.id, title: l.title, content: lastContent.current, plain: l.plain, ink: JSON.stringify(l.strokes) });
     setSavedAt(new Date());
   }, [note.id, onSave]);
   const queue = useCallback((patch) => {
@@ -126,12 +138,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, zoom, setZoo
   useEffect(() => () => flush(), [flush]);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }), Underline, TextStyle, FontFamily, FontSize, Color,
-      Highlight.configure({ multicolor: true }), TaskList, TaskItem.configure({ nested: true }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }), Link.configure({ openOnClick: false, autolink: true }),
-      Placeholder.configure({ placeholder: 'Mulai menulis… (pakai mode Pena untuk mencoret bebas)' })
-    ],
+    extensions: noteExtensions('Mulai menulis… (pakai mode Pena untuk mencoret bebas)'),
     content: (() => { try { return note.content ? JSON.parse(note.content) : ''; } catch { return ''; } })(),
     onCreate: ({ editor: ed }) => { latest.current = { title: note.title || '', json: ed.getJSON(), plain: ed.getText(), strokes, dirty: false }; setWords(ed.getText().split(/\s+/).filter(Boolean).length); },
     onUpdate: ({ editor: ed }) => { const plain = ed.getText(); setWords(plain.split(/\s+/).filter(Boolean).length); queue({ json: ed.getJSON(), plain }); },
@@ -143,6 +150,13 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, zoom, setZoo
       }
     }
   }, [note.id]);
+
+  // content changed elsewhere (sticky note window): reload unless the user is typing here
+  useEffect(() => {
+    if (!editor || !note.content || note.content === lastContent.current) return;
+    if (editor.isFocused || latest.current.dirty) return;
+    try { editor.commands.setContent(JSON.parse(note.content), false); lastContent.current = note.content; latest.current.json = editor.getJSON(); latest.current.plain = editor.getText(); } catch { /* ignore bad json */ }
+  }, [note.content, editor]);
 
   const setStrokes = (s) => { setHistory((h) => [...h.slice(-49), strokes]); setStrokesState(s); queue({ strokes: s }); };
   const undoInk = () => { if (!history.length) return; const prev = history[history.length - 1]; setHistory(history.slice(0, -1)); setStrokesState(prev); queue({ strokes: prev }); };
@@ -272,6 +286,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, zoom, setZoo
         <span>{words} kata</span>
         <span>{strokes.length} coretan</span>
         <span className="grow" />
+        <button className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title="Buka catatan ini sebagai jendela mengambang (sticky note)"><Icon name="widget" size="sm" />Jendela mengambang</button>
         <button className="btn sm ghost" onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" />{note.pinned ? 'Lepas sematan' : 'Sematkan'}</button>
         <button className="btn sm ghost danger" onClick={onDelete}><Icon name="trash" size="sm" />Hapus</button>
       </div>

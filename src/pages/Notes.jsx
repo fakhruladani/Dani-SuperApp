@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import NoteEditor from '../components/NoteEditor.jsx';
 import { Modal, Field } from '../components/ui.jsx';
-import { DB, useApp, useQuery } from '../lib/api.js';
+import { api, DB, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 
 export default function Notes() {
@@ -56,7 +56,7 @@ export default function Notes() {
             {list.length === 0 && <div className="empty">{notes.data?.length ? 'Tidak ada yang cocok.' : 'Belum ada catatan. Klik + untuk membuat.'}</div>}
             {list.map((n) => (
               <button key={n.id} className={`note-item ${n.id === selId ? 'on' : ''}`} onClick={() => setSelId(n.id)}>
-                <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis">{n.title || 'Tanpa judul'}</span></span>
+                <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis grow">{n.title || 'Tanpa judul'}</span>{n.sticky ? <span title="Sedang terbuka sebagai jendela mengambang" style={{ display: 'inline-flex' }}><Icon name="widget" size="sm" className="mut" /></span> : null}</span>
                 <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 80) || (n.ink && n.ink !== '[]' ? 'Coretan pena' : 'Kosong')}</span>
                 <span className="mut" style={{ fontSize: 11 }}>{timeAgo(new Date(n.updated_at).getTime())}{n.tag ? ` · #${n.tag}` : ''}</span>
               </button>
@@ -73,7 +73,7 @@ export default function Notes() {
                 <button className="chip" onClick={() => setTagEdit(sel.tag || '')}>{sel.tag ? '#' + sel.tag : '+ tambah tag'}</button>
               )}
             </div>
-            <NoteEditor key={sel.id} note={sel} onSave={onSave} onDelete={del} onPin={(p) => DB.save('notes', { id: sel.id, pinned: p ? 1 : 0 })} zoom={zoom} setZoom={setZoom} />
+            <NoteEditor key={sel.id} note={sel} onSave={onSave} onDelete={del} onPin={(p) => DB.save('notes', { id: sel.id, pinned: p ? 1 : 0 })} onFloat={() => api('sticky:open', sel.id)} zoom={zoom} setZoom={setZoom} />
           </div>
         ) : (
           <section className="card editor-card" style={{ alignItems: 'center', justifyContent: 'center' }}>

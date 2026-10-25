@@ -13,7 +13,7 @@ Bahasa Indonesia, mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows
 | **Beranda** | Sapaan, jam real-time, cuaca dan lokasi (per jam dan 6 hari), agenda 7 hari, ringkasan hari ini, tugas, kebiasaan, keuangan bulan ini, pasar, berita terbaru, catatan terbaru. |
 | **Kalender** | Tampilan Hari, Minggu, Bulan, dan Agenda seperti Google Calendar. Garis "sekarang" bergerak mengikuti jam sistem, hari ini berganti otomatis saat tengah malam dan setelah laptop bangun dari sleep. Acara berulang (harian, mingguan, bulanan, tahunan), warna per kalender, drag and drop, deskripsi per tanggal, libur nasional Indonesia, impor dan ekspor `.ics`. |
 | **Pengingat** | Notifikasi Windows dari "saat dimulai" sampai "1 minggu sebelum". Pengingat yang lewat saat laptop mati muncul begitu laptop menyala (maksimal 3 hari ke belakang). Tombol Tunda 10 menit, Lihat, dan Selesai. |
-| **Catatan** | Banyak catatan dengan tag, sematkan, pencarian, dan template. Font, ukuran, judul, tebal, miring, garis bawah, coret, warna teks, stabilo, checklist, perataan, tautan. **Mode pena** untuk mencoret bebas (mendukung tekanan pen tablet), stabilo bebas, penghapus. Zoom 50% sampai 200%. Simpan otomatis. |
+| **Catatan** | Banyak catatan dengan tag, sematkan, pencarian, dan template. Font, ukuran, judul, tebal, miring, garis bawah, coret, warna teks, stabilo, checklist, perataan, tautan. **Mode pena** untuk mencoret bebas (mendukung tekanan pen tablet), stabilo bebas, penghapus. Zoom 50% sampai 200%. Simpan otomatis. **Jendela mengambang**: catatan bisa dilepas jadi sticky note di desktop, dengan 7 pilihan warna, opsi selalu di atas, dan tetap tersinkron dengan aplikasi. |
 | **Keuangan** | Tab bulanan Jan sampai Des seperti workbook Excel, ganti tahun, isi langsung di sel. Kategori masuk dan keluar, anggaran default per kategori plus anggaran khusus per bulan. |
 | **Rekap tahunan** | Grafik arus kas dan saldo kumulatif, perbandingan dengan tahun lalu, tingkat tabungan, tabel per bulan, komposisi per kategori, matriks kategori × bulan. |
 | **Total Wealth** | Lembar kekayaan: tanggal, kategori bebas (cash, saham, kripto, emas, dan lainnya), nama aset, nilai. Total bersih, rincian per kategori, dan tren bulanan dihitung otomatis dari nilai terbaru tiap aset. Utang ditulis negatif. |
@@ -45,6 +45,10 @@ Bahasa Indonesia, mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows
 | Beranda (mode gelap) | Cari & perintah (Ctrl+K) |
 |---|---|
 | ![Beranda gelap](docs/screenshots/beranda-gelap.png) | ![Cari](docs/screenshots/cari-gelap.png) |
+
+| Sticky note (selalu di atas) | Sticky note (mode gelap) |
+|---|---|
+| ![Sticky note](docs/screenshots/sticky.png) | ![Sticky note gelap](docs/screenshots/sticky-gelap.png) |
 
 | Catatan cepat | Widget mini |
 |---|---|

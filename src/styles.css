@@ -264,3 +264,23 @@ select.field { padding-right: 28px; }
   .cal-side { width: 290px; }
   .notes-list { width: 240px; }
 }
+
+/* ---------- sticky note window ---------- */
+.sticky { height: 100vh; display: flex; flex-direction: column; background: var(--st-body); color: var(--text); position: relative; overflow: hidden; border: 1px solid rgba(0,0,0,.12); }
+.sticky-head { height: 40px; flex: none; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: var(--st-head); color: #1a1a1a; }
+.sticky-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; opacity: .7; padding: 0 6px; }
+.sticky-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 6px; border: 0; border-radius: 8px; background: transparent; color: inherit; font-size: 15px; }
+.sticky-btn:hover { background: rgba(0,0,0,.1); }
+.dark .sticky-tools .sticky-btn:hover { background: rgba(255,255,255,.1); }
+.sticky-btn.on { background: rgba(0,0,0,.16); }
+.dark .sticky-tools .sticky-btn.on { background: rgba(255,255,255,.16); }
+.sticky-body { flex: 1; overflow: auto; }
+.sticky-body .ProseMirror { padding: 12px 16px; min-height: 100%; font-size: 15px; line-height: 1.55; }
+.sticky-tools { flex: none; display: flex; gap: 2px; padding: 6px 8px; border-top: 1px solid rgba(127,127,127,.25); color: var(--muted); }
+.sticky-menu { position: absolute; top: 40px; left: 0; right: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 10px; display: flex; flex-direction: column; gap: 2px; }
+.sticky-colors { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding-bottom: 8px; }
+.sticky-swatch { height: 30px; border: 0; border-radius: 8px; }
+.sticky-swatch.on { box-shadow: inset 0 0 0 2px var(--text); }
+.sticky-item { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text); text-align: left; font-size: 13.5px; }
+.sticky-item:hover { background: var(--surface2); }
+.sticky-item.danger { color: var(--neg); }

@@ -19,7 +19,7 @@ export const SCHEMA = {
   day_notes: { id: 'text', text: 'text' },
   reminder_log: { id: 'text', status: 'text', fired_at: 'text', snooze_until: 'text' },
   tasks: { id: 'text', title: 'text', notes: 'text', due_date: 'text', due_time: 'text', tag: 'text', priority: 'int', done: 'int', done_at: 'text', reminder_min: 'int', sort: 'int' },
-  notes: { id: 'text', title: 'text', content: 'text', plain: 'text', ink: 'text', tag: 'text', pinned: 'int', page_h: 'int' },
+  notes: { id: 'text', title: 'text', content: 'text', plain: 'text', ink: 'text', tag: 'text', pinned: 'int', page_h: 'int', sticky: 'int', sticky_color: 'text', sticky_top: 'int', sticky_bounds: 'text' },
   note_templates: { id: 'text', name: 'text', content: 'text' },
   fin_categories: { id: 'text', name: 'text', kind: 'text', budget: 'int', sort: 'int', archived: 'int' },
   fin_tx: { id: 'text', date: 'text', description: 'text', category_id: 'text', kind: 'text', amount: 'int', note: 'text' },
