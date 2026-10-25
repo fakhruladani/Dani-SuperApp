@@ -1,0 +1,109 @@
+{
+  "name": "dani-superapp",
+  "version": "1.0.0",
+  "description": "Dani SuperApp",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5199 && cross-env VITE_DEV_SERVER_URL=http://localhost:5199 electron .\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "vite build && electron-builder --win nsis --x64"
+  },
+  "author": "Dani",
+  "type": "module",
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.11.2",
+    "iconv-lite": "^0.7.3",
+    "sql.js": "^1.15.1"
+  },
+  "devDependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@fontsource/caveat": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/lora": "^5.3.0",
+    "@fullcalendar/core": "^6.1.22",
+    "@fullcalendar/daygrid": "^6.1.22",
+    "@fullcalendar/interaction": "^6.1.22",
+    "@fullcalendar/list": "^6.1.22",
+    "@fullcalendar/react": "^6.1.22",
+    "@fullcalendar/timegrid": "^6.1.22",
+    "@tiptap/core": "^2.27.3",
+    "@tiptap/extension-color": "^2.27.3",
+    "@tiptap/extension-font-family": "^2.27.3",
+    "@tiptap/extension-highlight": "^2.27.3",
+    "@tiptap/extension-link": "^2.27.3",
+    "@tiptap/extension-placeholder": "^2.27.3",
+    "@tiptap/extension-task-item": "^2.27.3",
+    "@tiptap/extension-task-list": "^2.27.3",
+    "@tiptap/extension-text-align": "^2.27.3",
+    "@tiptap/extension-text-style": "^2.27.3",
+    "@tiptap/extension-underline": "^2.27.3",
+    "@tiptap/pm": "^2.27.3",
+    "@tiptap/react": "^2.27.3",
+    "@tiptap/starter-kit": "^2.27.3",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "date-fns": "^4.4.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "lightweight-charts": "^5.2.1",
+    "perfect-freehand": "^1.2.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-is": "^19.3.1",
+    "recharts": "^3.10.1",
+    "vite": "^8.3.5",
+    "wait-on": "^9.5.1"
+  },
+  "productName": "Dani SuperApp",
+  "build": {
+    "appId": "id.dani.superapp",
+    "productName": "Dani SuperApp",
+    "copyright": "Dani",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron/**",
+      "shared/**",
+      "dist/**",
+      "assets/**",
+      "package.json"
+    ],
+    "asarUnpack": [],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dani SuperApp",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Dani-SuperApp-Setup-${version}.exe"
+    },
+    "electronLanguages": [
+      "id",
+      "en-US"
+    ],
+    "publish": null
+  }
+}
