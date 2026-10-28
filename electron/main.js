@@ -8,6 +8,7 @@ import * as db from './db.js';
 import * as svc from './services.js';
 import * as sched from './scheduler.js';
 import * as io from './io.js';
+import * as state from './state.js';
 import { stickyColor } from '../shared/sticky.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -74,15 +75,16 @@ function createMain() {
   });
   hardenWindow(mainWin);
   load(mainWin);
-  mainWin.once('ready-to-show', () => { if (!startHidden) { mainWin.show(); } });
+  mainWin.once('ready-to-show', () => mainWin?.show());
   mainWin.on('close', (e) => {
     if (!quitting && db.getSetting('closeToTray', true)) { e.preventDefault(); mainWin.hide(); }
   });
   mainWin.on('closed', () => { mainWin = null; });
 }
 
+let pendingNav = null; // navigation for a window that is still starting up
 function showMain(nav) {
-  if (!mainWin) createMain();
+  if (!mainWin) { createMain(); pendingNav = nav || null; return; } // shown on ready-to-show, avoids a blank flash
   if (mainWin.isMinimized()) mainWin.restore();
   mainWin.show(); mainWin.focus();
   if (nav) {
@@ -391,6 +393,7 @@ h('sticky:setColor', (e, color) => {
 h('win:hideSelf', (e) => { BrowserWindow.fromWebContents(e.sender)?.hide(); });
 h('win:closeSelf', (e) => { BrowserWindow.fromWebContents(e.sender)?.close(); });
 h('win:show', (nav) => showMain(nav));
+h('nav:pending', () => { const n = pendingNav; pendingNav = null; return n; });
 h('theme:get', () => ({ dark: effectiveDark(), setting: db.getSetting('theme', 'system') }));
 h('app:info', () => ({ version: app.getVersion(), packaged: app.isPackaged, dataDir: app.getPath('userData'), encrypted: safeStorage.isEncryptionAvailable(), backupDir: backupDir() }));
 
@@ -407,7 +410,7 @@ function registerIpc() {
 // ---------------- lifecycle ----------------
 app.on('second-instance', () => showMain());
 app.on('before-quit', () => { quitting = true; });
-app.on('will-quit', () => { globalShortcut.unregisterAll(); sched.stop(); db.closeDb(); });
+app.on('will-quit', () => { globalShortcut.unregisterAll(); sched.stop(); try { state.save(); } catch { /* ignore */ } db.closeDb(); });
 app.on('window-all-closed', () => { /* stay in tray */ });
 
 app.whenReady().then(async () => {
@@ -415,6 +418,7 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(perm === 'geolocation' || perm === 'notifications'));
   const hadData = fs.existsSync(path.join(app.getPath('userData'), 'data.db.enc'));
   await db.openDb({ dir: app.getPath('userData'), keyStore, wasmPath: require.resolve('sql.js/dist/sql-wasm.wasm') });
+  state.open(app.getPath('userData'));
   // data lives in %APPDATA% and survives updates; still keep a backup from before each version change
   if (db.getSetting('app.version') !== app.getVersion()) {
     if (hadData) { try { backupNow(`-sebelum-v${app.getVersion()}`); } catch (e) { console.error('[backup]', e); } }
@@ -423,7 +427,8 @@ app.whenReady().then(async () => {
   db.onChange((tables) => broadcast('db:changed', tables));
   registerIpc();
   applyTheme();
-  createMain();
+  // started by Windows in the tray: create the window only when it is opened (saves RAM at boot)
+  if (!startHidden) createMain();
   createTray();
   applyAutostart();
   applyShortcut();

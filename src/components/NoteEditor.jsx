@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -42,6 +42,9 @@ const PEN_COLORS = ['#E11D48', '#2459D6', '#0F766E', '#F59E0B', '#7C3AED', '#141
 const PAGE_W = 820;
 const MIN_H = 1100;
 
+const pathCache = new WeakMap();
+const cachedPath = (s) => { let d = pathCache.get(s); if (d === undefined) { d = strokePath(s); pathCache.set(s, d); } return d; };
+
 function strokePath(s) {
   const pts = getStroke(s.points, {
     size: s.tool === 'hl' ? s.size * 4 : s.size * 2.2, thinning: s.tool === 'hl' ? 0 : 0.55, smoothing: 0.6, streamline: 0.45,
@@ -53,7 +56,7 @@ function strokePath(s) {
   return d.join(' ');
 }
 
-function InkLayer({ tool, color, size, strokes, setStrokes, height }) {
+const InkLayer = memo(function InkLayer({ tool, color, size, strokes, setStrokes, height }) {
   const ref = useRef();
   const cur = useRef(null);
   const [, force] = useState(0);
@@ -86,14 +89,14 @@ function InkLayer({ tool, color, size, strokes, setStrokes, height }) {
     cur.current = null;
     force((x) => x + 1);
   };
-  const all = cur.current && !cur.current.erasing ? [...strokes, cur.current] : strokes;
   return (
     <svg ref={ref} className={`ink-layer ${tool === 'type' ? 'passive' : tool === 'erase' ? 'erase' : 'pen'}`} viewBox={`0 0 ${PAGE_W} ${height}`} preserveAspectRatio="none"
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-label="Lapisan coretan pena" role="img">
-      {all.map((s, i) => <path key={i} d={strokePath(s)} fill={s.color} opacity={s.tool === 'hl' ? 0.35 : 1} />)}
+      {strokes.map((s, i) => <path key={i} d={cachedPath(s)} fill={s.color} opacity={s.tool === 'hl' ? 0.35 : 1} />)}
+      {cur.current && !cur.current.erasing && <path d={strokePath(cur.current)} fill={cur.current.color} opacity={cur.current.tool === 'hl' ? 0.35 : 1} />}
     </svg>
   );
-}
+});
 
 // Shared by the main editor and floating sticky notes, so both keep the same formatting.
 export function noteExtensions(placeholder) {
@@ -103,6 +106,30 @@ export function noteExtensions(placeholder) {
     TextAlign.configure({ types: ['heading', 'paragraph'] }), Link.configure({ openOnClick: false, autolink: true }),
     Placeholder.configure({ placeholder })
   ];
+}
+
+// Compact color picker: one toolbar button, swatches in a small popover.
+function ColorMenu({ label, colors, current, onPick, square, children }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (ev) => { if (!ref.current?.contains(ev.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const pick = (c) => { onPick(c); setOpen(false); };
+  return (
+    <span ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
+      <button className={`icb sm ${open ? 'on' : ''}`} aria-label={label} title={label} aria-expanded={open} onMouseDown={(ev) => ev.preventDefault()} onClick={() => setOpen(!open)}>{children}<Icon name="down" size="sm" style={{ width: 12, height: 12, marginLeft: 2 }} /></button>
+      {open && (
+        <span className="card" role="menu" style={{ position: 'absolute', top: 36, left: 0, zIndex: 20, padding: 8, display: 'flex', gap: 2, boxShadow: 'var(--shadow-lg)' }}>
+          {colors.map((c) => <button key={c} role="menuitemradio" aria-checked={current === c} className={`sw ${current === c ? 'on' : ''}`} aria-label={label + ' ' + c} onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(c)}><i style={{ background: c, width: 16, height: 16, borderRadius: square ? 3 : '50%' }} /></button>)}
+          <button className="icb sm" aria-label={'Hapus ' + label.toLowerCase()} title="Hapus" onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(null)}><Icon name="x" size="sm" /></button>
+        </span>
+      )}
+    </span>
+  );
 }
 
 export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoom, setZoom }) {
@@ -158,7 +185,8 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
     try { editor.commands.setContent(JSON.parse(note.content), false); lastContent.current = note.content; latest.current.json = editor.getJSON(); latest.current.plain = editor.getText(); } catch { /* ignore bad json */ }
   }, [note.content, editor]);
 
-  const setStrokes = (s) => { setHistory((h) => [...h.slice(-49), strokes]); setStrokesState(s); queue({ strokes: s }); };
+  const strokesRef = useRef(strokes); strokesRef.current = strokes;
+  const setStrokes = useCallback((s) => { setHistory((h) => [...h.slice(-49), strokesRef.current]); setStrokesState(s); queue({ strokes: s }); }, [queue]);
   const undoInk = () => { if (!history.length) return; const prev = history[history.length - 1]; setHistory(history.slice(0, -1)); setStrokesState(prev); queue({ strokes: prev }); };
 
   useLayoutEffect(() => {
@@ -180,7 +208,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
     return () => window.removeEventListener('keydown', k);
   });
 
-  const inkBottom = strokes.reduce((m, s) => Math.max(m, ...s.points.map((p) => p[1])), 0);
+  const inkBottom = useMemo(() => strokes.reduce((m, s) => s.points.reduce((mm, p) => (p[1] > mm ? p[1] : mm), m), 0), [strokes]);
   const pageH = Math.max(contentH, inkBottom + 300, MIN_H);
   if (!editor) return null;
   const e = editor;
@@ -220,14 +248,12 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
         <B label="Coret / strikethrough (Ctrl+Shift+S)" text="S" style={{ textDecoration: 'line-through' }} on={e.isActive('strike')} run={() => e.chain().focus().toggleStrike().run()} />
         <B label="Kode" text="</>" style={{ fontFamily: 'JetBrains Mono', fontSize: 11 }} on={e.isActive('code')} run={() => e.chain().focus().toggleCode().run()} />
         <span className="sep" />
-        <span className="row" style={{ gap: 0 }} role="group" aria-label="Warna teks">
-          {TEXT_COLORS.map((c) => <button key={c} className={`sw ${ts.color === c ? 'on' : ''}`} aria-label={'Warna teks ' + c} title="Warna teks" onMouseDown={(ev) => ev.preventDefault()} onClick={() => e.chain().focus().setColor(c).run()}><i style={{ background: c, width: 14, height: 14 }} /></button>)}
-          <B label="Hapus warna" icon="x" run={() => e.chain().focus().unsetColor().run()} />
-        </span>
-        <span className="sep" />
-        <span className="row" style={{ gap: 0 }} role="group" aria-label="Stabilo teks">
-          {HL_COLORS.map((c) => <button key={c} className={`sw ${e.isActive('highlight', { color: c }) ? 'on' : ''}`} aria-label={'Stabilo ' + c} title="Stabilo teks" onMouseDown={(ev) => ev.preventDefault()} onClick={() => e.chain().focus().toggleHighlight({ color: c }).run()}><i style={{ background: c, width: 14, height: 14, borderRadius: 3 }} /></button>)}
-        </span>
+        <ColorMenu label="Warna teks" colors={TEXT_COLORS} current={ts.color} onPick={(c) => (c ? e.chain().focus().setColor(c).run() : e.chain().focus().unsetColor().run())}>
+          <span style={{ fontWeight: 800, fontSize: 14, lineHeight: 1, borderBottom: `3px solid ${ts.color || 'currentColor'}`, padding: '0 2px' }}>A</span>
+        </ColorMenu>
+        <ColorMenu label="Stabilo teks" colors={HL_COLORS} current={e.getAttributes('highlight').color} square onPick={(c) => (c ? e.chain().focus().setHighlight({ color: c }).run() : e.chain().focus().unsetHighlight().run())}>
+          <Icon name="hl" size="sm" />
+        </ColorMenu>
         <span className="sep" />
         <B label="Daftar berpoin" icon="list" on={e.isActive('bulletList')} run={() => e.chain().focus().toggleBulletList().run()} />
         <B label="Daftar bernomor" icon="olist" on={e.isActive('orderedList')} run={() => e.chain().focus().toggleOrderedList().run()} />

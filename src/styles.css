@@ -64,7 +64,7 @@ a { color: var(--accent-text); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar { height: 64px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 152px 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); -webkit-app-region: drag; }
 .topbar > * { -webkit-app-region: no-drag; }
-.topbar .title { -webkit-app-region: drag; display: flex; flex-direction: column; margin-right: auto; }
+.topbar .title { -webkit-app-region: drag; display: flex; flex-direction: column; margin-right: auto; min-width: 0; flex: 0 1 auto; }
 .searchbox { flex: 0 1 360px; min-width: 180px; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 40px; border-radius: 10px; background: var(--surface2); color: var(--muted); border: 0; text-align: left; }
 .content { flex: 1; overflow: auto; }
 .page { padding: 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1480px; }

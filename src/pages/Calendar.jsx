@@ -200,7 +200,7 @@ export default function Calendar() {
             eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             scrollTime={`${pad(Math.max(0, now.getHours() - 1))}:00:00`}
             events={fcEvents}
-            datesSet={(i) => { setRange({ start: i.start, end: i.end }); setTitle(i.view.title); }}
+            datesSet={(i) => { setRange({ start: i.start, end: i.end }); setTitle(i.view.title); if (i.view.type === 'timeGridDay') setSel(toLocalDate(i.start)); }}
             dayCellClassNames={(arg) => { const k = toLocalDate(arg.date); const c = []; if (k === sel) c.push('sel'); if (holByDate[k]?.some((h) => !h.observance)) c.push('holiday'); return c; }}
             dateClick={(i) => { const d = toLocalDate(i.date); if (d === sel && i.allDay && i.view.type === 'dayGridMonth') openNew(d, null, null, false); setSel(d); }}
             select={(i) => { if (i.view.type === 'dayGridMonth') { const days = Math.round((i.end - i.start) / 86400000); if (days > 1) setModal({ start: toLocalDate(i.start), end: toLocalDate(addDays(i.end, -1)), all_day: 1, calendar_id: cals.data?.[0]?.id }); return; } if (i.allDay) return; openNew(toLocalDate(i.start), toLocalDateTime(i.start).slice(11), toLocalDateTime(i.end).slice(11)); }}
@@ -252,7 +252,7 @@ export default function Calendar() {
               <label className="sr" htmlFor="q-time">Jam</label>
               <input id="q-time" type="time" className="field" value={quick.time} onChange={(e) => setQuick({ ...quick, time: e.target.value })} style={{ width: 118, flex: 'none' }} />
               <label className="sr" htmlFor="q-rem">Pengingat</label>
-              <select id="q-rem" className="field grow" value={quick.rem} onChange={(e) => setQuick({ ...quick, rem: e.target.value })}>{REMINDERS.slice(1, 8).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+              <select id="q-rem" className="field grow" value={quick.rem} onChange={(e) => setQuick({ ...quick, rem: e.target.value })}>{REMINDERS.slice(1, 8).map(([v, l]) => <option key={v} value={v}>{v === 0 ? 'Saat mulai' : l.replace(' sebelum', '').replace('menit', 'mnt') + ' sblm'}</option>)}</select>
             </div>
             <button className="btn pri" onClick={addQuick}><Icon name="bell" size="sm" />Simpan pengingat</button>
             <span className="mut" style={{ fontSize: 12 }}>Notifikasi Windows muncul sesuai pengingat. Jika laptop mati/tidur saat jadwal, pengingat muncul begitu laptop menyala.</span>

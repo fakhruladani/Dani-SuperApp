@@ -6,11 +6,12 @@ import { MONTH_ID, parseLocal, pad } from '../shared/recur.js';
 import { wealthSummary } from '../shared/wealth.js';
 
 const require = createRequire(import.meta.url);
-const ExcelJS = require('exceljs');
+let ExcelJS = null; // loaded on first export
 
 const catName = () => Object.fromEntries(db.list('fin_categories').map((c) => [c.id, c.name]));
 
 export async function exportFinanceXlsx(year, filePath) {
+  ExcelJS ||= require('exceljs');
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Dani SuperApp';
   const names = catName();

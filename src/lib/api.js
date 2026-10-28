@@ -68,5 +68,6 @@ export const useApp = () => useContext(AppCtx);
 export function themeColors() {
   const cs = getComputedStyle(document.documentElement);
   const g = (n) => cs.getPropertyValue('--' + n).trim();
-  return { pos: g('pos'), neg: g('neg'), accent: g('accent'), text: g('text'), muted: g('muted'), border: g('border'), surface: g('surface'), surface2: g('surface2'), bg: g('bg'), c: [g('c1'), g('c2'), g('c3'), g('c4'), g('c6'), g('c7'), g('c8'), g('c5')] };
+  // c: chart/category colors, ordered so neighbouring entries contrast
+  return { pos: g('pos'), neg: g('neg'), accent: g('accent'), text: g('text'), muted: g('muted'), border: g('border'), surface: g('surface'), surface2: g('surface2'), bg: g('bg'), c: [g('c1'), g('c4'), g('c3'), g('c2'), g('c7'), g('c6'), g('c8'), g('c5')] };
 }

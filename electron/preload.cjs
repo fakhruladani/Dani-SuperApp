@@ -1,7 +1,7 @@
 // Minimal, whitelisted bridge between the sandboxed renderer and the main process.
 const { contextBridge, ipcRenderer } = require('electron');
 
-const EVENTS = ['db:changed', 'reminder:fire', 'clock:tick', 'nav', 'theme:changed', 'power:resume', 'power:lock', 'quick:shown'];
+const EVENTS = ['db:changed', 'reminder:fire', 'nav', 'theme:changed', 'power:resume', 'power:lock', 'quick:shown'];
 
 contextBridge.exposeInMainWorld('dsa', {
   invoke: (name, ...args) => ipcRenderer.invoke('invoke', name, ...args),

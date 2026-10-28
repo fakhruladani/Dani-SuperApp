@@ -47,7 +47,7 @@ let changeListener = () => {};
 export const uid = () => crypto.randomUUID();
 const nowIso = () => new Date().toISOString();
 
-function encrypt(buf, k = key) {
+export function encrypt(buf, k = key) {
   const iv = crypto.randomBytes(12);
   const c = crypto.createCipheriv('aes-256-gcm', k, iv);
   const enc = Buffer.concat([c.update(buf), c.final()]);
@@ -91,6 +91,7 @@ function migrate() {
   }
   db.run('CREATE INDEX IF NOT EXISTS ix_tx_date ON fin_tx(date)');
   db.run('CREATE INDEX IF NOT EXISTS ix_hlog ON habit_logs(habit_id, date)');
+  db.run("DELETE FROM reminder_log WHERE status != 'snoozed' AND fired_at < ?", [new Date(Date.now() - 90 * 86400000).toISOString()]);
   seed();
 }
 

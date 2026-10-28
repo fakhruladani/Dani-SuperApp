@@ -4,7 +4,7 @@ import CommandPalette from './components/CommandPalette.jsx';
 import LockScreen from './components/LockScreen.jsx';
 import { Modal } from './components/ui.jsx';
 import { api, on, AppCtx, useNow, DB, useQuery } from './lib/api.js';
-import { useFocusTimer, mmss } from './lib/focus.js';
+import { useFocusTimer, useFocusLeft, mmss } from './lib/focus.js';
 import { fmtDateLong, pad, toLocalDate, expandAll } from '../shared/recur.js';
 import Home from './pages/Home.jsx';
 
@@ -38,7 +38,7 @@ export default function App() {
   const [confirmState, setConfirmState] = useState(null);
   const [pinSet, setPinSet] = useState(false);
   const [locked, setLocked] = useState(false);
-  const now = useNow(1000);
+  const now = useNow(60000); // minute resolution: the seconds clock lives in <Clock/> only
   const focus = useFocusTimer(settings);
   const lastActive = useRef(Date.now());
 
@@ -48,6 +48,7 @@ export default function App() {
     api('theme:get').then((t) => setDark(t.dark));
     api('pin:status').then((s) => { setPinSet(s.set); if (s.set) setLocked(true); });
     api('reminder:pending').then((list) => list.forEach((p) => pushToast({ kind: 'reminder', ...p })));
+    api('nav:pending').then((p) => { if (p?.nav) nav(p.nav, p); else if (p?.reminder) nav('cal', { date: p.date }); });
     const offs = [
       on('theme:changed', (t) => setDark(t.dark)),
       on('db:changed', (t) => { if (t.includes('settings')) { loadSettings(); api('pin:status').then((s) => setPinSet(s.set)); } }),
@@ -132,15 +133,7 @@ export default function App() {
             ))}
           </div>
           <div className="col" style={{ marginTop: 'auto', gap: 8 }}>
-            {(focus.running || focus.left < focus.total) && (
-              <button className="card" onClick={() => nav('focus')} style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10, boxShadow: 'none', background: 'var(--accent-soft)', borderColor: 'transparent', color: 'var(--accent-text)', textAlign: 'left' }}>
-                <Icon name="timer" />
-                <span className="col grow" style={{ gap: 0 }}>
-                  <span style={{ fontWeight: 800 }} className="num">{mmss(focus.left)}</span>
-                  <span style={{ fontSize: 12 }}>{focus.phase === 'focus' ? 'Sesi fokus' : 'Istirahat'}{focus.running ? '' : ' · dijeda'}</span>
-                </span>
-              </button>
-            )}
+            {(focus.running || focus.left < focus.total) && <FocusMini focus={focus} onClick={() => nav('focus')} />}
             <button className={`nav ${page === 'settings' ? 'on' : ''}`} onClick={() => nav('settings')}><Icon name="gear" /><span>Pengaturan</span></button>
             <div className="row" style={{ gap: 6 }}>
               <button className="btn grow" onClick={toggleTheme} title="Ganti tema">
@@ -155,7 +148,7 @@ export default function App() {
           <header className="topbar">
             <div className="title">
               <span style={{ fontWeight: 800, fontSize: 19 }}>{TITLES[page]}</span>
-              <span className="mut num" style={{ fontSize: 12.5 }}>{fmtDateLong(now)} · {pad(now.getHours())}.{pad(now.getMinutes())}.{pad(now.getSeconds())}</span>
+              <Clock />
             </div>
             <button className="searchbox" onClick={() => setPalette(true)}>
               <Icon name="search" size="sm" />
@@ -213,5 +206,24 @@ export default function App() {
       )}
       {locked && <LockScreen onUnlock={() => { setLocked(false); lastActive.current = Date.now(); }} />}
     </AppCtx.Provider>
+  );
+}
+
+// Seconds clock in its own component, so only this text re-renders every second.
+function Clock() {
+  const now = useNow(1000);
+  return <span className="mut num ellipsis" style={{ fontSize: 12.5 }}>{fmtDateLong(now)} · {pad(now.getHours())}.{pad(now.getMinutes())}.{pad(now.getSeconds())}</span>;
+}
+
+function FocusMini({ focus, onClick }) {
+  const left = useFocusLeft(focus, 1000);
+  return (
+    <button className="card" onClick={onClick} style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10, boxShadow: 'none', background: 'var(--accent-soft)', borderColor: 'transparent', color: 'var(--accent-text)', textAlign: 'left' }}>
+      <Icon name="timer" />
+      <span className="col grow" style={{ gap: 0 }}>
+        <span style={{ fontWeight: 800 }} className="num">{mmss(left)}</span>
+        <span style={{ fontSize: 12 }}>{focus.phase === 'focus' ? 'Sesi fokus' : 'Istirahat'}{focus.running ? '' : ' · dijeda'}</span>
+      </span>
+    </button>
   );
 }

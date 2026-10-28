@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Field, ColorPick } from '../components/ui.jsx';
 import { DB, useApp, useNow, useQuery, themeColors } from '../lib/api.js';
-import { mmss } from '../lib/focus.js';
+import { mmss, useFocusLeft } from '../lib/focus.js';
 import { toLocalDate, addDays, parseQuickTask, DOW_ID, parseLocal } from '../../shared/recur.js';
 
 const PRIO = ['Rendah', 'Sedang', 'Tinggi'];
@@ -41,8 +41,9 @@ function TaskModal({ task, onClose }) {
 function Pomodoro() {
   const app = useApp();
   const f = app.focus;
+  const left = useFocusLeft(f);
   const R = 92, C = 2 * Math.PI * R;
-  const prog = 1 - f.left / f.total;
+  const prog = 1 - left / f.total;
   return (
     <section className="card pad col" style={{ flex: '1 1 330px', alignItems: 'center', gap: 16 }}>
       <Seg label="Mode" value={f.phase} onChange={f.setPhase} options={[{ value: 'focus', label: `Fokus ${app.settings.focusMin || 25}` }, { value: 'short', label: `Istirahat ${app.settings.shortMin || 5}` }, { value: 'long', label: `Panjang ${app.settings.longMin || 15}` }]} />
@@ -52,14 +53,14 @@ function Pomodoro() {
           <circle cx="105" cy="105" r={R} style={{ fill: 'none', stroke: f.phase === 'focus' ? 'var(--accent)' : 'var(--pos)', strokeWidth: 12, strokeLinecap: 'round', strokeDasharray: C, strokeDashoffset: C * (1 - prog), transition: 'stroke-dashoffset .3s linear' }} />
         </svg>
         <div className="col" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <span className="num" style={{ fontSize: 46, fontWeight: 800 }}>{mmss(f.left)}</span>
+          <span className="num" style={{ fontSize: 46, fontWeight: 800 }}>{mmss(left)}</span>
           <span className="mut" style={{ fontSize: 13 }}>{f.phase === 'focus' ? `Sesi ke-${f.count + 1}` : 'Istirahat'}</span>
         </div>
       </div>
       <label className="sr" htmlFor="pomo-l">Sedang mengerjakan</label>
       <input id="pomo-l" className="field" placeholder="Sedang mengerjakan apa?" value={f.label} onChange={(e) => f.setLabel(e.target.value)} style={{ textAlign: 'center', maxWidth: 280 }} />
       <div className="row">
-        <button className="btn pri" onClick={f.running ? f.pause : f.start} style={{ minWidth: 120 }}><Icon name={f.running ? 'pause' : 'play'} size="sm" />{f.running ? 'Jeda' : f.left < f.total ? 'Lanjut' : 'Mulai'}</button>
+        <button className="btn pri" onClick={f.running ? f.pause : f.start} style={{ minWidth: 120 }}><Icon name={f.running ? 'pause' : 'play'} size="sm" />{f.running ? 'Jeda' : left < f.total ? 'Lanjut' : 'Mulai'}</button>
         <button className="btn" onClick={f.reset}>Reset</button>
         <button className="btn ghost" onClick={f.skip} title="Lewati ke fase berikutnya">Lewati</button>
       </div>

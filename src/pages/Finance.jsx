@@ -51,10 +51,10 @@ function TxRow({ tx, cats, onDelete }) {
   return (
     <tr>
       <td style={{ width: 70 }}><input className="cell num" aria-label="Tanggal" value={r.date.slice(8)} onChange={(e) => setR({ ...r, date: r.date.slice(0, 8) + e.target.value.replace(/\D/g, '').slice(0, 2) })} onBlur={(e) => { const d = Math.min(31, Math.max(1, Number(e.target.value) || 1)); commit({ date: r.date.slice(0, 8) + pad(d) }); }} style={{ width: 44 }} /></td>
-      <td><input className="cell" aria-label="Keterangan" value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 200 }} /></td>
+      <td><input className="cell" aria-label="Keterangan" value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} /></td>
       <td><select className="cell" aria-label="Kategori" value={r.category_id || ''} onChange={(e) => commit({ category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
-      <td className="r"><AmountInput className="cell num up" aria-label="Masuk" value={r.kind === 'in' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'in' || v !== r.amount)) { const cat = r.kind !== 'in' ? cats.find((c) => c.kind === 'in')?.id : r.category_id; commit({ kind: 'in', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 130 }} /></td>
-      <td className="r"><AmountInput className="cell num dn" aria-label="Keluar" value={r.kind === 'out' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'out' || v !== r.amount)) { const cat = r.kind !== 'out' ? cats.find((c) => c.kind === 'out')?.id : r.category_id; commit({ kind: 'out', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 130 }} /></td>
+      <td className="r"><AmountInput className="cell num up" aria-label="Masuk" value={r.kind === 'in' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'in' || v !== r.amount)) { const cat = r.kind !== 'in' ? cats.find((c) => c.kind === 'in')?.id : r.category_id; commit({ kind: 'in', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
+      <td className="r"><AmountInput className="cell num dn" aria-label="Keluar" value={r.kind === 'out' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'out' || v !== r.amount)) { const cat = r.kind !== 'out' ? cats.find((c) => c.kind === 'out')?.id : r.category_id; commit({ kind: 'out', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
       <td style={{ width: 44 }}><button className="icb sm" aria-label="Hapus baris" onClick={() => onDelete(tx)}><Icon name="trash" size="sm" /></button></td>
     </tr>
   );
@@ -125,8 +125,8 @@ function Monthly({ year, month, setMonth, cats }) {
                   <td><input className="cell num" aria-label="Tanggal baru" placeholder={isCur ? String(today.getDate()) : '1'} value={nr.day} onChange={(e) => setNr({ ...nr, day: e.target.value.replace(/\D/g, '').slice(0, 2) })} style={{ width: 44 }} /></td>
                   <td><input id="nr-desc" className="cell" aria-label="Keterangan baru" placeholder="+ Ketik transaksi baru…" value={nr.description} onChange={(e) => setNr({ ...nr, description: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addRow()} /></td>
                   <td><select className="cell" aria-label="Kategori baru" value={nr.category_id} onChange={(e) => setNr({ ...nr, category_id: e.target.value })}><option value="">(otomatis)</option>{cats.filter((c) => !c.archived).map((c) => <option key={c.id} value={c.id}>{c.kind === 'in' ? '↑ ' : '↓ '}{c.name}</option>)}</select></td>
-                  <td className="r"><AmountInput className="cell num" aria-label="Masuk baru" placeholder="0" value={nr.inn} onChange={(v) => setNr((x) => ({ ...x, inn: v, out: v ? 0 : x.out }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 130 }} /></td>
-                  <td className="r"><AmountInput className="cell num" aria-label="Keluar baru" placeholder="0" value={nr.out} onChange={(v) => setNr((x) => ({ ...x, out: v, inn: v ? 0 : x.inn }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 130 }} /></td>
+                  <td className="r"><AmountInput className="cell num" aria-label="Masuk baru" placeholder="0" value={nr.inn} onChange={(v) => setNr((x) => ({ ...x, inn: v, out: v ? 0 : x.out }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
+                  <td className="r"><AmountInput className="cell num" aria-label="Keluar baru" placeholder="0" value={nr.out} onChange={(v) => setNr((x) => ({ ...x, out: v, inn: v ? 0 : x.inn }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
                   <td><button className="icb sm" aria-label="Tambah baris" onClick={addRow}><Icon name="plus" size="sm" /></button></td>
                 </tr>
               </tbody>
@@ -463,8 +463,8 @@ export default function Finance() {
         </div>}
         <Seg label="Tampilan keuangan" value={tab} onChange={setTab} options={[{ value: 'month', label: 'Bulanan' }, { value: 'recap', label: 'Rekap tahunan' }, { value: 'cats', label: 'Kategori & anggaran' }, { value: 'wealth', label: 'Total Wealth' }]} />
         <span className="grow" />
-        {tab !== 'wealth' && <button className="btn" onClick={doImport}><Icon name="upload" size="sm" />Impor CSV</button>}
-        {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast('CSV diekspor'))}><Icon name="download" size="sm" />CSV</button>}
+        {tab !== 'wealth' && <button className="btn" onClick={doImport} title="Impor transaksi dari CSV" aria-label="Impor CSV" style={{ padding: '0 10px' }}><Icon name="upload" size="sm" /></button>}
+        {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast('CSV diekspor'))} title="Ekspor transaksi ke CSV" aria-label="Ekspor CSV" style={{ padding: '0 10px' }}><Icon name="download" size="sm" /></button>}
         <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast('Excel diekspor'))}><Icon name="table" size="sm" />Ekspor Excel{tab !== 'wealth' ? ` ${year}` : ''}</button>
         {tab !== 'wealth' && <button className="btn pri" onClick={() => setTxModal({ date: year === now.getFullYear() && month === now.getMonth() + 1 ? toLocalDate(now) : `${year}-${pad(month)}-01` })}><Icon name="plus" size="sm" />Transaksi</button>}
       </div>

@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Dani SuperApp",
   "main": "electron/main.js",
   "scripts": {

@@ -3,6 +3,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import { createRequire } from 'node:module';
 import * as db from './db.js';
+import * as state from './state.js';
 
 const require = createRequire(import.meta.url);
 const iconv = require('iconv-lite');
@@ -26,12 +27,12 @@ function cached(key, ttlMs, fn, { persist = false } = {}) {
   if (hit && Date.now() - hit.t < ttlMs) return Promise.resolve(hit.v);
   return fn().then((v) => {
     mem.set(key, { t: Date.now(), v });
-    if (persist) db.setSetting('cache.' + key, { t: Date.now(), v }, true);
+    if (persist) state.set('cache.' + key, { t: Date.now(), v });
     return v;
   }).catch((e) => {
     // offline fallback: last good value
     if (hit) return { ...hit.v, stale: true };
-    const p = persist ? db.getSetting('cache.' + key) : null;
+    const p = persist ? state.get('cache.' + key) : null;
     if (p) return { ...p.v, stale: true, staleAt: p.t };
     throw e;
   });

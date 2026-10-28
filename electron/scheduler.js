@@ -2,6 +2,7 @@
 // after the laptop was off/asleep, morning brief, price alerts, auto backup.
 // Works on absolute wall-clock times, so sleep/resume and clock changes are safe.
 import * as db from './db.js';
+import * as state from './state.js';
 import * as svc from './services.js';
 import { expandAll, reminderTime, parseLocal, toLocalDate, toLocalDateTime, fmtTime, fmtDateLong } from '../shared/recur.js';
 
@@ -17,7 +18,7 @@ const dnd = () => Date.now() < focusUntil;
 
 export function start(d) {
   deps = d;
-  const saved = db.getSetting('scheduler.lastCheck');
+  const saved = state.get('scheduler.lastCheck');
   // catch up at most 3 days back
   const floor = Date.now() - 3 * 86400000;
   lastTick = saved ? Math.max(new Date(saved).getTime(), floor) : Date.now() - 60000;
@@ -139,8 +140,7 @@ function tick(isCatchUp) {
     maybeBackup(now);
   } catch (e) { console.error('[scheduler]', e); }
   lastTick = now;
-  db.setSetting('scheduler.lastCheck', new Date(now).toISOString(), true);
-  deps.send('clock:tick', now);
+  state.set('scheduler.lastCheck', new Date(now).toISOString());
 }
 
 // ---------------- morning brief ----------------

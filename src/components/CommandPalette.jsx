@@ -32,8 +32,8 @@ export default function CommandPalette({ onClose }) {
   useEffect(() => {
     let alive = true;
     if (q.trim().length < 2) { setRes([]); return undefined; }
-    api('search', q).then((r) => alive && setRes(r));
-    return () => { alive = false; };
+    const t = setTimeout(() => api('search', q).then((r) => alive && setRes(r)), 120); // debounce typing
+    return () => { alive = false; clearTimeout(t); };
   }, [q]);
 
   const cmds = commands.filter((c) => !q || c.title.toLowerCase().includes(q.toLowerCase()));
