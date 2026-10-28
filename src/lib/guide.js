@@ -8,7 +8,7 @@ const GUIDE_ID = [
     id: 'mulai', icon: 'bolt', title: 'Mulai cepat', where: 'Seluruh aplikasi',
     intro: 'Dani SuperApp berjalan di latar belakang sejak Windows menyala. Ikon "D" ada di tray (pojok kanan bawah). Klik ikon itu untuk membuka jendela utama.',
     items: [
-      ['Pindah menu', 'Pakai menu di kiri, atau Ctrl+1 sampai Ctrl+7 sesuai urutan menu.'],
+      ['Pindah menu', 'Pakai menu di kiri, atau Ctrl+1 sampai Ctrl+8 sesuai urutan menu.'],
       ['Cari apa saja', 'Tekan Ctrl+K untuk mencari catatan, acara, tugas, dan transaksi, atau menjalankan perintah seperti "Buat catatan baru".'],
       ['Catatan cepat', 'Tekan Ctrl+Shift+Space dari aplikasi mana pun untuk mencatat tugas, catatan, pengingat, atau transaksi tanpa membuka aplikasi.'],
       ['Widget mini', 'Tombol kotak-kotak di kanan atas membuka widget jam, agenda, dan tugas yang selalu di atas.'],
@@ -55,7 +55,9 @@ const GUIDE_ID = [
       ['Zoom', 'Tombol kaca pembesar di kanan toolbar, atau Ctrl + / Ctrl - / Ctrl 0.'],
       ['Tag & sematkan', 'Klik "+ tambah tag" di atas editor. Sematkan catatan penting dari bagian bawah editor.'],
       ['Jendela mengambang', 'Tombol "Jendela mengambang" di bawah editor menjadikan catatan sticky note di desktop. Di sticky: pilih warna lewat ···, tombol pin untuk selalu di atas, + untuk sticky baru.'],
-      ['Simpan template', 'Buka "Baru dari template", lalu simpan catatan yang terbuka sebagai template.']
+      ['Simpan template', 'Buka "Baru dari template", lalu simpan catatan yang terbuka sebagai template.'],
+      ['Gambar', 'Tempel screenshot dengan Ctrl+V, seret file gambar ke catatan, atau tombol gambar di toolbar. Gambar dikecilkan otomatis dan ikut terenkripsi.'],
+      ['Ekspor PDF / Markdown', 'Tombol Ekspor di bawah editor. PDF menyertakan gambar dan coretan pena. Markdown menyimpan gambar di folder sebelahnya, tanpa coretan pena.']
     ],
     open: { page: 'notes' }
   },
@@ -97,7 +99,20 @@ const GUIDE_ID = [
     open: { page: 'focus' }
   },
   {
-    id: 'clipboard', icon: 'clip', title: 'Riwayat clipboard', where: 'Menu Clipboard (Ctrl+7)',
+    id: 'proyek', icon: 'project', title: 'Proyek', where: 'Menu Proyek (Ctrl+7)',
+    intro: 'Tugas dikelompokkan per tag, lengkap dengan progres, tenggat, dan hitung mundur.',
+    items: [
+      ['Mulai proyek', 'Cukup beri tag saat menulis tugas, misalnya "revisi bab 3 besok #TA". Tag otomatis muncul sebagai proyek.'],
+      ['Nama & tenggat', 'Tombol "Atur proyek" atau "Proyek baru" untuk memberi nama, tenggat, warna, dan catatan. Mengganti tag ikut memindahkan tugasnya.'],
+      ['Hitung mundur', 'H-n menuju tenggat proyek. Kuning bila tinggal 7 hari atau kurang, merah bila hari H atau sudah lewat.'],
+      ['Progres', 'Persentase tugas selesai dari semua tugas bertag itu, plus jumlah tugas yang terlambat.'],
+      ['Tambah tugas', 'Ketik di kolom panel kanan. Tag proyek dipasang otomatis, kata seperti "besok 10.00" tetap dikenali.'],
+      ['Arsip', 'Proyek yang sudah selesai bisa diarsipkan dari Edit proyek agar daftar tetap rapi.']
+    ],
+    open: { page: 'projects' }
+  },
+  {
+    id: 'clipboard', icon: 'clip', title: 'Riwayat clipboard', where: 'Menu Clipboard (Ctrl+8)',
     intro: 'Menyimpan 100 teks terakhir yang disalin. Mati secara default.',
     items: [
       ['Aktifkan', 'Nyalakan saklar di atas halaman. Matikan saat menyalin kata sandi.'],
@@ -115,14 +130,14 @@ const GUIDE_ID = [
       ['PIN', 'Pengaturan → Keamanan: pasang PIN dan kunci otomatis. Ctrl+L mengunci aplikasi.'],
       ['Kunci pemulihan', 'Pengaturan → Keamanan → Tampilkan kunci. Simpan di tempat aman: dibutuhkan untuk memulihkan backup di laptop lain.'],
       ['Backup', 'Pengaturan → Backup & data: backup otomatis harian, ganti folder (misalnya ke OneDrive), dan pulihkan.'],
-      ['Update aplikasi', 'Jalankan installer versi baru tanpa uninstall. Data tetap ada dan backup dibuat otomatis sebelum versi berganti.']
+      ['Update aplikasi', 'Aplikasi mengecek rilis baru di GitHub secara otomatis. Saat siap, klik "Pasang & mulai ulang" di Pengaturan → Umum atau dari menu tray. Data tetap ada dan backup dibuat otomatis sebelum versi berganti.']
     ],
     open: { page: 'settings' }
   }
 ];
 
 const SHORTCUTS_ID = [
-  ['Ctrl+K', 'Cari & perintah'], ['Ctrl+Shift+Space', 'Catatan cepat (dari mana saja)'], ['Ctrl+1 … Ctrl+7', 'Pindah menu'],
+  ['Ctrl+K', 'Cari & perintah'], ['Ctrl+Shift+Space', 'Catatan cepat (dari mana saja)'], ['Ctrl+1 … Ctrl+8', 'Pindah menu'],
   ['Ctrl+,', 'Pengaturan'], ['F1', 'Panduan'], ['Ctrl+L', 'Kunci aplikasi (jika PIN aktif)'],
   ['Ctrl+B / I / U', 'Tebal / miring / garis bawah (catatan)'], ['Ctrl+Shift+S', 'Coret teks (catatan)'],
   ['Ctrl + / - / 0', 'Zoom catatan'], ['Ctrl+Z', 'Batalkan (teks atau coretan pena)'], ['Esc', 'Tutup jendela/dialog']
@@ -130,7 +145,7 @@ const SHORTCUTS_ID = [
 
 // Guided tour: each step opens a page and highlights an element (CSS selector).
 const TOUR_ID = [
-  { page: 'home', sel: '.sidebar', title: 'Menu utama', body: 'Semua modul ada di sini. Pintasan Ctrl+1 sampai Ctrl+7 mengikuti urutan menu.' },
+  { page: 'home', sel: '.sidebar', title: 'Menu utama', body: 'Semua modul ada di sini. Pintasan Ctrl+1 sampai Ctrl+8 mengikuti urutan menu.' },
   { page: 'home', sel: '.searchbox', title: 'Cari & perintah', body: 'Ctrl+K untuk mencari catatan, acara, tugas, transaksi, atau menjalankan perintah.' },
   { page: 'home', sel: '[data-tour="quick"]', title: 'Catatan cepat & widget', body: 'Ikon petir membuka catatan cepat (juga Ctrl+Shift+Space dari mana saja). Ikon kotak membuka widget mini.' },
   { page: 'home', sel: '[data-tour="weather"]', title: 'Beranda', body: 'Cuaca, agenda 7 hari, ringkasan hari ini, tugas, keuangan, pasar, dan berita dalam satu layar.' },
@@ -141,6 +156,7 @@ const TOUR_ID = [
   { page: 'fin', sel: '[data-tour="fin-tabs"]', title: 'Keuangan', body: 'Bulanan, Rekap tahunan, Kategori & anggaran, dan Total Wealth. Tahun bisa diganti di kiri.' },
   { page: 'market', sel: '[data-tour="tickers"]', title: 'Market', body: 'Klik kartu untuk grafik dan alert harga. Tab Berita berisi berita finance dan Indonesia.' },
   { page: 'focus', sel: '[data-tour="pomodoro"]', title: 'Fokus', body: 'Pomodoro dengan mode jangan ganggu. Di sebelahnya: tugas, kebiasaan, dan statistik.' },
+  { page: 'projects', sel: '[data-tour="projects"]', title: 'Proyek', body: 'Tugas per tag (misalnya #TA) dengan progres dan hitung mundur tenggat.' },
   { page: 'guide', sel: '[data-tour="nav-guide"]', title: 'Panduan', body: 'Lupa letak fitur? Buka Panduan di sini atau tekan F1. Tur ini bisa diulang dari halaman Panduan.' }
 ];
 

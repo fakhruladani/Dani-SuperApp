@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Dani SuperApp",
   "main": "electron/main.js",
   "scripts": {
@@ -8,11 +8,12 @@
     "build": "vite build",
     "start": "vite build && electron .",
     "test": "node --test test/*.test.js",
-    "dist": "vite build && electron-builder --win nsis --x64"
+    "dist": "vite build && electron-builder --win nsis --x64 --publish never"
   },
   "author": "A. Fakhrul Adani",
   "type": "module",
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.11.2",
     "iconv-lite": "^0.7.3",
@@ -34,6 +35,7 @@
     "@tiptap/extension-color": "^2.27.3",
     "@tiptap/extension-font-family": "^2.27.3",
     "@tiptap/extension-highlight": "^2.27.3",
+    "@tiptap/extension-image": "^2.27.3",
     "@tiptap/extension-link": "^2.27.3",
     "@tiptap/extension-placeholder": "^2.27.3",
     "@tiptap/extension-task-item": "^2.27.3",
@@ -105,7 +107,14 @@
       "id",
       "en-US"
     ],
-    "publish": null
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "fakhruladani",
+        "repo": "Dani-SuperApp",
+        "releaseType": "release"
+      }
+    ]
   },
   "license": "MIT",
   "repository": {

@@ -1,0 +1,27 @@
+# Push a tag like v0.6.0 -> build the Windows installer on GitHub and publish it as a release.
+# The app's auto-updater (electron-updater) reads latest.yml from the newest release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx vite build
+      - name: Build and publish installer
+        run: npx electron-builder --win nsis --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

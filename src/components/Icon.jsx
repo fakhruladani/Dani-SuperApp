@@ -56,6 +56,8 @@ const P = {
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01',
   key: 'M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7zM16 8h.01',
   folder: 'M3 6h6l2 2h10v11H3z',
+  project: 'M4 8h16v12H4zM9 8V5h6v3M4 13h16',
+  image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01',
   tag: 'M3 12V4h8l10 10-8 8zM7 8h.01',
   flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
   calcheck: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4',

@@ -33,10 +33,14 @@ export const SCHEMA = {
   price_alerts: { id: 'text', symbol: 'text', op: 'text', price: 'real', active: 'int', triggered_at: 'text' },
   news_saved: { id: 'text', title: 'text', link: 'text', source: 'text', pub_date: 'text' },
   clipboard: { id: 'text', text: 'text', pinned: 'int' },
+  // project = metadata for a task tag (tasks.tag); tasks stay linked by tag only
+  projects: { id: 'text', tag: 'text', name: 'text', deadline: 'text', color: 'text', note: 'text', archived: 'int', sort: 'int' },
+  // images pasted into notes, referenced from note content as dsa-img://img/<id>
+  note_images: { id: 'text', note_id: 'text', mime: 'text', data: 'blob' },
   settings: { id: 'text', value: 'text' }
 };
 
-const SQL_TYPE = { text: 'TEXT', int: 'INTEGER', real: 'REAL' };
+const SQL_TYPE = { text: 'TEXT', int: 'INTEGER', real: 'REAL', blob: 'BLOB' };
 
 let SQL = null;
 let db = null;
@@ -304,12 +308,38 @@ export function search(q) {
   for (const r of all(`SELECT id, title, plain FROM notes WHERE title LIKE ? OR plain LIKE ? ORDER BY updated_at DESC LIMIT 8`, [like, like]))
     res.push({ type: 'note', id: r.id, title: r.title || T('Tanpa judul'), sub: (r.plain || '').slice(0, 80) });
   for (const r of all(`SELECT id, title, start FROM events WHERE title LIKE ? OR description LIKE ? ORDER BY start DESC LIMIT 8`, [like, like]))
-    res.push({ type: 'event', id: r.id, title: r.title, sub: String(r.start).replace('T', ' pukul '), date: r.start });
+    res.push({ type: 'event', id: r.id, title: r.title, sub: String(r.start).replace('T', ' ' + T('pukul') + ' '), date: r.start });
   for (const r of all(`SELECT id, title, due_date FROM tasks WHERE title LIKE ? OR notes LIKE ? ORDER BY done, due_date LIMIT 8`, [like, like]))
     res.push({ type: 'task', id: r.id, title: r.title, sub: r.due_date || T('Tanpa tenggat') });
   for (const r of all(`SELECT id, description, date, amount, kind FROM fin_tx WHERE description LIKE ? OR note LIKE ? ORDER BY date DESC LIMIT 8`, [like, like]))
     res.push({ type: 'tx', id: r.id, title: r.description, sub: `${r.date} · ${r.kind === 'in' ? '+' : '−'}Rp ${Number(r.amount).toLocaleString('id-ID')}`, date: r.date });
   return res;
+}
+
+// ---------- note images ----------
+const IMG_MIME = new Set(['image/webp', 'image/png', 'image/jpeg', 'image/gif']);
+export function imagePut(noteId, mime, bytes) {
+  if (!IMG_MIME.has(mime)) throw new Error(T('Format gambar tidak didukung'));
+  const buf = Buffer.from(bytes);
+  if (!buf.length || buf.length > 8 * 1024 * 1024) throw new Error(T('Gambar terlalu besar (maks. 8 MB)'));
+  const id = uid(), ts = nowIso();
+  run('INSERT INTO note_images (id, note_id, mime, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', [id, String(noteId || ''), mime, new Uint8Array(buf), ts, ts]);
+  scheduleSave();
+  return id;
+}
+export function imageGet(id) {
+  const r = all('SELECT mime, data FROM note_images WHERE id = ?', [String(id)])[0];
+  return r ? { mime: r.mime, data: Buffer.from(r.data) } : null;
+}
+/** Deletes images no note or template references any more (run at startup, so undo within a session still works). */
+export function pruneImages() {
+  const ids = all('SELECT id FROM note_images').map((r) => r.id);
+  if (!ids.length) return 0;
+  const text = all('SELECT content FROM notes').concat(all('SELECT content FROM note_templates')).map((r) => r.content || '').join('\n');
+  const dead = ids.filter((id) => !text.includes(id));
+  for (const id of dead) run('DELETE FROM note_images WHERE id = ?', [id]);
+  if (dead.length) scheduleSave();
+  return dead.length;
 }
 
 // ---------- backup / restore ----------

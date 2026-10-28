@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import { Switch, Seg, Field, Modal, Spinner } from '../components/ui.jsx';
-import { api, useApp, useQuery } from '../lib/api.js';
+import { api, on, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 import { T, lang } from '../lib/i18n.js';
 
@@ -11,6 +11,34 @@ function Row({ title, desc, children }) {
       <div className="col grow" style={{ gap: 2, minWidth: 240 }}><strong style={{ fontSize: 14 }}>{title}</strong>{desc && <span className="mut" style={{ fontSize: 13 }}>{desc}</span>}</div>
       <div className="row wrap">{children}</div>
     </div>
+  );
+}
+
+function Updates() {
+  const app = useApp();
+  const [st, setSt] = useState(null);
+  useEffect(() => { api('update:status').then(setSt); return on('update:status', setSt); }, []);
+  if (!st) return null;
+  const text = {
+    dev: T('Mode pengembangan: pembaruan otomatis nonaktif'),
+    idle: T('Belum dicek'),
+    checking: T('Mengecek…'),
+    none: T('Sudah versi terbaru') + (st.checkedAt ? ` · ${T('dicek')} ${timeAgo(st.checkedAt)}` : ''),
+    downloading: T('Mengunduh versi {v}… {p}%', { v: st.version || '', p: st.percent || 0 }),
+    ready: T('Versi {v} siap dipasang', { v: st.version }),
+    error: T('Gagal mengecek: {e}', { e: st.error || '' })
+  }[st.state] || '';
+  return (
+    <Row title={T('Pembaruan aplikasi')} desc={`${T('Versi')} ${st.current} · ${text}`}>
+      {st.state === 'ready' ? (
+        <button className="btn pri" onClick={() => api('update:install')}><Icon name="refresh" size="sm" />{T('Pasang & mulai ulang')}</button>
+      ) : (
+        <button className="btn" disabled={['dev', 'checking', 'downloading'].includes(st.state)} onClick={() => api('update:check').then(setSt)}>
+          <Icon name="refresh" size="sm" className={st.state === 'checking' || st.state === 'downloading' ? 'spin' : ''} />{T('Cek sekarang')}
+        </button>
+      )}
+      <label className="row" style={{ gap: 8, fontSize: 13 }}><Switch on={app.settings.autoUpdate !== false} onChange={(v) => app.setSetting('autoUpdate', v)} label={T('Cek otomatis')} />{T('Cek otomatis')}</label>
+    </Row>
   );
 }
 
@@ -208,6 +236,7 @@ export default function Settings() {
       <Seg label={T("Bagian pengaturan")} value={tab} onChange={setTab} options={[{ value: 'umum', label: T("Umum") }, { value: 'notif', label: T("Pengingat & fokus") }, { value: 'keamanan', label: T("Keamanan") }, { value: 'backup', label: T("Backup & data") }, { value: 'berita', label: T("Berita & market") }]} />
       <section className="card pad">
         {tab === 'umum' && <>
+          <Updates />
           <Row title="Bahasa / Language" desc={T("Semua jendela dimuat ulang saat bahasa diganti.")}><Seg label="Bahasa / Language" value={lang()} onChange={(v) => app.setSetting('lang', v)} options={[{ value: 'id', label: 'Indonesia' }, { value: 'en', label: 'English' }]} /></Row>
           <Row title={T("Tema")} desc={T("Ikuti Windows, atau paksa terang/gelap.")}><Seg label={T("Tema")} value={s.theme || 'system'} onChange={(v) => app.setSetting('theme', v)} options={[{ value: 'system', label: T("Ikuti sistem") }, { value: 'light', label: T("Terang") }, { value: 'dark', label: T("Gelap") }]} /></Row>
           <Row title={T("Jalankan saat Windows menyala")} desc={T("Aplikasi mulai tersembunyi di tray, pengingat langsung aktif.")}><Switch on={s.autostart !== false} onChange={(v) => app.setSetting('autostart', v)} label={T("Auto-start")} /></Row>
@@ -223,7 +252,7 @@ export default function Settings() {
             </select>
           </Row>
           <Row title={T("Pintasan keyboard")} desc={T(
-            "Ctrl+K cari & perintah · Ctrl+1–7 pindah menu · Ctrl+, pengaturan · Ctrl+L kunci · di catatan: Ctrl+B/I/U, Ctrl+Shift+S coret, Ctrl+± zoom"
+            "Ctrl+K cari & perintah · Ctrl+1–8 pindah menu · Ctrl+, pengaturan · Ctrl+L kunci · di catatan: Ctrl+B/I/U, Ctrl+Shift+S coret, Ctrl+± zoom"
           )} />
         </>}
         {tab === 'notif' && <>

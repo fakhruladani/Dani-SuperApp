@@ -13,7 +13,8 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 | **Beranda** | Sapaan, jam real-time, cuaca dan lokasi (per jam dan 6 hari), agenda 7 hari, ringkasan hari ini, tugas, kebiasaan, keuangan bulan ini, pasar, berita terbaru, catatan terbaru. |
 | **Kalender** | Tampilan Hari, Minggu, Bulan, dan Agenda seperti Google Calendar. Tampilan Bulan bisa digulir ke atas dan ke bawah, judul bulan di atas ikut berubah. Garis "sekarang" bergerak mengikuti jam sistem, hari ini berganti otomatis saat tengah malam dan setelah laptop bangun dari sleep. Acara berulang (harian, mingguan, bulanan, tahunan), warna per kalender, drag and drop, deskripsi per tanggal, libur nasional Indonesia, impor dan ekspor `.ics`. |
 | **Pengingat** | Notifikasi Windows dari "saat dimulai" sampai "1 minggu sebelum". Pengingat yang lewat saat laptop mati muncul begitu laptop menyala (maksimal 3 hari ke belakang). Tombol Tunda 10 menit, Lihat, dan Selesai. |
-| **Catatan** | Banyak catatan dengan tag, sematkan, pencarian, dan template. Font, ukuran, judul, tebal, miring, garis bawah, coret, warna teks, stabilo, checklist, perataan, tautan. **Mode pena** untuk mencoret bebas (mendukung tekanan pen tablet), stabilo bebas, penghapus. Zoom 50% sampai 200%. Simpan otomatis. **Jendela mengambang**: catatan bisa dilepas jadi sticky note di desktop, dengan 7 pilihan warna, opsi selalu di atas, dan tetap tersinkron dengan aplikasi. |
+| **Catatan** | Banyak catatan dengan tag, sematkan, pencarian, dan template. Font, ukuran, judul, tebal, miring, garis bawah, coret, warna teks, stabilo, checklist, perataan, tautan. **Mode pena** untuk mencoret bebas (mendukung tekanan pen tablet), stabilo bebas, penghapus. Zoom 50% sampai 200%. Simpan otomatis. **Gambar**: tempel screenshot (Ctrl+V), seret file, atau tombol gambar; dikecilkan otomatis dan ikut terenkripsi. **Ekspor** ke PDF (dengan gambar dan coretan pena) atau Markdown (gambar di folder terpisah). **Jendela mengambang**: catatan bisa dilepas jadi sticky note di desktop, dengan 7 pilihan warna, opsi selalu di atas, dan tetap tersinkron dengan aplikasi. |
+| **Proyek** | Tugas dikelompokkan per tag (misalnya `#TA`) dengan progres, jumlah tugas terlambat, tenggat proyek, dan hitung mundur H-n. Cukup beri tag pada tugas, proyek muncul sendiri. Nama, warna, catatan, dan arsip bisa diatur. |
 | **Keuangan** | Tab bulanan Jan sampai Des seperti workbook Excel, ganti tahun, isi langsung di sel. Kategori masuk dan keluar, anggaran default per kategori plus anggaran khusus per bulan. |
 | **Rekap tahunan** | Grafik arus kas dan saldo kumulatif, perbandingan dengan tahun lalu, tingkat tabungan, tabel per bulan, komposisi per kategori, matriks kategori × bulan. |
 | **Total Wealth** | Lembar kekayaan: tanggal, kategori bebas (cash, saham, kripto, emas, dan lainnya), nama aset, nilai. Total bersih, rincian per kategori, dan tren bulanan dihitung otomatis dari nilai terbaru tiap aset. Utang ditulis negatif. |
@@ -21,6 +22,7 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 | **Market & Berita** | Watchlist IHSG, LQ45, USD/IDR, emas, saham bank, S&P 500, Bitcoin, dan simbol apa pun dari Yahoo Finance. Grafik candle atau garis dengan volume dan MA 20/50. Alert harga lewat notifikasi. Berita dari RSS media Indonesia, bisa ditambah sendiri, dan disimpan untuk dibaca nanti. |
 | **Fokus & Tugas** | Pomodoro dengan mode jangan ganggu, tugas dengan input bahasa alami (`revisi abstrak besok 09.00 #TA !tinggi`), kebiasaan mingguan dengan streak, statistik fokus 7 hari. |
 | **Panduan & tur** | Menu Panduan (F1) berisi semua fitur, letaknya, cara memakainya, dan pintasan keyboard, lengkap dengan pencarian. Tur singkat menyorot tiap bagian aplikasi dan muncul otomatis saat pertama kali dibuka. |
+| **Update otomatis** | Aplikasi mengecek GitHub Releases, mengunduh versi baru di latar belakang, lalu menawarkan "Pasang & mulai ulang" dari Pengaturan atau menu tray. |
 | **Dua bahasa** | Indonesia dan English untuk seluruh tampilan, panduan, tur, notifikasi, menu tray, dan ekspor Excel. Data yang kamu tulis sendiri tidak ikut diterjemahkan. |
 | **Lainnya** | Ctrl+K untuk cari dan perintah, catatan cepat dari mana saja (Ctrl+Shift+Space), widget mini selalu di atas, riwayat clipboard (opsional), ringkasan pagi, kunci PIN, backup otomatis harian. |
 
@@ -56,6 +58,10 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 |---|---|
 | ![Panduan](docs/screenshots/panduan.png) | ![Tur](docs/screenshots/tur.png) |
 
+| Proyek | |
+|---|---|
+| ![Proyek](docs/screenshots/proyek.png) | |
+
 | English: Beranda | English: Keuangan |
 |---|---|
 | ![English Beranda](docs/screenshots/english-beranda.png) | ![English Keuangan](docs/screenshots/english-keuangan.png) |
@@ -76,7 +82,7 @@ Sumber data online: Open-Meteo (cuaca), Open-Meteo Geocoding dan Nominatim (loka
 
 ## Instalasi
 
-1. Build installer (lihat bagian Pengembangan), atau pakai `Dani-SuperApp-Setup-<versi>.exe` yang sudah ada.
+1. Unduh `Dani-SuperApp-Setup-<versi>.exe` dari halaman [Releases](https://github.com/fakhruladani/Dani-SuperApp/releases), atau build sendiri (lihat bagian Pengembangan).
 2. Jalankan installer. Installer belum ditandatangani, jadi Windows SmartScreen bisa menampilkan "Windows protected your PC". Klik **More info**, lalu **Run anyway**.
 3. Aplikasi otomatis berjalan saat Windows menyala dan langsung tersembunyi di tray (ikon "D" di pojok kanan bawah). Bisa dimatikan di Pengaturan.
 
@@ -88,7 +94,9 @@ Agar notifikasi muncul:
 
 ### Update aplikasi
 
-Jalankan installer versi baru langsung, tanpa uninstall. Data tetap ada karena disimpan di `%APPDATA%\Dani SuperApp`, terpisah dari folder program. Setiap kali versi berganti, aplikasi membuat backup otomatis bernama `...-sebelum-v<versi>.dsabak`.
+Mulai v0.6.0 aplikasi memperbarui dirinya sendiri: setiap beberapa jam ia mengecek rilis terbaru di GitHub, mengunduhnya di latar belakang, lalu muncul tombol **Pasang & mulai ulang** di Pengaturan → Umum dan di menu tray. Bisa juga cek manual dari tombol **Cek sekarang**, atau matikan pengecekan otomatis.
+
+Cara manual tetap bisa: jalankan installer versi baru langsung, tanpa uninstall. Data tetap ada karena disimpan di `%APPDATA%\Dani SuperApp`, terpisah dari folder program. Setiap kali versi berganti, aplikasi membuat backup otomatis bernama `...-sebelum-v<versi>.dsabak`.
 
 ---
 
@@ -117,20 +125,27 @@ npm run dev
 |---|---|
 | `npm run dev` | Vite dan Electron dengan hot reload |
 | `npm start` | Build UI lalu jalankan Electron |
-| `npm test` | Unit test backend (pengulangan acara, database, enkripsi, rekap, import/export, Total Wealth) |
-| `npm run dist` | Build installer Windows ke folder `release/` |
+| `npm test` | Unit test backend (pengulangan acara, database, enkripsi, rekap, import/export, Total Wealth, ekspor Markdown) |
+| `npm run dist` | Build installer Windows ke folder `release/` (tanpa publish) |
+
+### Merilis versi baru
+
+1. Naikkan `version` di `package.json`, commit.
+2. Buat dan push tag yang sama, misalnya `git tag v0.6.1 && git push origin main --tags`.
+3. Workflow `.github/workflows/release.yml` membangun installer di Windows lalu menerbitkannya ke GitHub Releases beserta `latest.yml`. Aplikasi yang terpasang akan menemukannya sendiri.
 
 ## Struktur proyek
 
 ```
 electron/   main.js (jendela, tray, IPC), db.js (SQLite terenkripsi), scheduler.js (pengingat, ringkasan, alert, backup),
-            services.js (cuaca, lokasi, market, RSS, libur), io.js (Excel, CSV, ICS), preload.cjs
+            services.js (cuaca, lokasi, market, RSS, libur), io.js (Excel, CSV, ICS), updater.js (update otomatis), preload.cjs
 shared/     recur.js (tanggal, pengulangan, parser tugas), wealth.js (perhitungan Total Wealth), weather.js,
-            i18n.js + lang-en.js (terjemahan: teks Indonesia jadi kunci, kamus English)
+            md.js (catatan ke Markdown), i18n.js + lang-en.js (terjemahan: teks Indonesia jadi kunci, kamus English)
 src/        UI React: App.jsx, pages/*, components/*, lib/*
 test/       unit test (node:test)
 docs/       screenshots
 assets/     ikon aplikasi dan tray
+.github/    workflow rilis (build installer di Windows, terbitkan ke GitHub Releases)
 ```
 
 ## Keamanan & privasi data
@@ -151,7 +166,8 @@ assets/     ikon aplikasi dan tray
 | Lokasi | Mencoba lokasi Windows, lalu perkiraan dari IP yang bisa meleset ke kota lain. Mencari kecamatan secara manual paling akurat. |
 | Libur nasional | Dari kalender publik Google. Tanggal cuti bersama bisa tentatif. |
 | Ukuran | Installer sekitar 130 MB dan aplikasi memakai RAM ratusan MB saat jendela terbuka (Electron). |
-| Tanda tangan | Installer belum ditandatangani, jadi muncul peringatan SmartScreen. |
+| Tanda tangan | Installer belum ditandatangani, jadi muncul peringatan SmartScreen saat instal manual. Update otomatis tidak memeriksa tanda tangan. |
+| Gambar di catatan | Disimpan di database terenkripsi (dikompres WebP, lebar maks. 1600 px). Ratusan gambar besar membuat database dan backup ikut membesar. |
 
 ## Troubleshooting
 

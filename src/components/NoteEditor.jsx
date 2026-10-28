@@ -12,10 +12,13 @@ import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import { Plugin } from '@tiptap/pm/state';
 import { getStroke } from 'perfect-freehand';
 import Icon from './Icon.jsx';
 import { api } from '../lib/api.js';
 import { T } from '../lib/i18n.js';
+import { imageFiles, insertImageFiles } from '../lib/images.js';
 
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -99,13 +102,45 @@ const InkLayer = memo(function InkLayer({ tool, color, size, strokes, setStrokes
   );
 });
 
-// Shared by the main editor and floating sticky notes, so both keep the same formatting.
-export function noteExtensions(placeholder) {
+// Paste (Ctrl+V a screenshot) and drop image files into a note.
+const ImageInput = Extension.create({
+  name: 'imageInput',
+  addOptions() { return { noteId: null, onError: null }; },
+  addProseMirrorPlugins() {
+    const { editor } = this;
+    const { noteId, onError } = this.options;
+    const run = (files, pos) => insertImageFiles(editor, noteId, files, pos).catch((err) => (onError ? onError(err) : console.error(err)));
+    return [new Plugin({
+      props: {
+        handlePaste: (view, event) => {
+          const files = imageFiles(event.clipboardData?.files);
+          if (!files.length || !noteId) return false;
+          event.preventDefault();
+          run(files);
+          return true;
+        },
+        handleDrop: (view, event, slice, moved) => {
+          if (moved || !noteId) return false;
+          const files = imageFiles(event.dataTransfer?.files);
+          if (!files.length) return false;
+          event.preventDefault();
+          run(files, view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos);
+          return true;
+        }
+      }
+    })];
+  }
+});
+
+// Shared by the main editor, floating sticky notes and the PDF print view, so all keep the same formatting.
+export function noteExtensions(placeholder, { noteId = null, onError = null } = {}) {
   return [
     StarterKit.configure({ heading: { levels: [1, 2, 3] } }), Underline, TextStyle, FontFamily, FontSize, Color,
     Highlight.configure({ multicolor: true }), TaskList, TaskItem.configure({ nested: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }), Link.configure({ openOnClick: false, autolink: true }),
-    Placeholder.configure({ placeholder })
+    Placeholder.configure({ placeholder }),
+    Image.configure({ inline: false, allowBase64: false, HTMLAttributes: { class: 'note-img' } }),
+    ImageInput.configure({ noteId, onError })
   ];
 }
 
@@ -133,7 +168,36 @@ function ColorMenu({ label, colors, current, onPick, square, children }) {
   );
 }
 
-export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoom, setZoom }) {
+function ExportMenu({ busy, run }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (ev) => { if (!ref.current?.contains(ev.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const item = (k, label, sub) => (
+    <button role="menuitem" className="menu-item" onClick={() => { setOpen(false); run(k); }}>
+      <strong>{label}</strong><span className="mut" style={{ fontSize: 12 }}>{sub}</span>
+    </button>
+  );
+  return (
+    <span ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
+      <button className="btn sm ghost" aria-haspopup="menu" aria-expanded={open} disabled={!!busy} onClick={() => setOpen(!open)}>
+        <Icon name={busy ? 'refresh' : 'download'} size="sm" className={busy ? 'spin' : ''} />{T('Ekspor')}
+      </button>
+      {open && (
+        <span className="card menu-pop" role="menu" style={{ bottom: 36, right: 0 }}>
+          {item('pdf', 'PDF', T('Dengan gambar dan coretan pena'))}
+          {item('md', 'Markdown (.md)', T('Gambar disimpan di folder terpisah, tanpa coretan pena'))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onError, zoom, setZoom }) {
   const [title, setTitle] = useState(note.title || '');
   const [strokes, setStrokesState] = useState(() => { try { return JSON.parse(note.ink || '[]'); } catch { return []; } });
   const [history, setHistory] = useState([]);
@@ -145,6 +209,8 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
   const [savedAt, setSavedAt] = useState(null);
   const [linkUrl, setLinkUrl] = useState(null);
   const pageRef = useRef();
+  const fileRef = useRef();
+  const [exporting, setExporting] = useState('');
   const saveT = useRef();
   const latest = useRef({});
   const lastContent = useRef(note.content || '');
@@ -152,11 +218,11 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
   const flush = useCallback(() => {
     clearTimeout(saveT.current);
     const l = latest.current;
-    if (!l.dirty) return;
+    if (!l.dirty) return Promise.resolve();
     l.dirty = false;
     lastContent.current = JSON.stringify(l.json);
-    onSave({ id: note.id, title: l.title, content: lastContent.current, plain: l.plain, ink: JSON.stringify(l.strokes) });
     setSavedAt(new Date());
+    return Promise.resolve(onSave({ id: note.id, title: l.title, content: lastContent.current, plain: l.plain, ink: JSON.stringify(l.strokes) }));
   }, [note.id, onSave]);
   const queue = useCallback((patch) => {
     Object.assign(latest.current, patch, { dirty: true });
@@ -166,7 +232,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
   useEffect(() => () => flush(), [flush]);
 
   const editor = useEditor({
-    extensions: noteExtensions(T('Mulai menulis… (pakai mode Pena untuk mencoret bebas)')),
+    extensions: noteExtensions(T('Mulai menulis… (pakai mode Pena untuk mencoret bebas)'), { noteId: note.id, onError: (err) => onError?.(err) }),
     content: (() => { try { return note.content ? JSON.parse(note.content) : ''; } catch { return ''; } })(),
     onCreate: ({ editor: ed }) => { latest.current = { title: note.title || '', json: ed.getJSON(), plain: ed.getText(), strokes, dirty: false }; setWords(ed.getText().split(/\s+/).filter(Boolean).length); },
     onUpdate: ({ editor: ed }) => { const plain = ed.getText(); setWords(plain.split(/\s+/).filter(Boolean).length); queue({ json: ed.getJSON(), plain }); },
@@ -264,6 +330,8 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
         <B label={T("Rata tengah")} icon="alignC" on={e.isActive({ textAlign: 'center' })} run={() => e.chain().focus().setTextAlign('center').run()} />
         <B label={T("Rata kanan")} icon="alignR" on={e.isActive({ textAlign: 'right' })} run={() => e.chain().focus().setTextAlign('right').run()} />
         <B label={T("Garis pemisah")} text="—" run={() => e.chain().focus().setHorizontalRule().run()} />
+        <B label={T("Sisipkan gambar (atau tempel Ctrl+V)")} icon="image" run={() => fileRef.current?.click()} />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden onChange={(ev) => { const files = imageFiles(ev.target.files); ev.target.value = ''; if (files.length) insertImageFiles(e, note.id, files).catch((err) => onError?.(err)); }} />
         <B label={T("Tautan")} icon="link" on={e.isActive('link') || linkUrl != null} run={() => { if (e.isActive('link')) e.chain().focus().unsetLink().run(); else setLinkUrl('https://'); }} />
         {linkUrl != null && (
           <span className="row" style={{ gap: 4 }}>
@@ -310,13 +378,55 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
       </div>
       <div className="row wrap mut" style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 12, gap: 14 }}>
         <span>{savedAt ? T('Tersimpan otomatis') + ' · ' + savedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : T("Tersimpan otomatis")}</span>
-        <span>{words} kata</span>
+        <span>{T('{n} kata', { n: words })}</span>
         <span>{T('{n} coretan', { n: strokes.length })}</span>
         <span className="grow" />
+        <ExportMenu busy={exporting} run={async (k) => { setExporting(k); try { await flush(); await api(k === 'pdf' ? 'note:exportPdf' : 'note:exportMd', note.id); } catch (err) { onError?.(err); } finally { setExporting(''); } }} />
         <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title={T("Buka catatan ini sebagai jendela mengambang (sticky note)")}><Icon name="widget" size="sm" />{T("Jendela mengambang")}</button>
-        <button className="btn sm ghost" onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" />{note.pinned ? T("Lepas sematan") : T("Sematkan")}</button>
-        <button className="btn sm ghost danger" onClick={onDelete}><Icon name="trash" size="sm" />{T("Hapus")}</button>
+        <button className={`icb sm ${note.pinned ? 'on' : ''}`} aria-pressed={!!note.pinned} aria-label={note.pinned ? T("Lepas sematan") : T("Sematkan")} title={note.pinned ? T("Lepas sematan") : T("Sematkan")} onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" /></button>
+        <button className="icb sm danger" aria-label={T("Hapus catatan")} title={T("Hapus catatan")} onClick={onDelete}><Icon name="trash" size="sm" /></button>
       </div>
     </section>
+  );
+}
+
+/** Read-only page used by the hidden PDF window: same layout, fonts, images and pen strokes as the editor. */
+export function NotePrint({ note, onReady }) {
+  const strokes = useMemo(() => { try { return JSON.parse(note.ink || '[]'); } catch { return []; } }, [note.ink]);
+  const pageRef = useRef();
+  const [contentH, setContentH] = useState(0);
+  const editor = useEditor({
+    editable: false,
+    extensions: noteExtensions(''),
+    content: (() => { try { return note.content ? JSON.parse(note.content) : ''; } catch { return ''; } })()
+  });
+  useLayoutEffect(() => {
+    if (!pageRef.current) return undefined;
+    const ro = new ResizeObserver(() => setContentH(pageRef.current.offsetHeight));
+    ro.observe(pageRef.current);
+    return () => ro.disconnect();
+  }, [editor]);
+  useEffect(() => {
+    if (!editor) return;
+    let alive = true;
+    (async () => {
+      await document.fonts.ready;
+      await Promise.all([...document.querySelectorAll('.paper img')].map((im) => (im.complete ? null : new Promise((res) => { im.onload = res; im.onerror = res; }))));
+      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+      if (alive) onReady();
+    })();
+    return () => { alive = false; };
+  }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
+  const inkBottom = strokes.reduce((m, st) => st.points.reduce((mm, p) => (p[1] > mm ? p[1] : mm), m), 0);
+  const pageH = Math.max(contentH + 32, inkBottom + 24);
+  if (!editor) return null;
+  return (
+    <div className="paper print-paper" style={{ width: PAGE_W, minHeight: pageH }}>
+      <div ref={pageRef}>
+        <div className="title-input" style={{ whiteSpace: 'pre-wrap' }}>{note.title || T('Tanpa judul')}</div>
+        <EditorContent editor={editor} />
+      </div>
+      <InkLayer tool="type" color="" size={1} strokes={strokes} setStrokes={() => {}} height={pageH} />
+    </div>
   );
 }

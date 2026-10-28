@@ -13,6 +13,7 @@ const Notes = lazy(() => import('./pages/Notes.jsx'));
 const Finance = lazy(() => import('./pages/Finance.jsx'));
 const Market = lazy(() => import('./pages/Market.jsx'));
 const Focus = lazy(() => import('./pages/Focus.jsx'));
+const Projects = lazy(() => import('./pages/Projects.jsx'));
 const Clipboard = lazy(() => import('./pages/Clipboard.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Guide = lazy(() => import('./pages/Guide.jsx'));
@@ -26,9 +27,10 @@ const NAV = [
   { k: 'fin', label: T("Keuangan"), icon: 'wallet' },
   { k: 'market', label: T("Market & Berita"), icon: 'chart' },
   { k: 'focus', label: T("Fokus & Tugas"), icon: 'timer' },
+  { k: 'projects', label: T("Proyek"), icon: 'project' },
   { k: 'clip', label: T("Clipboard"), icon: 'clip' }
 ];
-const TITLES = { home: T('Beranda'), cal: T('Kalender'), notes: T('Catatan'), fin: T('Keuangan'), market: T('Market & Berita'), focus: T('Fokus & Tugas'), clip: T('Riwayat Clipboard'), settings: T('Pengaturan'), guide: T('Panduan') };
+const TITLES = { home: T('Beranda'), cal: T('Kalender'), notes: T('Catatan'), fin: T('Keuangan'), market: T('Market & Berita'), focus: T('Fokus & Tugas'), projects: T('Proyek'), clip: T('Riwayat Clipboard'), settings: T('Pengaturan'), guide: T('Panduan') };
 
 export default function App() {
   const [settings, setSettings] = useState(null);
@@ -58,11 +60,13 @@ export default function App() {
       on('db:changed', (t) => { if (t.includes('settings')) { loadSettings(); api('pin:status').then((s) => setPinSet(s.set)); } }),
       on('nav', (p) => { if (p?.nav) nav(p.nav, p); else if (p?.reminder) nav('cal', { date: p.date }); }),
       on('reminder:fire', (p) => pushToast({ kind: 'reminder', ...p })),
-      on('power:lock', () => setLocked((l) => l || pinRef.current))
+      on('power:lock', () => setLocked((l) => l || pinRef.current)),
+      on('update:status', (u) => { if (u.state === 'ready' && updToast.current !== u.version) { updToast.current = u.version; pushToast(T('Pembaruan {v} siap. Pasang dari Pengaturan → Umum.', { v: u.version })); } })
     ];
     return () => offs.forEach((f) => f());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const pinRef = useRef(false); pinRef.current = pinSet;
+  const updToast = useRef(null);
 
 
   // idle auto-lock
@@ -92,7 +96,7 @@ export default function App() {
     const k = (e) => {
       if (locked) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
-      if ((e.ctrlKey || e.metaKey) && /^[1-7]$/.test(e.key)) { e.preventDefault(); nav(NAV[Number(e.key) - 1].k); }
+      if ((e.ctrlKey || e.metaKey) && /^[1-8]$/.test(e.key)) { e.preventDefault(); nav(NAV[Number(e.key) - 1].k); }
       if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); nav('settings'); }
       if (e.key === 'F1') { e.preventDefault(); nav('guide'); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l' && pinSet) { e.preventDefault(); setLocked(true); }
@@ -119,7 +123,7 @@ export default function App() {
 
   if (!settings) return <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}><div className="logo">D</div></div>;
 
-  const Page = { home: Home, cal: Calendar, notes: Notes, fin: Finance, market: Market, focus: Focus, clip: Clipboard, settings: Settings, guide: Guide }[page] || Home;
+  const Page = { home: Home, cal: Calendar, notes: Notes, fin: Finance, market: Market, focus: Focus, projects: Projects, clip: Clipboard, settings: Settings, guide: Guide }[page] || Home;
 
   return (
     <AppCtx.Provider value={ctx}>

@@ -21,6 +21,7 @@ export default function CommandPalette({ onClose }) {
     { title: T("Rekap keuangan tahunan"), icon: 'table', run: () => app.nav('fin', { tab: 'recap' }) },
     { title: T("Market & berita"), icon: 'chart', run: () => app.nav('market') },
     { title: T("Fokus & tugas"), icon: 'timer', run: () => app.nav('focus') },
+    { title: T("Buka Proyek"), icon: 'project', run: () => app.nav('projects') },
     { title: T("Riwayat clipboard"), icon: 'clip', run: () => app.nav('clip') },
     { title: T("Pengaturan"), icon: 'gear', run: () => app.nav('settings') },
     { title: T("Panduan fitur (F1)"), icon: 'book', run: () => app.nav('guide') },

@@ -17,7 +17,7 @@ export default function Sticky() {
   const saveT = useRef();
 
   const editor = useEditor({
-    extensions: noteExtensions(T('Tulis catatan…')),
+    extensions: noteExtensions(T('Tulis catatan…'), { noteId: id }),
     content: '',
     onUpdate: ({ editor: ed }) => {
       clearTimeout(saveT.current);

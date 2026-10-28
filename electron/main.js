@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, shell, dialog, globalShortcut, powerMonitor, safeStorage, clipboard, nativeTheme, session } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, shell, dialog, globalShortcut, powerMonitor, safeStorage, clipboard, nativeTheme, session, protocol } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -9,8 +9,13 @@ import * as svc from './services.js';
 import * as sched from './scheduler.js';
 import * as io from './io.js';
 import * as state from './state.js';
+import * as upd from './updater.js';
 import { stickyColor } from '../shared/sticky.js';
 import { t as T, setLang, lang } from '../shared/i18n.js';
+import { toMarkdown, imageIds } from '../shared/md.js';
+
+// Images in notes are served from the encrypted database: <img src="dsa-img://img/<id>">
+protocol.registerSchemesAsPrivileged([{ scheme: 'dsa-img', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -171,7 +176,9 @@ function createTray() {
   tray.on('click', () => showMain());
 }
 function buildTrayMenu() {
+  const u = upd.status();
   tray?.setContextMenu(Menu.buildFromTemplate([
+    ...(u.state === 'ready' ? [{ label: T('Pasang pembaruan {v} & mulai ulang', { v: u.version }), click: () => upd.install() }, { type: 'separator' }] : []),
     { label: T('Buka Dani SuperApp'), click: () => showMain() },
     { label: T('Catatan cepat'), accelerator: db.getSetting('quickShortcut'), click: toggleQuick },
     { label: T('Widget mini'), click: toggleWidget },
@@ -279,11 +286,13 @@ function trusted(e) {
 const handlers = {};
 const h = (name, fn) => { handlers[name] = fn; };
 
-h('db:list', (t, opts) => db.list(t, opts || {}));
-h('db:get', (t, id) => db.get(t, id));
-h('db:upsert', (t, row) => { if (t === 'settings') throw new Error('Gunakan settings:set'); return db.upsert(t, row); });
-h('db:remove', (t, id) => { if (t === 'notes') stickyWins.get(id)?.destroy(); return db.remove(t, id); });
-h('db:removeWhere', (t, where) => db.removeWhere(t, where));
+const PRIVATE_TABLES = new Set(['note_images']); // binary data: only through img:* and the dsa-img protocol
+const pub = (t) => { if (PRIVATE_TABLES.has(t)) throw new Error('Tabel tidak dikenal: ' + t); return t; };
+h('db:list', (t, opts) => db.list(pub(t), opts || {}));
+h('db:get', (t, id) => db.get(pub(t), id));
+h('db:upsert', (t, row) => { if (t === 'settings') throw new Error('Gunakan settings:set'); return db.upsert(pub(t), row); });
+h('db:remove', (t, id) => { if (t === 'notes') stickyWins.get(id)?.destroy(); return db.remove(pub(t), id); });
+h('db:removeWhere', (t, where) => db.removeWhere(pub(t), where));
 h('settings:all', () => db.allSettings());
 h('settings:set', (k, v) => {
   if (k === 'pinHash') throw new Error('Gunakan pin:set');
@@ -378,6 +387,64 @@ h('import:ics', async (calendarId) => {
   if (r.canceled || !r.filePaths[0]) return null;
   return io.importIcs(r.filePaths[0], calendarId);
 });
+// ---------------- note images & export ----------------
+// ---------------- auto-update ----------------
+h('update:status', () => upd.status());
+h('update:check', () => upd.check());
+h('update:install', () => upd.install());
+
+h('img:put', (noteId, mime, bytes) => db.imagePut(String(noteId || ''), String(mime), bytes));
+const fileSafe = (s) => (String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || T('Tanpa judul'));
+const extOf = (mime) => ({ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif' }[mime] || 'img');
+h('note:exportMd', async (id) => {
+  const note = db.get('notes', String(id));
+  if (!note) return null;
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor catatan ke Markdown'), defaultPath: path.join(app.getPath('documents'), fileSafe(note.title) + '.md'), filters: [{ name: 'Markdown', extensions: ['md'] }] });
+  if (r.canceled || !r.filePath) return null;
+  let doc = null; try { doc = JSON.parse(note.content || 'null'); } catch { /* plain */ }
+  const base = path.basename(r.filePath, path.extname(r.filePath));
+  const dirName = base + '_files';
+  const names = {};
+  imageIds(doc).forEach((imgId, i) => {
+    const im = db.imageGet(imgId);
+    if (!im) return;
+    fs.mkdirSync(path.join(path.dirname(r.filePath), dirName), { recursive: true });
+    const name = `${i + 1}.${extOf(im.mime)}`;
+    fs.writeFileSync(path.join(path.dirname(r.filePath), dirName, name), im.data);
+    names[imgId] = `${dirName}/${name}`;
+  });
+  const md = doc ? toMarkdown(doc, { title: note.title || '', imageSrc: (src) => { const m = /^dsa-img:\/\/img\/([\w-]+)/.exec(src); return m ? names[m[1]] || '' : src; } }) : `# ${note.title || ''}\n\n${note.plain || ''}\n`;
+  fs.writeFileSync(r.filePath, md, 'utf8');
+  shell.showItemInFolder(r.filePath);
+  return r.filePath;
+});
+const printWaiters = new Map();
+h('print:ready', (e) => { printWaiters.get(e.sender.id)?.(); });
+h('note:exportPdf', async (id) => {
+  const note = db.get('notes', String(id));
+  if (!note) return null;
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor catatan ke PDF'), defaultPath: path.join(app.getPath('documents'), fileSafe(note.title) + '.pdf'), filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+  if (r.canceled || !r.filePath) return null;
+  const win = new BrowserWindow({ show: false, width: 900, height: 1200, backgroundColor: '#ffffff', webPreferences });
+  try {
+    hardenWindow(win);
+    const ready = new Promise((resolve, reject) => {
+      printWaiters.set(win.webContents.id, resolve);
+      setTimeout(() => reject(new Error(T('Gagal menyiapkan PDF (waktu habis)'))), 20000);
+    });
+    load(win, '/print/' + encodeURIComponent(note.id));
+    await ready;
+    // the note page is 820 px wide; A4 with 1 cm margins fits ~717 px, so print at 87 %
+    const pdf = await win.webContents.printToPDF({ pageSize: 'A4', printBackground: true, scale: 0.87, margins: { top: 0.4, bottom: 0.4, left: 0.39, right: 0.39 } });
+    fs.writeFileSync(r.filePath, pdf);
+    shell.showItemInFolder(r.filePath);
+    return r.filePath;
+  } finally {
+    printWaiters.delete(win.webContents.id);
+    win.destroy();
+  }
+});
+
 h('shell:open', (url) => { if (/^https?:\/\//.test(String(url))) shell.openExternal(String(url)); });
 h('clipboard:write', (t) => { lastClip = String(t); clipboard.writeText(String(t)); });
 h('win:quick', () => toggleQuick());
@@ -408,7 +475,7 @@ h('nav:pending', () => { const n = pendingNav; pendingNav = null; return n; });
 h('theme:get', () => ({ dark: effectiveDark(), setting: db.getSetting('theme', 'system') }));
 h('app:info', () => ({ version: app.getVersion(), packaged: app.isPackaged, dataDir: app.getPath('userData'), encrypted: safeStorage.isEncryptionAvailable(), backupDir: backupDir() }));
 
-const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf', 'sticky:setTop', 'sticky:setColor']);
+const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf', 'sticky:setTop', 'sticky:setColor', 'print:ready']);
 function registerIpc() {
   ipcMain.handle('invoke', async (e, name, ...args) => {
     if (!trusted(e)) throw new Error('Untrusted sender');
@@ -430,6 +497,12 @@ app.whenReady().then(async () => {
   const hadData = fs.existsSync(path.join(app.getPath('userData'), 'data.db.enc'));
   await db.openDb({ dir: app.getPath('userData'), keyStore, wasmPath: require.resolve('sql.js/dist/sql-wasm.wasm') });
   state.open(app.getPath('userData'));
+  try { db.pruneImages(); } catch (e) { console.error('[images]', e); }
+  protocol.handle('dsa-img', (req) => {
+    const id = new URL(req.url).pathname.replace(/^\//, '');
+    const im = db.imageGet(id);
+    return im ? new Response(im.data, { headers: { 'content-type': im.mime, 'cache-control': 'private, max-age=31536000, immutable' } }) : new Response('', { status: 404 });
+  });
   setLang(db.getSetting('lang', 'id'));
   // data lives in %APPDATA% and survives updates; still keep a backup from before each version change
   if (db.getSetting('app.version') !== app.getVersion()) {
@@ -442,6 +515,10 @@ app.whenReady().then(async () => {
   // started by Windows in the tray: create the window only when it is opened (saves RAM at boot)
   if (!startHidden) createMain();
   createTray();
+  upd.initUpdater({
+    broadcast, getSetting: db.getSetting,
+    onReady: (v) => { buildTrayMenu(); notify({ title: T('Pembaruan siap'), body: T('Dani SuperApp {v} sudah diunduh. Pasang dari Pengaturan → Umum atau menu tray.', { v }), payload: { nav: 'settings' } }); }
+  });
   applyAutostart();
   applyShortcut();
   setupClipboard();

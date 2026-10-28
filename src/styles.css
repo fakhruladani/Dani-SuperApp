@@ -78,7 +78,7 @@ a { color: var(--accent-text); }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn.pri { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.pri:hover { filter: brightness(1.08); }
-.btn.danger { color: var(--neg); }
+.btn.danger, .icb.danger { color: var(--neg); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover { background: var(--surface2); }
 .btn.sm { min-height: 32px; padding: 0 10px; font-size: 13px; }
@@ -303,3 +303,25 @@ select.field { padding-right: 28px; }
 .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(8, 10, 14, .55); pointer-events: none; }
 .tour-card { position: fixed; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-lg); z-index: 91; }
 @media (max-width: 1100px) { .guide-nav { display: none; } .guide-row { grid-template-columns: 1fr; gap: 2px; } }
+
+/* ---------- Proyek ---------- */
+.proj-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.proj-card { padding: 14px 16px; text-align: left; color: inherit; font: inherit; cursor: pointer; border: 1px solid var(--border); border-left: 4px solid var(--k); transition: background .12s; }
+.proj-card:hover { background: var(--surface2); }
+.proj-card.on { border-color: var(--k); box-shadow: 0 0 0 1px var(--k); }
+.proj-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.proj-stats .v { font-size: 22px; font-weight: 800; }
+.chip.warn, .v.warn { color: var(--warn); } .chip.dn { color: var(--neg); }
+@media (max-width: 1150px) { .proj-layout { grid-template-columns: 1fr; } }
+
+/* ---------- gambar di catatan & cetak PDF ---------- */
+.ProseMirror img.note-img { display: block; max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border); }
+.ProseMirror img.note-img.ProseMirror-selectednode { outline: 3px solid var(--accent); outline-offset: 2px; }
+.print-root, .print-root #root { height: auto; overflow: visible; background: #fff; }
+.print-paper { margin: 0; border: 0; border-radius: 0; box-shadow: none; background: #fff; color: #14171C; }
+.print-paper .title-input { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media print { .print-paper .ProseMirror img.note-img, .print-paper p, .print-paper li { break-inside: avoid; } }
+
+.menu-pop { position: absolute; z-index: 30; padding: 6px; display: flex; flex-direction: column; min-width: 260px; box-shadow: var(--shadow-lg); }
+.menu-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.menu-item:hover, .menu-item:focus-visible { background: var(--surface2); }

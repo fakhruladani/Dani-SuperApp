@@ -74,7 +74,7 @@ export default function Notes() {
                 <button className="chip" onClick={() => setTagEdit(sel.tag || '')}>{sel.tag ? '#' + sel.tag : T("+ tambah tag")}</button>
               )}
             </div>
-            <NoteEditor key={sel.id} note={sel} onSave={onSave} onDelete={del} onPin={(p) => DB.save('notes', { id: sel.id, pinned: p ? 1 : 0 })} onFloat={() => api('sticky:open', sel.id)} zoom={zoom} setZoom={setZoom} />
+            <NoteEditor key={sel.id} note={sel} onSave={onSave} onDelete={del} onPin={(p) => DB.save('notes', { id: sel.id, pinned: p ? 1 : 0 })} onFloat={() => api('sticky:open', sel.id)} onError={(err) => app.toast({ text: String(err?.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''), error: true })} zoom={zoom} setZoom={setZoom} />
           </div>
         ) : (
           <section className="card editor-card" style={{ alignItems: 'center', justifyContent: 'center' }}>
