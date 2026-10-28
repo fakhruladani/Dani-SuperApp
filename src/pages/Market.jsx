@@ -186,7 +186,7 @@ export default function Market() {
 
       {tab === 'market' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          <div data-tour="tickers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {(wl.data || []).map((w) => {
               const x = quotes[w.symbol];
               const upx = (x?.change || 0) >= 0;

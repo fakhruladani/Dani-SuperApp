@@ -15,6 +15,8 @@ const Market = lazy(() => import('./pages/Market.jsx'));
 const Focus = lazy(() => import('./pages/Focus.jsx'));
 const Clipboard = lazy(() => import('./pages/Clipboard.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
+const Guide = lazy(() => import('./pages/Guide.jsx'));
+import Tour from './components/Tour.jsx';
 
 const NAV = [
   { k: 'home', label: 'Beranda', icon: 'home' },
@@ -25,7 +27,7 @@ const NAV = [
   { k: 'focus', label: 'Fokus & Tugas', icon: 'timer' },
   { k: 'clip', label: 'Clipboard', icon: 'clip' }
 ];
-const TITLES = { home: 'Beranda', cal: 'Kalender', notes: 'Catatan', fin: 'Keuangan', market: 'Market & Berita', focus: 'Fokus & Tugas', clip: 'Riwayat Clipboard', settings: 'Pengaturan' };
+const TITLES = { home: 'Beranda', cal: 'Kalender', notes: 'Catatan', fin: 'Keuangan', market: 'Market & Berita', focus: 'Fokus & Tugas', clip: 'Riwayat Clipboard', settings: 'Pengaturan', guide: 'Panduan' };
 
 export default function App() {
   const [settings, setSettings] = useState(null);
@@ -38,6 +40,7 @@ export default function App() {
   const [confirmState, setConfirmState] = useState(null);
   const [pinSet, setPinSet] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [tour, setTour] = useState(null); // index of the guided-tour step, or null
   const now = useNow(60000); // minute resolution: the seconds clock lives in <Clock/> only
   const focus = useFocusTimer(settings);
   const lastActive = useRef(Date.now());
@@ -90,6 +93,7 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
       if ((e.ctrlKey || e.metaKey) && /^[1-7]$/.test(e.key)) { e.preventDefault(); nav(NAV[Number(e.key) - 1].k); }
       if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); nav('settings'); }
+      if (e.key === 'F1') { e.preventDefault(); nav('guide'); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l' && pinSet) { e.preventDefault(); setLocked(true); }
     };
     window.addEventListener('keydown', k);
@@ -106,11 +110,15 @@ export default function App() {
     return { cal: occ.length, focus: tasks.length };
   }, [today], ['events', 'tasks']);
 
-  const ctx = useMemo(() => ({ settings, setSetting, dark, toggleTheme, nav, page, params, toast: pushToast, confirm, focus, pinSet, lock: () => setLocked(true), reloadSettings: loadSettings }), [settings, setSetting, dark, toggleTheme, nav, page, params, pushToast, confirm, focus, pinSet, loadSettings]);
+  const ctx = useMemo(() => ({ settings, setSetting, dark, toggleTheme, nav, page, params, toast: pushToast, confirm, focus, pinSet, lock: () => setLocked(true), reloadSettings: loadSettings, startTour: (i = 0) => setTour(i) }), [settings, setSetting, dark, toggleTheme, nav, page, params, pushToast, confirm, focus, pinSet, loadSettings]);
+
+  useEffect(() => {
+    if (settings && !settings.tourSeen && !locked && tour == null) { setTour(0); setSetting('tourSeen', true); }
+  }, [!!settings, settings?.tourSeen, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!settings) return <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}><div className="logo">D</div></div>;
 
-  const Page = { home: Home, cal: Calendar, notes: Notes, fin: Finance, market: Market, focus: Focus, clip: Clipboard, settings: Settings }[page] || Home;
+  const Page = { home: Home, cal: Calendar, notes: Notes, fin: Finance, market: Market, focus: Focus, clip: Clipboard, settings: Settings, guide: Guide }[page] || Home;
 
   return (
     <AppCtx.Provider value={ctx}>
@@ -134,6 +142,7 @@ export default function App() {
           </div>
           <div className="col" style={{ marginTop: 'auto', gap: 8 }}>
             {(focus.running || focus.left < focus.total) && <FocusMini focus={focus} onClick={() => nav('focus')} />}
+            <button data-tour="nav-guide" className={`nav ${page === 'guide' ? 'on' : ''}`} onClick={() => nav('guide')} title="Panduan (F1)"><Icon name="book" /><span>Panduan</span></button>
             <button className={`nav ${page === 'settings' ? 'on' : ''}`} onClick={() => nav('settings')}><Icon name="gear" /><span>Pengaturan</span></button>
             <div className="row" style={{ gap: 6 }}>
               <button className="btn grow" onClick={toggleTheme} title="Ganti tema">
@@ -155,7 +164,7 @@ export default function App() {
               <span className="grow">Cari apa saja…</span>
               <span className="kbd">Ctrl K</span>
             </button>
-            <button className="icb" title="Catatan cepat (Ctrl+Shift+Space)" aria-label="Catatan cepat" onClick={() => api('win:quick')}><Icon name="bolt" /></button>
+            <button data-tour="quick" className="icb" title="Catatan cepat (Ctrl+Shift+Space)" aria-label="Catatan cepat" onClick={() => api('win:quick')}><Icon name="bolt" /></button>
             <button className="icb" title="Widget mini" aria-label="Widget mini" onClick={() => api('win:widget')}><Icon name="widget" /></button>
             <button className="icb" aria-label="Ganti tema" onClick={toggleTheme}><Icon name={dark ? 'sun' : 'moon'} /></button>
           </header>
@@ -204,6 +213,7 @@ export default function App() {
           <p style={{ margin: 0 }}>{confirmState.text}</p>
         </Modal>
       )}
+      {tour != null && !locked && <Tour index={tour} setIndex={setTour} nav={nav} onClose={() => setTour(null)} />}
       {locked && <LockScreen onUnlock={() => { setLocked(false); lastActive.current = Date.now(); }} />}
     </AppCtx.Provider>
   );

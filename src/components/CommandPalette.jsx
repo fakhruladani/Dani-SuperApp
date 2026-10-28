@@ -22,6 +22,8 @@ export default function CommandPalette({ onClose }) {
     { title: 'Fokus & tugas', icon: 'timer', run: () => app.nav('focus') },
     { title: 'Riwayat clipboard', icon: 'clip', run: () => app.nav('clip') },
     { title: 'Pengaturan', icon: 'gear', run: () => app.nav('settings') },
+    { title: 'Panduan fitur (F1)', icon: 'book', run: () => app.nav('guide') },
+    { title: 'Mulai tur aplikasi', icon: 'play', run: () => app.startTour(0) },
     { title: app.dark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap', icon: app.dark ? 'sun' : 'moon', run: () => app.toggleTheme() },
     { title: 'Mulai sesi fokus', icon: 'play', run: () => { app.focus.start(); app.nav('focus'); } },
     { title: 'Tampilkan widget mini', icon: 'widget', run: () => api('win:widget') },

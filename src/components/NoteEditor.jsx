@@ -312,7 +312,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
         <span>{words} kata</span>
         <span>{strokes.length} coretan</span>
         <span className="grow" />
-        <button className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title="Buka catatan ini sebagai jendela mengambang (sticky note)"><Icon name="widget" size="sm" />Jendela mengambang</button>
+        <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title="Buka catatan ini sebagai jendela mengambang (sticky note)"><Icon name="widget" size="sm" />Jendela mengambang</button>
         <button className="btn sm ghost" onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" />{note.pinned ? 'Lepas sematan' : 'Sematkan'}</button>
         <button className="btn sm ghost danger" onClick={onDelete}><Icon name="trash" size="sm" />Hapus</button>
       </div>

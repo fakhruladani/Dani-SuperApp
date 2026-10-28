@@ -4,6 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import multiMonthPlugin from '@fullcalendar/multimonth';
 import idLocale from '@fullcalendar/core/locales/id';
 import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Switch, Field, ColorPick } from '../components/ui.jsx';
@@ -78,11 +79,23 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
   );
 }
 
+// "Bulan" view: months stacked vertically and scrollable. The title follows the month at the top.
+const SCROLL_VIEW = 'monthScroll';
+const SPAN = 25; // months rendered at once, centred on the month being viewed
+const isMonthView = (t) => t === 'dayGridMonth' || t === SCROLL_VIEW;
+const monthKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+const shiftMonth = (key, n) => monthKey(new Date(+key.slice(0, 4), +key.slice(5, 7) - 1 + n, 1));
+const monthTitle = (key) => `${MONTH_ID[+key.slice(5, 7) - 1]} ${key.slice(0, 4)}`;
+const rangeStartFor = (key) => shiftMonth(key, -Math.floor(SPAN / 2)) + '-01';
+
 export default function Calendar() {
   const app = useApp();
   const now = useNow(30000);
   const calRef = useRef();
-  const [view, setView] = useState(() => app.settings.calView || 'dayGridMonth');
+  const wrapRef = useRef();
+  const [view, setView] = useState(() => (!app.settings.calView || app.settings.calView === 'dayGridMonth' ? SCROLL_VIEW : app.settings.calView));
+  const focusMonth = useRef(monthKey(parseLocal(app.params.date || toLocalDate(new Date()))));
+  const scrollTarget = useRef(focusMonth.current); // month to bring into view after the next render
   const [range, setRange] = useState(null);
   const [title, setTitle] = useState('');
   const [sel, setSel] = useState(() => app.params.date || toLocalDate(new Date()));
@@ -100,7 +113,7 @@ export default function Calendar() {
 
   // navigation from other pages / notifications
   useEffect(() => {
-    if (app.params.date) { setSel(app.params.date); calRef.current?.getApi().gotoDate(app.params.date); }
+    if (app.params.date) { setSel(app.params.date); if (view === SCROLL_VIEW) goMonth(monthKey(parseLocal(app.params.date)), false); else calRef.current?.getApi().gotoDate(app.params.date); }
     if (app.params.newEvent) openNew(app.params.date || sel);
     if (app.params.eventId && events.data) { const ev = events.data.find((e) => e.id === app.params.eventId); if (ev) setModal(ev); }
   }, [app.params._t, events.data == null]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -148,7 +161,57 @@ export default function Calendar() {
   }
 
   const apiCal = () => calRef.current?.getApi();
-  const changeView = (v) => { setView(v); apiCal()?.changeView(v); app.setSetting('calView', v); };
+  const scroller = () => wrapRef.current?.querySelector('.fc-multimonth');
+  const scrollToMonth = (key, smooth) => {
+    const sc = scroller();
+    const el = sc?.querySelector(`.fc-multimonth-month[data-date^="${key}"]`);
+    if (!el) return false;
+    sc.scrollTo({ top: sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top, behavior: smooth ? 'smooth' : 'auto' });
+    return true;
+  };
+  // bring a month into view; re-centre the rendered range when it is outside it
+  const scrollLock = useRef(0); // ignore scroll events caused by our own (smooth) scrolling
+  const goMonth = (key, smooth = true) => {
+    focusMonth.current = key;
+    scrollLock.current = Date.now() + 700;
+    setTitle(monthTitle(key));
+    if (!scrollToMonth(key, smooth)) { scrollTarget.current = key; apiCal()?.gotoDate(rangeStartFor(key)); }
+  };
+  const isScroll = view === SCROLL_VIEW;
+  const goToday = () => { const t = toLocalDate(new Date()); setSel(t); if (isScroll) goMonth(monthKey(new Date())); else apiCal().today(); };
+  const goPrev = () => (isScroll ? goMonth(shiftMonth(focusMonth.current, -1)) : apiCal().prev());
+  const goNext = () => (isScroll ? goMonth(shiftMonth(focusMonth.current, 1)) : apiCal().next());
+  const changeView = (v) => {
+    setView(v);
+    app.setSetting('calView', v);
+    if (v === SCROLL_VIEW) { scrollTarget.current = monthKey(parseLocal(sel)); apiCal()?.changeView(v, rangeStartFor(scrollTarget.current)); }
+    else apiCal()?.changeView(v, sel);
+  };
+
+  // title follows the month at the top while scrolling; extend the range at either end
+  const onScroll = useRef(null);
+  onScroll.current = () => {
+    const sc = scroller();
+    if (!sc || Date.now() < scrollLock.current) return;
+    const months = [...sc.querySelectorAll('.fc-multimonth-month')];
+    const top = sc.getBoundingClientRect().top + 80;
+    const idx = Math.max(0, months.findIndex((m) => m.getBoundingClientRect().bottom > top));
+    const key = months[idx]?.getAttribute('data-date')?.slice(0, 7);
+    if (!key) return;
+    if (key !== focusMonth.current) { focusMonth.current = key; setTitle(monthTitle(key)); }
+    const atStart = idx === 0 && sc.scrollTop < 40;
+    const atEnd = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 40;
+    if (atStart || atEnd) { scrollTarget.current = key; apiCal()?.gotoDate(rangeStartFor(key)); }
+  };
+  useEffect(() => {
+    if (!isScroll || !range) return undefined;
+    const sc = scroller();
+    if (!sc) return undefined;
+    let raf = 0;
+    const h = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => onScroll.current()); };
+    sc.addEventListener('scroll', h, { passive: true });
+    return () => { sc.removeEventListener('scroll', h); cancelAnimationFrame(raf); };
+  }, [isScroll, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const [quick, setQuick] = useState({ title: '', time: '09:00', rem: app.settings.reminderDefault ?? 30 });
   const addQuick = async () => {
     if (!quick.title.trim()) return;
@@ -174,17 +237,19 @@ export default function Calendar() {
         <section className="card cal-main">
           <div className="row wrap">
             <button className="btn pri" onClick={() => openNew()}><Icon name="plus" size="sm" />Buat</button>
-            <button className="btn" onClick={() => { apiCal().today(); setSel(toLocalDate(new Date())); }}>Hari ini</button>
-            <button className="icb" aria-label="Sebelumnya" onClick={() => apiCal().prev()}><Icon name="left" /></button>
-            <button className="icb" aria-label="Berikutnya" onClick={() => apiCal().next()}><Icon name="right" /></button>
+            <button className="btn" onClick={goToday}>Hari ini</button>
+            <button className="icb" aria-label="Sebelumnya" title={isScroll ? 'Bulan sebelumnya' : 'Sebelumnya'} onClick={goPrev}><Icon name="left" /></button>
+            <button className="icb" aria-label="Berikutnya" title={isScroll ? 'Bulan berikutnya' : 'Berikutnya'} onClick={goNext}><Icon name="right" /></button>
             <span className="grow ellipsis" title={title} style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', minWidth: 120 }}>{title}</span>
-            <Seg label="Tampilan" value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: 'Hari' }, { value: 'timeGridWeek', label: 'Minggu' }, { value: 'dayGridMonth', label: 'Bulan' }, { value: 'listMonth', label: 'Agenda' }]} />
+            <Seg label="Tampilan" value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: 'Hari' }, { value: 'timeGridWeek', label: 'Minggu' }, { value: SCROLL_VIEW, label: 'Bulan' }, { value: 'listMonth', label: 'Agenda' }]} />
           </div>
+          <div ref={wrapRef} className="cal-wrap">
           <FullCalendar
             ref={calRef}
-            plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+            plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
+            views={{ [SCROLL_VIEW]: { type: 'multiMonth', duration: { months: SPAN }, multiMonthMaxColumns: 1, multiMonthTitleFormat: { month: 'long', year: 'numeric' }, fixedWeekCount: false, showNonCurrentDates: false } }}
             initialView={view}
-            initialDate={app.params.date || undefined}
+            initialDate={view === SCROLL_VIEW ? rangeStartFor(focusMonth.current) : app.params.date || undefined}
             locale={idLocale}
             firstDay={1}
             headerToolbar={false}
@@ -200,10 +265,20 @@ export default function Calendar() {
             eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             scrollTime={`${pad(Math.max(0, now.getHours() - 1))}:00:00`}
             events={fcEvents}
-            datesSet={(i) => { setRange({ start: i.start, end: i.end }); setTitle(i.view.title); if (i.view.type === 'timeGridDay') setSel(toLocalDate(i.start)); }}
+            datesSet={(i) => {
+              setRange({ start: i.start, end: i.end });
+              if (i.view.type === SCROLL_VIEW) {
+                const key = scrollTarget.current || focusMonth.current;
+                scrollTarget.current = null;
+                setTitle(monthTitle(key));
+                focusMonth.current = key;
+                requestAnimationFrame(() => scrollToMonth(key, false));
+              } else setTitle(i.view.title);
+              if (i.view.type === 'timeGridDay') setSel(toLocalDate(i.start));
+            }}
             dayCellClassNames={(arg) => { const k = toLocalDate(arg.date); const c = []; if (k === sel) c.push('sel'); if (holByDate[k]?.some((h) => !h.observance)) c.push('holiday'); return c; }}
-            dateClick={(i) => { const d = toLocalDate(i.date); if (d === sel && i.allDay && i.view.type === 'dayGridMonth') openNew(d, null, null, false); setSel(d); }}
-            select={(i) => { if (i.view.type === 'dayGridMonth') { const days = Math.round((i.end - i.start) / 86400000); if (days > 1) setModal({ start: toLocalDate(i.start), end: toLocalDate(addDays(i.end, -1)), all_day: 1, calendar_id: cals.data?.[0]?.id }); return; } if (i.allDay) return; openNew(toLocalDate(i.start), toLocalDateTime(i.start).slice(11), toLocalDateTime(i.end).slice(11)); }}
+            dateClick={(i) => { const d = toLocalDate(i.date); if (d === sel && i.allDay && isMonthView(i.view.type)) openNew(d, null, null, false); setSel(d); }}
+            select={(i) => { if (isMonthView(i.view.type)) { const days = Math.round((i.end - i.start) / 86400000); if (days > 1) setModal({ start: toLocalDate(i.start), end: toLocalDate(addDays(i.end, -1)), all_day: 1, calendar_id: cals.data?.[0]?.id }); return; } if (i.allDay) return; openNew(toLocalDate(i.start), toLocalDateTime(i.start).slice(11), toLocalDateTime(i.end).slice(11)); }}
             eventClick={(i) => {
               const { type, row } = i.event.extendedProps;
               if (type === 'event') setModal(events.data.find((e) => e.id === row.id));
@@ -213,6 +288,7 @@ export default function Calendar() {
             eventDrop={onDrop}
             eventResize={onDrop}
           />
+          </div>
         </section>
 
         <aside className="card cal-side">

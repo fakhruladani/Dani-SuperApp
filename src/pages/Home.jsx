@@ -28,7 +28,7 @@ export function WeatherCard({ compact = false }) {
   const w = useWeather();
   const d = w.data;
   return (
-    <section className="card pad col" style={{ gap: 14, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
+    <section data-tour="weather" className="card pad col" style={{ gap: 14, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
       <div className="row" style={{ color: 'var(--accent-text)', fontWeight: 700, fontSize: 13, gap: 6 }}>
         <Icon name="pin" size="sm" />
         <span className="grow ellipsis">{d?.location?.name || 'Lokasi'}{d?.location?.approx ? ' (perkiraan)' : ''}</span>

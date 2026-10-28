@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Dani SuperApp",
   "main": "electron/main.js",
   "scripts": {
@@ -27,6 +27,7 @@
     "@fullcalendar/daygrid": "^6.1.22",
     "@fullcalendar/interaction": "^6.1.22",
     "@fullcalendar/list": "^6.1.22",
+    "@fullcalendar/multimonth": "^6.1.22",
     "@fullcalendar/react": "^6.1.22",
     "@fullcalendar/timegrid": "^6.1.22",
     "@tiptap/core": "^2.27.3",

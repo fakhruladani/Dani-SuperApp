@@ -45,7 +45,7 @@ function Pomodoro() {
   const R = 92, C = 2 * Math.PI * R;
   const prog = 1 - left / f.total;
   return (
-    <section className="card pad col" style={{ flex: '1 1 330px', alignItems: 'center', gap: 16 }}>
+    <section data-tour="pomodoro" className="card pad col" style={{ flex: '1 1 330px', alignItems: 'center', gap: 16 }}>
       <Seg label="Mode" value={f.phase} onChange={f.setPhase} options={[{ value: 'focus', label: `Fokus ${app.settings.focusMin || 25}` }, { value: 'short', label: `Istirahat ${app.settings.shortMin || 5}` }, { value: 'long', label: `Panjang ${app.settings.longMin || 15}` }]} />
       <div style={{ position: 'relative', width: 230, height: 230 }}>
         <svg viewBox="0 0 210 210" style={{ width: 230, height: 230, transform: 'rotate(-90deg)' }} aria-hidden="true">
