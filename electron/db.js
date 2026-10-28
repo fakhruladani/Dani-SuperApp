@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { t as T } from '../shared/i18n.js';
 
 const require = createRequire(import.meta.url);
 const initSqlJs = require('sql.js');
@@ -301,11 +302,11 @@ export function search(q) {
   const like = '%' + q.trim() + '%';
   const res = [];
   for (const r of all(`SELECT id, title, plain FROM notes WHERE title LIKE ? OR plain LIKE ? ORDER BY updated_at DESC LIMIT 8`, [like, like]))
-    res.push({ type: 'note', id: r.id, title: r.title || 'Tanpa judul', sub: (r.plain || '').slice(0, 80) });
+    res.push({ type: 'note', id: r.id, title: r.title || T('Tanpa judul'), sub: (r.plain || '').slice(0, 80) });
   for (const r of all(`SELECT id, title, start FROM events WHERE title LIKE ? OR description LIKE ? ORDER BY start DESC LIMIT 8`, [like, like]))
     res.push({ type: 'event', id: r.id, title: r.title, sub: String(r.start).replace('T', ' pukul '), date: r.start });
   for (const r of all(`SELECT id, title, due_date FROM tasks WHERE title LIKE ? OR notes LIKE ? ORDER BY done, due_date LIMIT 8`, [like, like]))
-    res.push({ type: 'task', id: r.id, title: r.title, sub: r.due_date || 'Tanpa tenggat' });
+    res.push({ type: 'task', id: r.id, title: r.title, sub: r.due_date || T('Tanpa tenggat') });
   for (const r of all(`SELECT id, description, date, amount, kind FROM fin_tx WHERE description LIKE ? OR note LIKE ? ORDER BY date DESC LIMIT 8`, [like, like]))
     res.push({ type: 'tx', id: r.id, title: r.description, sub: `${r.date} · ${r.kind === 'in' ? '+' : '−'}Rp ${Number(r.amount).toLocaleString('id-ID')}`, date: r.date });
   return res;

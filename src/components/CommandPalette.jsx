@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Icon from './Icon.jsx';
 import { api, useApp } from '../lib/api.js';
+import { T } from '../lib/i18n.js';
 
-const TYPE = { note: ['note', 'Catatan'], event: ['cal', 'Acara'], task: ['check', 'Tugas'], tx: ['wallet', 'Transaksi'] };
+const TYPE = { note: ['note', T('Catatan')], event: ['cal', T('Acara')], task: ['check', T('Tugas')], tx: ['wallet', T('Transaksi')] };
 
 export default function CommandPalette({ onClose }) {
   const app = useApp();
@@ -11,24 +12,24 @@ export default function CommandPalette({ onClose }) {
   const [idx, setIdx] = useState(0);
 
   const commands = useMemo(() => [
-    { title: 'Buka Beranda', icon: 'home', run: () => app.nav('home') },
-    { title: 'Buka Kalender', icon: 'cal', run: () => app.nav('cal') },
-    { title: 'Buat acara / pengingat baru', icon: 'bell', run: () => app.nav('cal', { newEvent: Date.now() }) },
-    { title: 'Buat catatan baru', icon: 'note', run: () => app.nav('notes', { newNote: Date.now() }) },
-    { title: 'Sticky note baru (jendela mengambang)', icon: 'widget', run: () => api('sticky:new') },
-    { title: 'Tambah transaksi', icon: 'wallet', run: () => app.nav('fin', { newTx: Date.now() }) },
-    { title: 'Rekap keuangan tahunan', icon: 'table', run: () => app.nav('fin', { tab: 'recap' }) },
-    { title: 'Market & berita', icon: 'chart', run: () => app.nav('market') },
-    { title: 'Fokus & tugas', icon: 'timer', run: () => app.nav('focus') },
-    { title: 'Riwayat clipboard', icon: 'clip', run: () => app.nav('clip') },
-    { title: 'Pengaturan', icon: 'gear', run: () => app.nav('settings') },
-    { title: 'Panduan fitur (F1)', icon: 'book', run: () => app.nav('guide') },
-    { title: 'Mulai tur aplikasi', icon: 'play', run: () => app.startTour(0) },
-    { title: app.dark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap', icon: app.dark ? 'sun' : 'moon', run: () => app.toggleTheme() },
-    { title: 'Mulai sesi fokus', icon: 'play', run: () => { app.focus.start(); app.nav('focus'); } },
-    { title: 'Tampilkan widget mini', icon: 'widget', run: () => api('win:widget') },
-    { title: 'Backup sekarang', icon: 'download', run: async () => { await api('backup:now'); app.toast('Backup dibuat'); } },
-    ...(app.pinSet ? [{ title: 'Kunci aplikasi', icon: 'lock', run: () => app.lock() }] : [])
+    { title: T("Buka Beranda"), icon: 'home', run: () => app.nav('home') },
+    { title: T("Buka Kalender"), icon: 'cal', run: () => app.nav('cal') },
+    { title: T("Buat acara / pengingat baru"), icon: 'bell', run: () => app.nav('cal', { newEvent: Date.now() }) },
+    { title: T("Buat catatan baru"), icon: 'note', run: () => app.nav('notes', { newNote: Date.now() }) },
+    { title: T("Sticky note baru (jendela mengambang)"), icon: 'widget', run: () => api('sticky:new') },
+    { title: T("Tambah transaksi"), icon: 'wallet', run: () => app.nav('fin', { newTx: Date.now() }) },
+    { title: T("Rekap keuangan tahunan"), icon: 'table', run: () => app.nav('fin', { tab: 'recap' }) },
+    { title: T("Market & berita"), icon: 'chart', run: () => app.nav('market') },
+    { title: T("Fokus & tugas"), icon: 'timer', run: () => app.nav('focus') },
+    { title: T("Riwayat clipboard"), icon: 'clip', run: () => app.nav('clip') },
+    { title: T("Pengaturan"), icon: 'gear', run: () => app.nav('settings') },
+    { title: T("Panduan fitur (F1)"), icon: 'book', run: () => app.nav('guide') },
+    { title: T("Mulai tur aplikasi"), icon: 'play', run: () => app.startTour(0) },
+    { title: app.dark ? T('Ganti ke mode terang') : T('Ganti ke mode gelap'), icon: app.dark ? 'sun' : 'moon', run: () => app.toggleTheme() },
+    { title: T("Mulai sesi fokus"), icon: 'play', run: () => { app.focus.start(); app.nav('focus'); } },
+    { title: T("Tampilkan widget mini"), icon: 'widget', run: () => api('win:widget') },
+    { title: T("Backup sekarang"), icon: 'download', run: async () => { await api('backup:now'); app.toast(T("Backup dibuat")); } },
+    ...(app.pinSet ? [{ title: T("Kunci aplikasi"), icon: 'lock', run: () => app.lock() }] : [])
   ], [app]);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function CommandPalette({ onClose }) {
   const cmds = commands.filter((c) => !q || c.title.toLowerCase().includes(q.toLowerCase()));
   const items = [
     ...res.map((r) => ({ title: r.title, sub: `${TYPE[r.type][1]} · ${r.sub || ''}`, icon: TYPE[r.type][0], run: () => open(r) })),
-    ...cmds.map((c) => ({ ...c, sub: 'Perintah' }))
+    ...cmds.map((c) => ({ ...c, sub: T("Perintah") }))
   ];
 
   function open(r) {
@@ -61,15 +62,15 @@ export default function CommandPalette({ onClose }) {
 
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal palette" role="dialog" aria-label="Cari & perintah">
+      <div className="modal palette" role="dialog" aria-label={T("Cari & perintah")}>
         <div className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
           <Icon name="search" />
-          <label className="sr" htmlFor="pal-q">Cari</label>
-          <input id="pal-q" autoFocus value={q} onChange={(e) => { setQ(e.target.value); setIdx(0); }} onKeyDown={key} placeholder="Cari catatan, acara, tugas, transaksi, atau ketik perintah…" style={{ flex: 1, border: 0, background: 'transparent', outline: 'none', fontSize: 16, color: 'var(--text)' }} />
+          <label className="sr" htmlFor="pal-q">{T("Cari")}</label>
+          <input id="pal-q" autoFocus value={q} onChange={(e) => { setQ(e.target.value); setIdx(0); }} onKeyDown={key} placeholder={T("Cari catatan, acara, tugas, transaksi, atau ketik perintah…")} style={{ flex: 1, border: 0, background: 'transparent', outline: 'none', fontSize: 16, color: 'var(--text)' }} />
           <span className="kbd">Esc</span>
         </div>
         <div style={{ padding: 8, maxHeight: 420, overflow: 'auto' }} role="listbox">
-          {items.length === 0 && <div className="empty">Tidak ada hasil untuk “{q}”.</div>}
+          {items.length === 0 && <div className="empty">{T("Tidak ada hasil untuk “")}{q}”.</div>}
           {items.map((it, i) => (
             <button key={i} role="option" aria-selected={i === idx} className={`pal-item ${i === idx ? 'on' : ''}`} onMouseEnter={() => setIdx(i)} onClick={() => choose(it)}>
               <Icon name={it.icon} />

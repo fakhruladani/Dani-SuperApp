@@ -10,6 +10,7 @@ import * as sched from './scheduler.js';
 import * as io from './io.js';
 import * as state from './state.js';
 import { stickyColor } from '../shared/sticky.js';
+import { t as T, setLang, lang } from '../shared/i18n.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -53,9 +54,11 @@ function effectiveDark() {
   return t === 'dark' || (t === 'system' && nativeTheme.shouldUseDarkColors);
 }
 
+// The UI language is fixed per page load (?lang=); changing it reloads every window.
 function load(win, hash = '') {
-  if (DEV_URL) win.loadURL(DEV_URL + (hash ? '#' + hash : ''));
-  else win.loadFile(path.join(ROOT, 'dist', 'index.html'), hash ? { hash } : undefined);
+  win.__hash = hash;
+  if (DEV_URL) win.loadURL(`${DEV_URL}?lang=${lang()}${hash ? '#' + hash : ''}`);
+  else win.loadFile(path.join(ROOT, 'dist', 'index.html'), { query: { lang: lang() }, ...(hash ? { hash } : {}) });
 }
 
 function hardenWindow(win) {
@@ -136,7 +139,7 @@ function openSticky(noteId) {
   const win = new BrowserWindow({
     width: b?.w || 340, height: b?.h || 340, x: b?.x, y: b?.y, minWidth: 240, minHeight: 180,
     frame: false, resizable: true, skipTaskbar: true, show: false, alwaysOnTop: !!note.sticky_top,
-    backgroundColor: effectiveDark() ? c.dark : c.light, title: note.title || 'Sticky note', icon: asset('icon.png'), webPreferences
+    backgroundColor: effectiveDark() ? c.dark : c.light, title: note.title || T('Sticky note'), icon: asset('icon.png'), webPreferences
   });
   if (note.sticky_top) win.setAlwaysOnTop(true, 'floating');
   hardenWindow(win);
@@ -164,20 +167,22 @@ function newSticky() {
 function createTray() {
   tray = new Tray(nativeImage.createFromPath(asset('tray.png')));
   tray.setToolTip('Dani SuperApp');
-  const menu = Menu.buildFromTemplate([
-    { label: 'Buka Dani SuperApp', click: () => showMain() },
-    { label: 'Catatan cepat', accelerator: db.getSetting('quickShortcut'), click: toggleQuick },
-    { label: 'Widget mini', click: toggleWidget },
-    { label: 'Sticky note baru', click: () => newSticky() },
-    { type: 'separator' },
-    { label: 'Kalender', click: () => showMain({ nav: 'cal' }) },
-    { label: 'Catatan', click: () => showMain({ nav: 'notes' }) },
-    { label: 'Keuangan', click: () => showMain({ nav: 'fin' }) },
-    { type: 'separator' },
-    { label: 'Keluar', click: () => { quitting = true; app.quit(); } }
-  ]);
-  tray.setContextMenu(menu);
+  buildTrayMenu();
   tray.on('click', () => showMain());
+}
+function buildTrayMenu() {
+  tray?.setContextMenu(Menu.buildFromTemplate([
+    { label: T('Buka Dani SuperApp'), click: () => showMain() },
+    { label: T('Catatan cepat'), accelerator: db.getSetting('quickShortcut'), click: toggleQuick },
+    { label: T('Widget mini'), click: toggleWidget },
+    { label: T('Sticky note baru'), click: () => newSticky() },
+    { type: 'separator' },
+    { label: T('Kalender'), click: () => showMain({ nav: 'cal' }) },
+    { label: T('Catatan'), click: () => showMain({ nav: 'notes' }) },
+    { label: T('Keuangan'), click: () => showMain({ nav: 'fin' }) },
+    { type: 'separator' },
+    { label: T('Keluar|tray'), click: () => { quitting = true; app.quit(); } }
+  ]));
 }
 
 // ---------------- notifications ----------------
@@ -289,6 +294,12 @@ h('settings:set', (k, v) => {
   if (k === 'quickShortcut') applyShortcut();
   if (k === 'location') svc.clearCache('weather');
   if (k === 'feeds') svc.clearCache('news');
+  if (k === 'lang' && v !== lang()) {
+    setLang(v);
+    buildTrayMenu();
+    // reload after this IPC reply is delivered
+    setTimeout(() => { for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) load(w, w.__hash || ''); }, 50);
+  }
   return true;
 });
 h('fin:recap', (y) => db.finRecap(Number(y)));
@@ -305,7 +316,7 @@ h('market:checkAlerts', () => sched.checkAlerts());
 h('news:list', (cat, force) => svc.news(cat === 'id' ? 'id' : 'fin', !!force));
 h('news:feeds', () => svc.feeds());
 h('news:defaultFeeds', () => svc.DEFAULT_FEEDS);
-h('holidays', () => svc.holidays());
+h('holidays', () => svc.holidays(lang()));
 h('brief', () => sched.buildBrief());
 h('reminder:snooze', (id, m) => sched.snooze(String(id), Number(m) || 10));
 h('reminder:dismiss', (id) => sched.dismiss(String(id)));
@@ -315,7 +326,7 @@ h('backup:now', () => backupNow());
 h('backup:list', () => listBackups());
 h('backup:openDir', () => shell.openPath(backupDir()));
 h('backup:chooseDir', async () => {
-  const r = await dialog.showOpenDialog(mainWin, { properties: ['openDirectory', 'createDirectory'], title: 'Pilih folder backup' });
+  const r = await dialog.showOpenDialog(mainWin, { properties: ['openDirectory', 'createDirectory'], title: T('Pilih folder backup') });
   if (r.canceled || !r.filePaths[0]) return null;
   db.setSetting('backupDir', r.filePaths[0]);
   return r.filePaths[0];
@@ -323,47 +334,47 @@ h('backup:chooseDir', async () => {
 h('backup:restore', async (filePath, keyHex) => {
   let p = filePath;
   if (!p) {
-    const r = await dialog.showOpenDialog(mainWin, { title: 'Pilih file backup', defaultPath: backupDir(), filters: [{ name: 'Backup Dani SuperApp', extensions: ['dsabak', 'enc'] }], properties: ['openFile'] });
+    const r = await dialog.showOpenDialog(mainWin, { title: T('Pilih file backup'), defaultPath: backupDir(), filters: [{ name: T('Backup Dani SuperApp'), extensions: ['dsabak', 'enc'] }], properties: ['openFile'] });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
     p = r.filePaths[0];
   }
   try { backupNow('-sebelum-pulih'); } catch { /* keep going */ }
   try { db.restoreFrom(fs.readFileSync(p), keyHex || null); return { ok: true, path: p }; }
-  catch (e) { if (e.code === 'NEED_KEY') return { needKey: true, path: p }; return { error: 'Gagal memulihkan: kunci salah atau file rusak' }; }
+  catch (e) { if (e.code === 'NEED_KEY') return { needKey: true, path: p }; return { error: T('Gagal memulihkan: kunci salah atau file rusak') }; }
 });
-h('recovery:key', (pin) => { if (!verifyPin(pin)) throw new Error('PIN salah'); return db.getKeyHex().match(/.{1,8}/g).join('-'); });
+h('recovery:key', (pin) => { if (!verifyPin(pin)) throw new Error(T('PIN salah')); return db.getKeyHex().match(/.{1,8}/g).join('-'); });
 h('pin:status', () => ({ set: !!db.getSetting('pinHash', '') }));
 h('pin:verify', (pin) => verifyPin(pin));
 h('pin:set', (oldPin, newPin) => {
-  if (!verifyPin(oldPin)) throw new Error('PIN lama salah');
-  if (newPin && !/^\d{4,8}$/.test(String(newPin))) throw new Error('PIN harus 4–8 angka');
+  if (!verifyPin(oldPin)) throw new Error(T('PIN lama salah'));
+  if (newPin && !/^\d{4,8}$/.test(String(newPin))) throw new Error(T('PIN harus 4–8 angka'));
   db.setSetting('pinHash', newPin ? hashPin(newPin) : '');
   return true;
 });
 h('export:xlsx', async (year) => {
-  const r = await dialog.showSaveDialog(mainWin, { title: 'Ekspor keuangan', defaultPath: path.join(app.getPath('documents'), `Keuangan ${year}.xlsx`), filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor keuangan'), defaultPath: path.join(app.getPath('documents'), `${T('Keuangan')} ${year}.xlsx`), filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
   if (r.canceled || !r.filePath) return null;
   await io.exportFinanceXlsx(Number(year), r.filePath);
   shell.showItemInFolder(r.filePath);
   return r.filePath;
 });
 h('export:csv', async (year) => {
-  const r = await dialog.showSaveDialog(mainWin, { title: 'Ekspor CSV', defaultPath: path.join(app.getPath('documents'), `Transaksi ${year}.csv`), filters: [{ name: 'CSV', extensions: ['csv'] }] });
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor CSV'), defaultPath: path.join(app.getPath('documents'), `${T('Transaksi')} ${year}.csv`), filters: [{ name: 'CSV', extensions: ['csv'] }] });
   if (r.canceled || !r.filePath) return null;
   return io.exportFinanceCsv(Number(year), r.filePath);
 });
 h('import:csv', async () => {
-  const r = await dialog.showOpenDialog(mainWin, { title: 'Impor transaksi (CSV)', filters: [{ name: 'CSV', extensions: ['csv'] }], properties: ['openFile'] });
+  const r = await dialog.showOpenDialog(mainWin, { title: T('Impor transaksi (CSV)'), filters: [{ name: 'CSV', extensions: ['csv'] }], properties: ['openFile'] });
   if (r.canceled || !r.filePaths[0]) return null;
   return io.importFinanceCsv(r.filePaths[0]);
 });
 h('export:ics', async () => {
-  const r = await dialog.showSaveDialog(mainWin, { title: 'Ekspor kalender', defaultPath: path.join(app.getPath('documents'), 'Kalender Dani.ics'), filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor kalender'), defaultPath: path.join(app.getPath('documents'), T('Kalender Dani') + '.ics'), filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
   if (r.canceled || !r.filePath) return null;
   return io.exportIcs(r.filePath);
 });
 h('import:ics', async (calendarId) => {
-  const r = await dialog.showOpenDialog(mainWin, { title: 'Impor kalender (.ics)', filters: [{ name: 'iCalendar', extensions: ['ics'] }], properties: ['openFile'] });
+  const r = await dialog.showOpenDialog(mainWin, { title: T('Impor kalender (.ics)'), filters: [{ name: 'iCalendar', extensions: ['ics'] }], properties: ['openFile'] });
   if (r.canceled || !r.filePaths[0]) return null;
   return io.importIcs(r.filePaths[0], calendarId);
 });
@@ -419,6 +430,7 @@ app.whenReady().then(async () => {
   const hadData = fs.existsSync(path.join(app.getPath('userData'), 'data.db.enc'));
   await db.openDb({ dir: app.getPath('userData'), keyStore, wasmPath: require.resolve('sql.js/dist/sql-wasm.wasm') });
   state.open(app.getPath('userData'));
+  setLang(db.getSetting('lang', 'id'));
   // data lives in %APPDATA% and survives updates; still keep a backup from before each version change
   if (db.getSetting('app.version') !== app.getVersion()) {
     if (hadData) { try { backupNow(`-sebelum-v${app.getVersion()}`); } catch (e) { console.error('[backup]', e); } }

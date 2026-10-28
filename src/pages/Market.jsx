@@ -5,6 +5,7 @@ import { Seg, Sparkline, Spinner, Modal, Field } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
 import { num, pct, timeAgo } from '../lib/format.js';
 import { tickerLabel } from './Home.jsx';
+import { T } from '../lib/i18n.js';
 
 const RANGES = [['1d', '1H'], ['5d', '5H'], ['1mo', '1B'], ['3mo', '3B'], ['6mo', '6B'], ['1y', '1T'], ['5y', '5T']];
 const digits = (p) => (p == null ? 2 : p >= 1000 ? 2 : p >= 10 ? 2 : 4);
@@ -66,7 +67,7 @@ function PriceChart({ symbol, range, type, showMA }) {
     return () => chart.remove();
   }, [data, type, showMA, app.dark, range]);
 
-  if (err) return <div className="empty" style={{ height: 380 }}>Grafik gagal dimuat: {err}</div>;
+  if (err) return <div className="empty" style={{ height: 380 }}>{T("Grafik gagal dimuat:")} {err}</div>;
   return (
     <div style={{ position: 'relative', height: 380 }}>
       {!data && <div className="skeleton" style={{ position: 'absolute', inset: 0 }} />}
@@ -95,27 +96,27 @@ function News({ initialCat = 'fin' }) {
   const items = cat === 'saved' ? (saved.data || []).map((s) => ({ ...s, date: new Date(s.pub_date).getTime() })) : data[cat]?.items || [];
   const sources = [...new Set(items.map((i) => i.source))];
   const shown = items.filter((i) => (!src || i.source === src) && (!q || i.title.toLowerCase().includes(q.toLowerCase())));
-  const toggleSave = (n) => (savedIds.has(n.link) ? DB.remove('news_saved', n.link) : DB.save('news_saved', { id: n.link, title: n.title, link: n.link, source: n.source, pub_date: new Date(n.date).toISOString() }).then(() => app.toast('Disimpan untuk dibaca nanti')));
+  const toggleSave = (n) => (savedIds.has(n.link) ? DB.remove('news_saved', n.link) : DB.save('news_saved', { id: n.link, title: n.title, link: n.link, source: n.source, pub_date: new Date(n.date).toISOString() }).then(() => app.toast(T("Disimpan untuk dibaca nanti"))));
 
   return (
     <section className="card pad col" style={{ gap: 12 }}>
       <div className="row wrap">
-        <Seg label="Kategori berita" value={cat} onChange={setCat} options={[{ value: 'fin', label: 'Finance' }, { value: 'id', label: 'Indonesia' }, { value: 'saved', label: `Disimpan (${saved.data?.length || 0})` }]} />
+        <Seg label={T("Kategori berita")} value={cat} onChange={setCat} options={[{ value: 'fin', label: T("Finance") }, { value: 'id', label: T("Indonesia") }, { value: 'saved', label: `${T('Disimpan')} (${saved.data?.length || 0})` }]} />
         <span className="grow" />
-        <label className="sr" htmlFor="nq">Cari berita</label>
-        <input id="nq" className="field" placeholder="Cari judul…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 220 }} />
-        {cat !== 'saved' && <button className="btn" onClick={() => load(cat, true)}>{loading ? <Spinner /> : <Icon name="refresh" size="sm" />}Muat ulang</button>}
+        <label className="sr" htmlFor="nq">{T("Cari berita")}</label>
+        <input id="nq" className="field" placeholder={T("Cari judul…")} value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 220 }} />
+        {cat !== 'saved' && <button className="btn" onClick={() => load(cat, true)}>{loading ? <Spinner /> : <Icon name="refresh" size="sm" />}{T("Muat ulang")}</button>}
       </div>
       {sources.length > 1 && (
         <div className="row wrap" style={{ gap: 6 }}>
-          <button className={`chip ${!src ? 'on' : ''}`} onClick={() => setSrc('')}>Semua sumber</button>
+          <button className={`chip ${!src ? 'on' : ''}`} onClick={() => setSrc('')}>{T("Semua sumber")}</button>
           {sources.map((s) => <button key={s} className={`chip ${src === s ? 'on' : ''}`} onClick={() => setSrc(s)}>{s}</button>)}
         </div>
       )}
-      {cat !== 'saved' && data[cat]?.errors?.length > 0 && <span className="mut" style={{ fontSize: 12 }}>Sumber gagal dimuat: {data[cat].errors.join(', ')}</span>}
+      {cat !== 'saved' && data[cat]?.errors?.length > 0 && <span className="mut" style={{ fontSize: 12 }}>{T("Sumber gagal dimuat:")} {data[cat].errors.join(', ')}</span>}
       {cat !== 'saved' && !data[cat] && <div className="skeleton" style={{ height: 300 }} />}
-      {data[cat] && shown.length === 0 && <div className="empty">Tidak ada berita.</div>}
-      {cat === 'saved' && shown.length === 0 && <div className="empty">Belum ada berita yang disimpan. Klik ikon penanda pada berita.</div>}
+      {data[cat] && shown.length === 0 && <div className="empty">{T("Tidak ada berita.")}</div>}
+      {cat === 'saved' && shown.length === 0 && <div className="empty">{T("Belum ada berita yang disimpan. Klik ikon penanda pada berita.")}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '0 20px' }}>
         {shown.map((n) => (
           <div key={n.link} className="news-item">
@@ -125,11 +126,13 @@ function News({ initialCat = 'fin' }) {
               {n.summary && <span className="mut" style={{ fontSize: 13, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.summary}</span>}
               <span className="mut" style={{ fontSize: 12 }}>{n.source} · {timeAgo(n.date)}</span>
             </a>
-            <button className={`icb sm ${savedIds.has(n.link) ? 'on' : ''}`} aria-label={savedIds.has(n.link) ? 'Hapus dari simpanan' : 'Simpan untuk dibaca nanti'} onClick={() => toggleSave(n)}><Icon name="bookmark" size="sm" /></button>
+            <button className={`icb sm ${savedIds.has(n.link) ? 'on' : ''}`} aria-label={savedIds.has(n.link) ? T("Hapus dari simpanan") : T("Simpan untuk dibaca nanti")} onClick={() => toggleSave(n)}><Icon name="bookmark" size="sm" /></button>
           </div>
         ))}
       </div>
-      <span className="mut" style={{ fontSize: 12 }}>Sumber RSS bisa diatur di Pengaturan → Berita. Klik judul untuk membuka di browser.</span>
+      <span className="mut" style={{ fontSize: 12 }}>{T(
+        "Sumber RSS bisa diatur di Pengaturan → Berita. Klik judul untuk membuka di browser."
+      )}</span>
     </section>
   );
 }
@@ -167,18 +170,18 @@ export default function Market() {
     if (!price) return;
     await DB.save('price_alerts', { symbol: sel, op: alertForm.op, price, active: 1 });
     setAlertForm({ ...alertForm, price: '' });
-    app.toast('Alert harga dibuat');
+    app.toast(T("Alert harga dibuat"));
   };
 
   return (
     <div className="page">
       <div className="row wrap">
-        <Seg label="Tab" value={tab} onChange={setTab} options={[{ value: 'market', label: 'Pasar' }, { value: 'news', label: 'Berita' }]} />
+        <Seg label={T("Tab")} value={tab} onChange={setTab} options={[{ value: 'market', label: T("Pasar") }, { value: 'news', label: T("Berita") }]} />
         <span className="grow" />
         {tab === 'market' && <>
-          <span className="chip">Yahoo Finance · tertunda ±10–15 mnt{updated ? ` · ${timeAgo(updated)}` : ''}</span>
-          <button className="btn" onClick={load}>{loading ? <Spinner /> : <Icon name="refresh" size="sm" />}Muat ulang</button>
-          <button className="btn pri" onClick={() => setAddOpen(true)}><Icon name="plus" size="sm" />Simbol</button>
+          <span className="chip">{T("Yahoo Finance · tertunda ±10–15 mnt")}{updated ? ` · ${timeAgo(updated)}` : ''}</span>
+          <button className="btn" onClick={load}>{loading ? <Spinner /> : <Icon name="refresh" size="sm" />}{T("Muat ulang")}</button>
+          <button className="btn pri" onClick={() => setAddOpen(true)}><Icon name="plus" size="sm" />{T("Simbol")}</button>
         </>}
       </div>
 
@@ -193,9 +196,9 @@ export default function Market() {
               return (
                 <button key={w.symbol} className={`card tick ${sel === w.symbol ? 'on' : ''}`} onClick={() => setSel(w.symbol)}>
                   <div className="row"><span style={{ fontWeight: 800 }} className="grow ellipsis">{tickerLabel(w)}</span>{x && !x.error && <span className={`num ${upx ? 'up' : 'dn'}`} style={{ fontSize: 13, fontWeight: 700 }}>{pct(x.changePct)}</span>}</div>
-                  {!x ? <div className="skeleton" style={{ height: 26 }} /> : x.error ? <span className="mut" style={{ fontSize: 13 }}>Data tidak tersedia</span> : <span className="num" style={{ fontSize: 20, fontWeight: 800 }}>{num(x.price, digits(x.price))}</span>}
+                  {!x ? <div className="skeleton" style={{ height: 26 }} /> : x.error ? <span className="mut" style={{ fontSize: 13 }}>{T("Data tidak tersedia")}</span> : <span className="num" style={{ fontSize: 20, fontWeight: 800 }}>{num(x.price, digits(x.price))}</span>}
                   <Sparkline data={x?.spark} up={upx} height={32} />
-                  <span className="mut ellipsis" style={{ fontSize: 12 }}>{/[\^=-]/.test(w.symbol) ? w.symbol : w.name}{x?.currency ? ` · ${x.currency}` : ''}{x?.stale ? ' · offline' : ''}</span>
+                  <span className="mut ellipsis" style={{ fontSize: 12 }}>{/[\^=-]/.test(w.symbol) ? w.symbol : w.name}{x?.currency ? ` · ${x.currency}` : ''}{x?.stale ? T(" · offline") : ''}</span>
                 </button>
               );
             })}
@@ -209,34 +212,38 @@ export default function Market() {
                     <span style={{ fontSize: 20, fontWeight: 800 }}>{selName} <span className="mut" style={{ fontSize: 14, fontWeight: 600 }}>{sel}</span></span>
                     {q && !q.error && <span className="num"><strong style={{ fontSize: 18 }}>{num(q.price, digits(q.price))}</strong> <span className={q.change >= 0 ? 'up' : 'dn'} style={{ fontWeight: 700 }}>{q.change >= 0 ? '+' : '−'}{num(Math.abs(q.change), digits(q.price))} ({pct(q.changePct)})</span> <span className="mut" style={{ fontSize: 12 }}>· H {num(q.dayHigh, digits(q.price))} · L {num(q.dayLow, digits(q.price))} · {q.exchange}</span></span>}
                   </div>
-                  <Seg label="Rentang" value={range} onChange={setRange} options={RANGES.map(([v, l]) => ({ value: v, label: l }))} />
-                  <Seg label="Jenis grafik" value={ctype} onChange={setCtype} options={[{ value: 'candle', label: 'Candle' }, { value: 'line', label: 'Garis' }]} />
-                  <button className={`btn sm ${ma ? 'pri' : ''}`} onClick={() => setMa(!ma)} title="Moving average 20 & 50">MA 20/50</button>
+                  <Seg label={T("Rentang")} value={range} onChange={setRange} options={RANGES.map(([v, l]) => ({ value: v, label: l }))} />
+                  <Seg label={T("Jenis grafik")} value={ctype} onChange={setCtype} options={[{ value: 'candle', label: 'Candle' }, { value: 'line', label: T("Garis") }]} />
+                  <button className={`btn sm ${ma ? 'pri' : ''}`} onClick={() => setMa(!ma)} title={T("Moving average 20 & 50")}>MA 20/50</button>
                 </div>
                 <PriceChart symbol={sel} range={range} type={ctype} showMA={ma} />
               </section>
               <section className="card pad col" style={{ flex: '1 1 300px', gap: 12 }}>
-                <h2 className="h2">Alert harga {sel.replace('.JK', '')}</h2>
+                <h2 className="h2">{T("Alert harga")} {sel.replace('.JK', '')}</h2>
                 <div className="row">
-                  <label className="sr" htmlFor="al-op">Kondisi</label>
-                  <select id="al-op" className="field" value={alertForm.op} onChange={(e) => setAlertForm({ ...alertForm, op: e.target.value })} style={{ width: 130 }}><option value="above">Naik ke ≥</option><option value="below">Turun ke ≤</option></select>
-                  <label className="sr" htmlFor="al-p">Harga</label>
-                  <input id="al-p" className="field num" inputMode="decimal" placeholder={q?.price ? num(q.price, digits(q.price)) : 'harga'} value={alertForm.price} onChange={(e) => setAlertForm({ ...alertForm, price: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addAlert()} />
-                  <button className="btn pri" onClick={addAlert} aria-label="Tambah alert"><Icon name="bell" size="sm" /></button>
+                  <label className="sr" htmlFor="al-op">{T("Kondisi")}</label>
+                  <select id="al-op" className="field" value={alertForm.op} onChange={(e) => setAlertForm({ ...alertForm, op: e.target.value })} style={{ width: 130 }}><option value="above">{T("Naik ke ≥")}</option><option value="below">{T("Turun ke ≤")}</option></select>
+                  <label className="sr" htmlFor="al-p">{T("Harga")}</label>
+                  <input id="al-p" className="field num" inputMode="decimal" placeholder={q?.price ? num(q.price, digits(q.price)) : T("harga")} value={alertForm.price} onChange={(e) => setAlertForm({ ...alertForm, price: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addAlert()} />
+                  <button className="btn pri" onClick={addAlert} aria-label={T("Tambah alert")}><Icon name="bell" size="sm" /></button>
                 </div>
-                {symAlerts.length === 0 && <span className="mut" style={{ fontSize: 13 }}>Belum ada alert. Notifikasi muncul saat harga menyentuh batas (dicek tiap {Math.round((app.settings.marketRefreshSec || 120) / 60)} menit).</span>}
+                {symAlerts.length === 0 && <span className="mut" style={{ fontSize: 13 }}>{T(
+                    "Belum ada alert. Notifikasi muncul saat harga menyentuh batas (dicek tiap"
+                  )} {Math.round((app.settings.marketRefreshSec || 120) / 60)} {T("menit).")}</span>}
                 {symAlerts.map((a) => (
                   <div key={a.id} className="task">
                     <Icon name="bell" size="sm" className={a.active ? '' : 'mut'} />
                     <span className="grow num">{a.op === 'above' ? '≥ ' : '≤ '}{num(a.price, digits(a.price))}</span>
-                    <span className="chip">{a.active ? 'aktif' : `terpicu ${a.triggered_at ? timeAgo(new Date(a.triggered_at).getTime()) : ''}`}</span>
-                    {!a.active && <button className="icb sm" aria-label="Aktifkan lagi" onClick={() => DB.save('price_alerts', { id: a.id, active: 1, triggered_at: null })}><Icon name="refresh" size="sm" /></button>}
-                    <button className="icb sm" aria-label="Hapus alert" onClick={() => DB.remove('price_alerts', a.id)}><Icon name="trash" size="sm" /></button>
+                    <span className="chip">{a.active ? T("aktif") : `${T('terpicu')} ${a.triggered_at ? timeAgo(new Date(a.triggered_at).getTime()) : ''}`}</span>
+                    {!a.active && <button className="icb sm" aria-label={T("Aktifkan lagi")} onClick={() => DB.save('price_alerts', { id: a.id, active: 1, triggered_at: null })}><Icon name="refresh" size="sm" /></button>}
+                    <button className="icb sm" aria-label={T("Hapus alert")} onClick={() => DB.remove('price_alerts', a.id)}><Icon name="trash" size="sm" /></button>
                   </div>
                 ))}
                 <div className="divider" />
-                <button className="btn danger" onClick={async () => { if (await app.confirm(`Hapus ${sel} dari watchlist?`, { danger: true, ok: 'Hapus' })) { await DB.remove('watchlist', sel); setSel(null); } }}><Icon name="trash" size="sm" />Hapus dari watchlist</button>
-                <span className="mut" style={{ fontSize: 12 }}>Data dari endpoint publik Yahoo Finance (tidak resmi). Bisa berubah sewaktu-waktu; bukan saran investasi.</span>
+                <button className="btn danger" onClick={async () => { if (await app.confirm(T('Hapus {t} dari watchlist?', { t: sel }), { danger: true, ok: T("Hapus") })) { await DB.remove('watchlist', sel); setSel(null); } }}><Icon name="trash" size="sm" />{T("Hapus dari watchlist")}</button>
+                <span className="mut" style={{ fontSize: 12 }}>{T(
+                  "Data dari endpoint publik Yahoo Finance (tidak resmi). Bisa berubah sewaktu-waktu; bukan saran investasi."
+                )}</span>
               </section>
             </div>
           )}
@@ -258,8 +265,8 @@ function AddSymbol({ onClose, count, onAdded }) {
   }, [q]);
   const add = async (r) => { await DB.save('watchlist', { id: r.symbol, symbol: r.symbol, name: r.name, sort: count }); onAdded(r.symbol); onClose(); };
   return (
-    <Modal title="Tambah ke watchlist" width={520} onClose={onClose}>
-      <Field label="Cari saham, indeks, kurs, kripto" hint="Contoh: BBRI, TLKM, ^JKSE, EURIDR=X, ETH-USD. Saham BEI berakhiran .JK">
+    <Modal title={T("Tambah ke watchlist")} width={520} onClose={onClose}>
+      <Field label={T("Cari saham, indeks, kurs, kripto")} hint={T("Contoh: BBRI, TLKM, ^JKSE, EURIDR=X, ETH-USD. Saham BEI berakhiran .JK")}>
         <input className="field" autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && /^[\w^.=-]+$/.test(q.trim())) add({ symbol: q.trim().toUpperCase(), name: q.trim().toUpperCase() }); }} />
       </Field>
       {busy && <Spinner />}

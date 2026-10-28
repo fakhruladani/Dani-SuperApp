@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import { api, useNow } from '../lib/api.js';
 import { fmtDateLong, pad } from '../../shared/recur.js';
+import { T } from '../lib/i18n.js';
 
 export default function LockScreen({ onUnlock }) {
   const [pin, setPin] = useState('');
@@ -27,22 +28,22 @@ export default function LockScreen({ onUnlock }) {
   });
 
   return (
-    <div className="lock" role="dialog" aria-label="Aplikasi terkunci">
+    <div className="lock" role="dialog" aria-label={T("Aplikasi terkunci")}>
       <div className="col" style={{ alignItems: 'center', gap: 22 }}>
         <div className="logo" style={{ width: 56, height: 56, fontSize: 26, borderRadius: 16 }}>D</div>
         <div className="col" style={{ alignItems: 'center', gap: 2 }}>
           <span className="num" style={{ fontSize: 48, fontWeight: 800 }}>{pad(now.getHours())}.{pad(now.getMinutes())}</span>
           <span className="mut">{fmtDateLong(now)}</span>
         </div>
-        <div className="row" style={{ gap: 8 }}><Icon name="lock" size="sm" /><span style={{ fontWeight: 700 }}>Masukkan PIN</span></div>
-        <div className={`pin-dots ${bad ? 'shake' : ''}`} aria-live="polite" aria-label={`${pin.length} digit dimasukkan`}>
+        <div className="row" style={{ gap: 8 }}><Icon name="lock" size="sm" /><span style={{ fontWeight: 700 }}>{T("Masukkan PIN")}</span></div>
+        <div className={`pin-dots ${bad ? 'shake' : ''}`} aria-live="polite" aria-label={T('{n} digit dimasukkan', { n: pin.length })}>
           {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => <i key={i} className={i < pin.length ? 'f' : ''} />)}
         </div>
         <div className="pinpad">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <button key={d} onClick={() => press(String(d))}>{d}</button>)}
-          <button aria-label="Hapus" onClick={() => setPin((p) => p.slice(0, -1))}><Icon name="left" /></button>
+          <button aria-label={T("Hapus")} onClick={() => setPin((p) => p.slice(0, -1))}><Icon name="left" /></button>
           <button onClick={() => press('0')}>0</button>
-          <button aria-label="Buka" onClick={() => tryPin(pin)} style={{ background: 'var(--accent)', color: 'var(--on-accent)', borderColor: 'var(--accent)' }}><Icon name="check" /></button>
+          <button aria-label={T("Buka")} onClick={() => tryPin(pin)} style={{ background: 'var(--accent)', color: 'var(--on-accent)', borderColor: 'var(--accent)' }}><Icon name="check" /></button>
         </div>
       </div>
     </div>

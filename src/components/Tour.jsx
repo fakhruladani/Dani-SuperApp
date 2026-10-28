@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import { TOUR } from '../lib/guide.js';
+import { T } from '../lib/i18n.js';
 
 // Guided tour: opens each page, dims the screen and highlights one element with an explanation card.
 export default function Tour({ index, setIndex, nav, onClose }) {
@@ -49,19 +50,19 @@ export default function Tour({ index, setIndex, nav, onClose }) {
   }
 
   return (
-    <div className="tour" role="dialog" aria-modal="true" aria-label={`Tur ${index + 1} dari ${TOUR.length}: ${step.title}`}>
+    <div className="tour" role="dialog" aria-modal="true" aria-label={T('Tur {i} dari {n}: {t}', { i: index + 1, n: TOUR.length, t: step.title })}>
       {rect ? (
         <div className="tour-hole" style={{ top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }} />
       ) : <div className="tour-dim" />}
       <div className="card tour-card" style={{ ...card, width: W }}>
-        <div className="row"><span className="lbl grow">Tur {index + 1} / {TOUR.length}</span><button className="icb sm" aria-label="Tutup tur" onClick={onClose}><Icon name="x" size="sm" /></button></div>
+        <div className="row"><span className="lbl grow">{T("Tur")} {index + 1}/ {TOUR.length}</span><button className="icb sm" aria-label={T("Tutup tur")} onClick={onClose}><Icon name="x" size="sm" /></button></div>
         <strong style={{ fontSize: 16 }}>{step.title}</strong>
         <span style={{ lineHeight: 1.55 }}>{step.body}</span>
         <div className="row" style={{ marginTop: 4 }}>
-          <button className="btn sm ghost" onClick={onClose}>Lewati</button>
+          <button className="btn sm ghost" onClick={onClose}>{T("Lewati")}</button>
           <span className="grow" />
-          {index > 0 && <button className="btn sm" onClick={() => setIndex(index - 1)}><Icon name="left" size="sm" />Kembali</button>}
-          <button className="btn sm pri" autoFocus onClick={() => (index < TOUR.length - 1 ? setIndex(index + 1) : onClose())}>{index < TOUR.length - 1 ? 'Berikutnya' : 'Selesai'}{index < TOUR.length - 1 && <Icon name="right" size="sm" />}</button>
+          {index > 0 && <button className="btn sm" onClick={() => setIndex(index - 1)}><Icon name="left" size="sm" />{T("Kembali")}</button>}
+          <button className="btn sm pri" autoFocus onClick={() => (index < TOUR.length - 1 ? setIndex(index + 1) : onClose())}>{index < TOUR.length - 1 ? T("Berikutnya") : T("Selesai")}{index < TOUR.length - 1 && <Icon name="right" size="sm" />}</button>
         </div>
       </div>
     </div>

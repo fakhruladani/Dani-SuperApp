@@ -1,7 +1,9 @@
+import { t as T } from '../../shared/i18n.js';
+
 // Content of the in-app guide (Panduan) and the guided tour.
 // `where` tells where a feature lives; `open` is the page (and params) the "Buka" button navigates to.
 
-export const GUIDE = [
+const GUIDE_ID = [
   {
     id: 'mulai', icon: 'bolt', title: 'Mulai cepat', where: 'Seluruh aplikasi',
     intro: 'Dani SuperApp berjalan di latar belakang sejak Windows menyala. Ikon "D" ada di tray (pojok kanan bawah). Klik ikon itu untuk membuka jendela utama.',
@@ -119,7 +121,7 @@ export const GUIDE = [
   }
 ];
 
-export const SHORTCUTS = [
+const SHORTCUTS_ID = [
   ['Ctrl+K', 'Cari & perintah'], ['Ctrl+Shift+Space', 'Catatan cepat (dari mana saja)'], ['Ctrl+1 … Ctrl+7', 'Pindah menu'],
   ['Ctrl+,', 'Pengaturan'], ['F1', 'Panduan'], ['Ctrl+L', 'Kunci aplikasi (jika PIN aktif)'],
   ['Ctrl+B / I / U', 'Tebal / miring / garis bawah (catatan)'], ['Ctrl+Shift+S', 'Coret teks (catatan)'],
@@ -127,7 +129,7 @@ export const SHORTCUTS = [
 ];
 
 // Guided tour: each step opens a page and highlights an element (CSS selector).
-export const TOUR = [
+const TOUR_ID = [
   { page: 'home', sel: '.sidebar', title: 'Menu utama', body: 'Semua modul ada di sini. Pintasan Ctrl+1 sampai Ctrl+7 mengikuti urutan menu.' },
   { page: 'home', sel: '.searchbox', title: 'Cari & perintah', body: 'Ctrl+K untuk mencari catatan, acara, tugas, transaksi, atau menjalankan perintah.' },
   { page: 'home', sel: '[data-tour="quick"]', title: 'Catatan cepat & widget', body: 'Ikon petir membuka catatan cepat (juga Ctrl+Shift+Space dari mana saja). Ikon kotak membuka widget mini.' },
@@ -136,8 +138,15 @@ export const TOUR = [
   { page: 'cal', sel: '.cal-side', title: 'Panel tanggal', body: 'Deskripsi hari, daftar acara, pengingat cepat, dan pengaturan kalender untuk tanggal yang dipilih.' },
   { page: 'notes', sel: '.toolbar', title: 'Editor catatan', body: 'Format teks, warna, stabilo, checklist, mode pena untuk mencoret bebas, dan zoom.' },
   { page: 'notes', sel: '[data-tour="float"]', title: 'Jendela mengambang', body: 'Jadikan catatan sticky note di desktop, dengan pilihan warna dan selalu di atas.' },
-  { page: 'fin', sel: '[aria-label="Tampilan keuangan"]', title: 'Keuangan', body: 'Bulanan, Rekap tahunan, Kategori & anggaran, dan Total Wealth. Tahun bisa diganti di kiri.' },
+  { page: 'fin', sel: '[data-tour="fin-tabs"]', title: 'Keuangan', body: 'Bulanan, Rekap tahunan, Kategori & anggaran, dan Total Wealth. Tahun bisa diganti di kiri.' },
   { page: 'market', sel: '[data-tour="tickers"]', title: 'Market', body: 'Klik kartu untuk grafik dan alert harga. Tab Berita berisi berita finance dan Indonesia.' },
   { page: 'focus', sel: '[data-tour="pomodoro"]', title: 'Fokus', body: 'Pomodoro dengan mode jangan ganggu. Di sebelahnya: tugas, kebiasaan, dan statistik.' },
   { page: 'guide', sel: '[data-tour="nav-guide"]', title: 'Panduan', body: 'Lupa letak fitur? Buka Panduan di sini atau tekan F1. Tur ini bisa diulang dari halaman Panduan.' }
 ];
+
+// Translate every human-readable string (Indonesian text is the dictionary key); ids, icons, pages and selectors stay.
+const KEEP = new Set(['id', 'icon', 'page', 'sel', 'open']);
+const tr = (v, k) => (KEEP.has(k) ? v : typeof v === 'string' ? T(v) : Array.isArray(v) ? v.map((x) => tr(x)) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, tr(x, kk)])) : v);
+export const GUIDE = tr(GUIDE_ID);
+export const SHORTCUTS = SHORTCUTS_ID.map(([k, d]) => [k, T(d)]);
+export const TOUR = tr(TOUR_ID);

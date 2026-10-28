@@ -5,6 +5,7 @@ import * as db from './db.js';
 import * as state from './state.js';
 import * as svc from './services.js';
 import { expandAll, reminderTime, parseLocal, toLocalDate, toLocalDateTime, fmtTime, fmtDateLong } from '../shared/recur.js';
+import { t as T } from '../shared/i18n.js';
 
 let deps = null; // { notify({title, body, kind, payload, important}), send(channel, data), backup() }
 let timer = null;
@@ -68,14 +69,14 @@ function collectDue(fromMs, toMs) {
 function describe(d, late) {
   if (d.kind === 'task') {
     const t = d.item;
-    return { title: (late ? 'Terlewat · ' : '') + 'Tugas: ' + t.title, body: `Tenggat ${t.due_date}${t.due_time ? ' ' + t.due_time.replace(':', '.') : ''}${t.tag ? ' · #' + t.tag : ''}`, date: t.due_date };
+    return { title: (late ? T('Terlewat') + ' · ' : '') + T('Tugas:') + ' ' + t.title, body: `${T('Tenggat')} ${t.due_date}${t.due_time ? ' ' + t.due_time.replace(':', '.') : ''}${t.tag ? ' · #' + t.tag : ''}`, date: t.due_date };
   }
   const o = d.item;
-  const when = o.all_day ? 'Seharian' : fmtTime(o.occStart);
+  const when = o.all_day ? T('Seharian') : fmtTime(o.occStart);
   const mins = Math.round((o.occStart - Date.now()) / 60000);
   let rel = '';
-  if (!o.all_day) rel = mins > 1 ? ` · ${mins >= 60 ? Math.round(mins / 60) + ' jam' : mins + ' menit'} lagi` : mins >= -1 ? ' · sekarang' : '';
-  return { title: (late ? 'Terlewat · ' : '') + o.title, body: `${fmtDateLong(o.occStart)} · ${when}${rel}${o.location ? ' · ' + o.location : ''}${o.description ? '\n' + o.description.slice(0, 120) : ''}`, date: toLocalDate(o.occStart) };
+  if (!o.all_day) rel = mins > 1 ? ' · ' + (mins >= 60 ? T('{n} jam lagi', { n: Math.round(mins / 60) }) : T('{n} menit lagi', { n: mins })) : mins >= -1 ? ' · ' + T('sekarang') : '';
+  return { title: (late ? T('Terlewat') + ' · ' : '') + o.title, body: `${fmtDateLong(o.occStart)} · ${when}${rel}${o.location ? ' · ' + o.location : ''}${o.description ? '\n' + o.description.slice(0, 120) : ''}`, date: toLocalDate(o.occStart) };
 }
 
 function fire(d, isCatchUp) {
@@ -134,7 +135,7 @@ function tick(isCatchUp) {
     for (const d of extra) {
       if (d.kind !== 'snooze') db.upsert('reminder_log', { id: logKey(d.kind, d.key), status: 'fired', fired_at: new Date().toISOString() }, true);
     }
-    if (extra.length) deps.notify({ title: `${extra.length} pengingat lain terlewat`, body: 'Buka kalender untuk melihat detailnya.', kind: 'reminder', important: true, payload: { nav: 'cal' } });
+    if (extra.length) deps.notify({ title: T('{n} pengingat lain terlewat', { n: extra.length }), body: T('Buka kalender untuk melihat detailnya.'), kind: 'reminder', important: true, payload: { nav: 'cal' } });
     for (const d of due) fire(d, isCatchUp);
     brief(now);
     maybeBackup(now);
@@ -160,9 +161,9 @@ export async function buildBrief(now = Date.now()) {
   const spent = budgets.filter((b) => b.budget > 0).reduce((s, b) => s + (b.spent || 0), 0);
   const over = budgets.filter((b) => b.budget > 0 && b.spent > b.budget).map((b) => b.name);
   return {
-    date: today, events: occs.map((o) => ({ title: o.title, time: o.all_day ? 'Seharian' : fmtTime(o.occStart) })),
+    date: today, events: occs.map((o) => ({ title: o.title, time: o.all_day ? T('Seharian') : fmtTime(o.occStart) })),
     tasksToday: dueToday.length, overdue: overdue.length,
-    weather: wx ? { temp: Math.round(wx.current.temp), text: (svc.WMO[wx.current.code] || ['—'])[0], popMax: wx.daily?.[0]?.pop ?? null } : null,
+    weather: wx ? { temp: Math.round(wx.current.temp), text: T((svc.WMO[wx.current.code] || ['—'])[0]), popMax: wx.daily?.[0]?.pop ?? null } : null,
     budget: { cap, spent, left: cap - spent, over, month: ym }
   };
 }
@@ -178,10 +179,10 @@ async function brief(now) {
   db.setSetting('brief.lastDate', today, true);
   if (dnd()) return;
   const b = await buildBrief(now);
-  const parts = [`${b.events.length} agenda`, `${b.tasksToday} tugas${b.overdue ? ` (${b.overdue} terlambat)` : ''}`];
-  if (b.weather) parts.push(`${b.weather.temp}° ${b.weather.text}${b.weather.popMax != null ? `, hujan ${b.weather.popMax}%` : ''}`);
-  const first = b.events[0] ? `\nPertama: ${b.events[0].time} ${b.events[0].title}` : '';
-  deps.notify({ title: 'Ringkasan pagi', body: parts.join(' · ') + first, kind: 'brief', payload: { nav: 'home' } });
+  const parts = [T('{n} agenda', { n: b.events.length }), T('{n} tugas', { n: b.tasksToday }) + (b.overdue ? ' ' + T('({n} terlambat)', { n: b.overdue }) : '')];
+  if (b.weather) parts.push(`${b.weather.temp}° ${b.weather.text}${b.weather.popMax != null ? ', ' + T('hujan {n}%', { n: b.weather.popMax }) : ''}`);
+  const first = b.events[0] ? `\n${T('Pertama:')} ${b.events[0].time} ${b.events[0].title}` : '';
+  deps.notify({ title: T('Ringkasan pagi'), body: parts.join(' · ') + first, kind: 'brief', payload: { nav: 'home' } });
 }
 
 // ---------------- price alerts ----------------
@@ -203,7 +204,7 @@ export async function checkAlerts() {
     if (!hit) continue;
     db.upsert('price_alerts', { id: a.id, active: 0, triggered_at: new Date().toISOString() });
     if (dnd()) continue;
-    deps.notify({ title: `Alert harga: ${a.symbol}`, body: `${q.name} ${a.op === 'above' ? 'naik ke' : 'turun ke'} ${q.price.toLocaleString('id-ID', { maximumFractionDigits: 2 })} (batas ${a.price.toLocaleString('id-ID')})`, kind: 'market', payload: { nav: 'market', symbol: a.symbol } });
+    deps.notify({ title: T('Alert harga:') + ' ' + a.symbol, body: `${q.name} ${a.op === 'above' ? T('naik ke') : T('turun ke')} ${q.price.toLocaleString('id-ID', { maximumFractionDigits: 2 })} (${T('batas')} ${a.price.toLocaleString('id-ID')})`, kind: 'market', payload: { nav: 'market', symbol: a.symbol } });
   }
 }
 

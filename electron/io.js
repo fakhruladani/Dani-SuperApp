@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as db from './db.js';
 import { MONTH_ID, parseLocal, pad } from '../shared/recur.js';
+import { t as T } from '../shared/i18n.js';
 import { wealthSummary } from '../shared/wealth.js';
 
 const require = createRequire(import.meta.url);
@@ -24,16 +25,16 @@ export async function exportFinanceXlsx(year, filePath) {
   };
   // recap
   const rec = db.finRecap(year);
-  const wr = wb.addWorksheet('Rekap ' + year);
-  head(wr, [{ header: 'Bulan', key: 'b', width: 14 }, { header: 'Pemasukan', key: 'i', width: 18, style: { numFmt: money } }, { header: 'Pengeluaran', key: 'o', width: 18, style: { numFmt: money } }, { header: 'Selisih', key: 's', width: 18, style: { numFmt: money } }]);
+  const wr = wb.addWorksheet(T('Rekap') + ' ' + year);
+  head(wr, [{ header: T('Bulan'), key: 'b', width: 14 }, { header: T('Pemasukan'), key: 'i', width: 18, style: { numFmt: money } }, { header: T('Pengeluaran'), key: 'o', width: 18, style: { numFmt: money } }, { header: T('Selisih'), key: 's', width: 18, style: { numFmt: money } }]);
   rec.months.forEach((m, i) => wr.addRow({ b: MONTH_ID[i], i: m.in, o: m.out, s: { formula: `B${i + 2}-C${i + 2}` } }));
-  const tr = wr.addRow({ b: 'Total', i: { formula: 'SUM(B2:B13)' }, o: { formula: 'SUM(C2:C13)' }, s: { formula: 'B14-C14' } });
+  const tr = wr.addRow({ b: T('Total'), i: { formula: 'SUM(B2:B13)' }, o: { formula: 'SUM(C2:C13)' }, s: { formula: 'B14-C14' } });
   tr.font = { bold: true };
   // category matrix
-  const wc = wb.addWorksheet('Per kategori');
-  head(wc, [{ header: 'Kategori', key: 'k', width: 22 }, { header: 'Jenis', key: 'j', width: 10 }, ...MONTH_ID.map((m, i) => ({ header: m.slice(0, 3), key: 'm' + i, width: 13, style: { numFmt: money } })), { header: 'Total', key: 't', width: 16, style: { numFmt: money } }]);
+  const wc = wb.addWorksheet(T('Per kategori'));
+  head(wc, [{ header: T('Kategori'), key: 'k', width: 22 }, { header: T('Jenis'), key: 'j', width: 10 }, ...MONTH_ID.map((m, i) => ({ header: m.slice(0, 3), key: 'm' + i, width: 13, style: { numFmt: money } })), { header: T('Total'), key: 't', width: 16, style: { numFmt: money } }]);
   rec.categories.sort((a, b) => (a.kind > b.kind ? 1 : -1)).forEach((c) => {
-    const row = { k: names[c.category_id] || '(tanpa kategori)', j: c.kind === 'in' ? 'Masuk' : 'Keluar', t: c.total };
+    const row = { k: names[c.category_id] || T('(tanpa kategori)'), j: c.kind === 'in' ? T('Masuk') : T('Keluar'), t: c.total };
     c.months.forEach((v, i) => { row['m' + i] = v; });
     wc.addRow(row);
   });
@@ -41,21 +42,21 @@ export async function exportFinanceXlsx(year, filePath) {
   for (let m = 1; m <= 12; m++) {
     const rows = db.list('fin_tx', { where: { date: { prefix: `${year}-${pad(m)}` } }, order: 'date' });
     const ws = wb.addWorksheet(MONTH_ID[m - 1]);
-    head(ws, [{ header: 'Tanggal', key: 'd', width: 12 }, { header: 'Keterangan', key: 'k', width: 34 }, { header: 'Kategori', key: 'c', width: 20 }, { header: 'Masuk', key: 'i', width: 16, style: { numFmt: money } }, { header: 'Keluar', key: 'o', width: 16, style: { numFmt: money } }, { header: 'Catatan', key: 'n', width: 30 }]);
+    head(ws, [{ header: T('Tanggal'), key: 'd', width: 12 }, { header: T('Keterangan'), key: 'k', width: 34 }, { header: T('Kategori'), key: 'c', width: 20 }, { header: T(T('Masuk')), key: 'i', width: 16, style: { numFmt: money } }, { header: T(T('Keluar')), key: 'o', width: 16, style: { numFmt: money } }, { header: T('Catatan'), key: 'n', width: 30 }]);
     rows.forEach((r) => ws.addRow({ d: r.date, k: r.description, c: names[r.category_id] || '', i: r.kind === 'in' ? r.amount : null, o: r.kind === 'out' ? r.amount : null, n: r.note || '' }));
     const n = rows.length + 1;
-    const t = ws.addRow({ k: 'Total', i: { formula: `SUM(D2:D${Math.max(2, n)})` }, o: { formula: `SUM(E2:E${Math.max(2, n)})` } });
+    const t = ws.addRow({ k: T('Total'), i: { formula: `SUM(D2:D${Math.max(2, n)})` }, o: { formula: `SUM(E2:E${Math.max(2, n)})` } });
     t.font = { bold: true };
   }
   // total wealth (all dates; only the newest value per asset counts)
   const wrows = db.list('wealth', { order: 'date desc' });
   const ws = wealthSummary(wrows);
   const ww = wb.addWorksheet('Total Wealth');
-  head(ww, [{ header: 'Tanggal', key: 'd', width: 12 }, { header: 'Kategori', key: 'c', width: 18 }, { header: 'Nama aset', key: 'a', width: 28 }, { header: 'Nilai', key: 'v', width: 18, style: { numFmt: money } }, { header: 'Status', key: 's', width: 12 }, { header: 'Catatan', key: 'n', width: 30 }]);
-  wrows.forEach((r) => ww.addRow({ d: r.date, c: r.category, a: r.name, v: r.value, s: ws.currentIds.has(r.id) ? 'dihitung' : 'riwayat', n: r.note || '' }));
+  head(ww, [{ header: T('Tanggal'), key: 'd', width: 12 }, { header: T('Kategori'), key: 'c', width: 18 }, { header: T('Nama aset'), key: 'a', width: 28 }, { header: T('Nilai'), key: 'v', width: 18, style: { numFmt: money } }, { header: T('Status'), key: 's', width: 12 }, { header: T('Catatan'), key: 'n', width: 30 }]);
+  wrows.forEach((r) => ww.addRow({ d: r.date, c: r.category, a: r.name, v: r.value, s: ws.currentIds.has(r.id) ? T('dihitung') : T('riwayat'), n: r.note || '' }));
   ww.addRow({});
-  ws.categories.forEach((c) => ww.addRow({ c: c.name, a: 'Total kategori', v: c.total }));
-  const tw = ww.addRow({ c: 'TOTAL BERSIH', v: ws.net });
+  ws.categories.forEach((c) => ww.addRow({ c: c.name, a: T('Total kategori'), v: c.total }));
+  const tw = ww.addRow({ c: T('TOTAL BERSIH'), v: ws.net });
   tw.font = { bold: true };
   await wb.xlsx.writeFile(filePath);
   return filePath;
@@ -162,7 +163,7 @@ export function importIcs(filePath, calendarId) {
     const trig = body.match(/TRIGGER[^:]*:-?P(?:T(?:(\d+)H)?(?:(\d+)M)?|(\d+)D)/);
     const reminder = trig ? (Number(trig[1] || 0) * 60 + Number(trig[2] || 0) + Number(trig[3] || 0) * 1440) : -1;
     db.upsert('events', {
-      title: un(g('SUMMARY')?.[2]) || '(tanpa judul)', description: un(g('DESCRIPTION')?.[2]), location: un(g('LOCATION')?.[2]),
+      title: un(g('SUMMARY')?.[2]) || T('(tanpa judul)'), description: un(g('DESCRIPTION')?.[2]), location: un(g('LOCATION')?.[2]),
       start, end, all_day: allDay ? 1 : 0, calendar_id: calendarId, repeat: ['daily', 'weekly', 'monthly', 'yearly'].includes(freq) ? freq : 'none',
       repeat_until: untilRaw ? `${untilRaw.slice(0, 4)}-${untilRaw.slice(4, 6)}-${untilRaw.slice(6, 8)}` : null, reminder_min: reminder
     }, true);

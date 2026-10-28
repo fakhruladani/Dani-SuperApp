@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { api, DB } from './api.js';
 import { toLocalDateTime } from '../../shared/recur.js';
+import { t as T } from '../../shared/i18n.js';
 
 export function beep() {
   try {
@@ -47,9 +48,9 @@ export function useFocusTimer(settings) {
       const minutes = Math.round((d('focus')) / 60000);
       DB.save('focus_sessions', { start: toLocalDateTime(new Date(s.startedAt)), minutes, label: s.label, kind: 'focus' });
       next = count % 4 === 0 ? 'long' : 'short';
-      try { new Notification('Sesi fokus selesai', { body: `${minutes} menit${s.label ? ' · ' + s.label : ''}. Waktunya istirahat.` }); } catch { /* */ }
+      try { new Notification(T('Sesi fokus selesai'), { body: T('{n} menit', { n: minutes }) + (s.label ? ' · ' + s.label : '') + '. ' + T('Waktunya istirahat.') }); } catch { /* */ }
     } else {
-      try { new Notification('Istirahat selesai', { body: 'Siap mulai sesi fokus berikutnya?' }); } catch { /* */ }
+      try { new Notification(T('Istirahat selesai'), { body: T('Siap mulai sesi fokus berikutnya?') }); } catch { /* */ }
     }
     api('focus:set', 0);
     setSt({ ...s, phase: next, running: false, endAt: 0, left: d(next), count });

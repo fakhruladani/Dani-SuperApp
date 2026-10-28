@@ -2,7 +2,7 @@
 
 **Dani SuperApp adalah ruang kerja pribadi di desktop Windows.** Kalender dengan pengingat, catatan yang bisa dicoret pakai pena, buku keuangan bergaya spreadsheet, total kekayaan, market dan berita, cuaca, serta fokus dan tugas, semuanya dalam satu aplikasi. Data disimpan di laptop sendiri dan dienkripsi.
 
-Bahasa Indonesia, mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows. Mode terang, gelap, atau ikuti sistem.
+Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Bahasa / Language). Mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows. Mode terang, gelap, atau ikuti sistem.
 
 ![Beranda](docs/screenshots/beranda.png)
 
@@ -21,6 +21,7 @@ Bahasa Indonesia, mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows
 | **Market & Berita** | Watchlist IHSG, LQ45, USD/IDR, emas, saham bank, S&P 500, Bitcoin, dan simbol apa pun dari Yahoo Finance. Grafik candle atau garis dengan volume dan MA 20/50. Alert harga lewat notifikasi. Berita dari RSS media Indonesia, bisa ditambah sendiri, dan disimpan untuk dibaca nanti. |
 | **Fokus & Tugas** | Pomodoro dengan mode jangan ganggu, tugas dengan input bahasa alami (`revisi abstrak besok 09.00 #TA !tinggi`), kebiasaan mingguan dengan streak, statistik fokus 7 hari. |
 | **Panduan & tur** | Menu Panduan (F1) berisi semua fitur, letaknya, cara memakainya, dan pintasan keyboard, lengkap dengan pencarian. Tur singkat menyorot tiap bagian aplikasi dan muncul otomatis saat pertama kali dibuka. |
+| **Dua bahasa** | Indonesia dan English untuk seluruh tampilan, panduan, tur, notifikasi, menu tray, dan ekspor Excel. Data yang kamu tulis sendiri tidak ikut diterjemahkan. |
 | **Lainnya** | Ctrl+K untuk cari dan perintah, catatan cepat dari mana saja (Ctrl+Shift+Space), widget mini selalu di atas, riwayat clipboard (opsional), ringkasan pagi, kunci PIN, backup otomatis harian. |
 
 | Kalender | Kalender (mode gelap) |
@@ -54,6 +55,10 @@ Bahasa Indonesia, mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows
 | Panduan (F1) | Tur singkat |
 |---|---|
 | ![Panduan](docs/screenshots/panduan.png) | ![Tur](docs/screenshots/tur.png) |
+
+| English: Beranda | English: Keuangan |
+|---|---|
+| ![English Beranda](docs/screenshots/english-beranda.png) | ![English Keuangan](docs/screenshots/english-keuangan.png) |
 
 | Catatan cepat | Widget mini |
 |---|---|
@@ -120,7 +125,8 @@ npm run dev
 ```
 electron/   main.js (jendela, tray, IPC), db.js (SQLite terenkripsi), scheduler.js (pengingat, ringkasan, alert, backup),
             services.js (cuaca, lokasi, market, RSS, libur), io.js (Excel, CSV, ICS), preload.cjs
-shared/     recur.js (tanggal, pengulangan, parser tugas), wealth.js (perhitungan Total Wealth), weather.js
+shared/     recur.js (tanggal, pengulangan, parser tugas), wealth.js (perhitungan Total Wealth), weather.js,
+            i18n.js + lang-en.js (terjemahan: teks Indonesia jadi kunci, kamus English)
 src/        UI React: App.jsx, pages/*, components/*, lib/*
 test/       unit test (node:test)
 docs/       screenshots

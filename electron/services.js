@@ -4,6 +4,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { createRequire } from 'node:module';
 import * as db from './db.js';
 import * as state from './state.js';
+import { t as T, lang } from '../shared/i18n.js';
 
 const require = createRequire(import.meta.url);
 const iconv = require('iconv-lite');
@@ -90,7 +91,7 @@ export async function reverseGeocode(lat, lon) {
 
 export async function ipLocation() {
   const j = await fetchJson('https://ipwho.is/');
-  if (j.success === false) throw new Error(j.message || 'Gagal mendeteksi lokasi');
+  if (j.success === false) throw new Error(j.message || T('Gagal mendeteksi lokasi'));
   return { name: [j.city, j.region].filter(Boolean).join(', '), lat: j.latitude, lon: j.longitude, approx: true };
 }
 
@@ -104,7 +105,7 @@ async function yahooChart(symbol, range = '1d') {
     try {
       const j = await fetchJson(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`);
       const r = j.chart?.result?.[0];
-      if (!r) throw new Error(j.chart?.error?.description || 'Simbol tidak ditemukan');
+      if (!r) throw new Error(j.chart?.error?.description || T('Simbol tidak ditemukan'));
       return r;
     } catch (e) { lastErr = e; }
   }
@@ -198,7 +199,7 @@ export function news(cat = 'fin', force = false) {
     const results = await Promise.allSettled(list.map(fetchFeed));
     const items = [], errors = [];
     results.forEach((r, i) => (r.status === 'fulfilled' ? items.push(...r.value) : errors.push(list[i].name)));
-    if (!items.length && errors.length) throw new Error('Semua sumber gagal');
+    if (!items.length && errors.length) throw new Error(T('Semua sumber gagal'));
     const seen = new Set();
     const dedup = items.sort((a, b) => b.date - a.date).filter((x) => {
       const k = x.title.toLowerCase().slice(0, 60);
@@ -209,11 +210,11 @@ export function news(cat = 'fin', force = false) {
 }
 
 // ---------------- holidays (Google public calendar ICS, Bahasa Indonesia) ----------------
-const HOLIDAY_ICS = 'https://calendar.google.com/calendar/ical/id.indonesian%23holiday%40group.v.calendar.google.com/public/basic.ics';
+const HOLIDAY_ICS = (l) => `https://calendar.google.com/calendar/ical/${l === 'en' ? 'en' : 'id'}.indonesian%23holiday%40group.v.calendar.google.com/public/basic.ics`;
 
-export function holidays() {
-  return cached('holidays', 24 * 3600000, async () => {
-    const r = await fetchRaw(HOLIDAY_ICS);
+export function holidays(l = 'id') {
+  return cached(l === 'en' ? 'holidays-en' : 'holidays', 24 * 3600000, async () => {
+    const r = await fetchRaw(HOLIDAY_ICS(l));
     const text = (await r.text()).replace(/\r?\n[ \t]/g, '');
     const out = [];
     for (const blk of text.split('BEGIN:VEVENT').slice(1)) {
@@ -227,7 +228,7 @@ export function holidays() {
         endIncl = `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, '0')}-${String(e.getDate()).padStart(2, '0')}`;
       }
       const desc = (g('DESCRIPTION') || '').replace(/\\n/g, ' ');
-      out.push({ id: 'hol-' + d + '-' + (g('UID') || '').slice(0, 8), title: (g('SUMMARY') || '').replace(/\\,/g, ','), start: d, end: endIncl, observance: /perayaan|peringatan|observance/i.test(desc), tentative: /tentatif/i.test(desc) });
+      out.push({ id: 'hol-' + d + '-' + (g('UID') || '').slice(0, 8), title: (g('SUMMARY') || '').replace(/\\,/g, ','), start: d, end: endIncl, observance: /perayaan|peringatan|observance/i.test(desc), tentative: /tentatif|tentative/i.test(desc) });
     }
     return { items: out };
   }, { persist: true });

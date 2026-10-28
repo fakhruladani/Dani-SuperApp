@@ -5,9 +5,10 @@ import { Modal, Seg, Field, ColorPick } from '../components/ui.jsx';
 import { DB, useApp, useNow, useQuery, themeColors } from '../lib/api.js';
 import { mmss, useFocusLeft } from '../lib/focus.js';
 import { toLocalDate, addDays, parseQuickTask, DOW_ID, parseLocal } from '../../shared/recur.js';
+import { T } from '../lib/i18n.js';
 
-const PRIO = ['Rendah', 'Sedang', 'Tinggi'];
-const TREM = [[-1, 'Tanpa pengingat'], [0, 'Saat tenggat'], [15, '15 menit sebelum'], [30, '30 menit sebelum'], [60, '1 jam sebelum'], [1440, '1 hari sebelum']];
+const PRIO = [T('Rendah'), T('Sedang'), T('Tinggi')];
+const TREM = [[-1, T('Tanpa pengingat')], [0, T('Saat tenggat')], [15, T('15 menit sebelum')], [30, T('30 menit sebelum')], [60, T('1 jam sebelum')], [1440, T('1 hari sebelum')]];
 
 function TaskModal({ task, onClose }) {
   const app = useApp();
@@ -16,24 +17,24 @@ function TaskModal({ task, onClose }) {
   const save = async () => {
     if (!f.title.trim()) return;
     await DB.save('tasks', { ...f, due_date: f.due_date || null, due_time: f.due_date && f.due_time ? f.due_time : null, priority: Number(f.priority), reminder_min: f.due_date ? Number(f.reminder_min) : -1 });
-    app.toast('Tugas disimpan');
+    app.toast(T("Tugas disimpan"));
     onClose();
   };
   return (
-    <Modal title={f.id ? 'Edit tugas' : 'Tugas baru'} onClose={onClose} width={520} footer={<>
-      {f.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('tasks', f.id); onClose(); }}>Hapus</button>}
-      <button className="btn" onClick={onClose}>Batal</button>
-      <button className="btn pri" onClick={save}>Simpan</button>
+    <Modal title={f.id ? T("Edit tugas") : T("Tugas baru")} onClose={onClose} width={520} footer={<>
+      {f.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('tasks', f.id); onClose(); }}>{T("Hapus")}</button>}
+      <button className="btn" onClick={onClose}>{T("Batal")}</button>
+      <button className="btn pri" onClick={save}>{T("Simpan")}</button>
     </>}>
-      <input className="field" aria-label="Judul tugas" value={f.title} onChange={set('title')} style={{ fontSize: 17, fontWeight: 700 }} onKeyDown={(e) => e.key === 'Enter' && save()} />
+      <input className="field" aria-label={T("Judul tugas")} value={f.title} onChange={set('title')} style={{ fontSize: 17, fontWeight: 700 }} onKeyDown={(e) => e.key === 'Enter' && save()} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label="Tenggat"><input type="date" className="field" value={f.due_date || ''} onChange={set('due_date')} /></Field>
-        <Field label="Jam (opsional)"><input type="time" className="field" value={f.due_time || ''} onChange={set('due_time')} disabled={!f.due_date} /></Field>
-        <Field label="Prioritas"><select className="field" value={f.priority} onChange={set('priority')}>{PRIO.map((p, i) => <option key={p} value={i}>{p}</option>)}</select></Field>
-        <Field label="Pengingat"><select className="field" value={f.reminder_min} onChange={set('reminder_min')} disabled={!f.due_date}>{TREM.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
+        <Field label={T("Tenggat")}><input type="date" className="field" value={f.due_date || ''} onChange={set('due_date')} /></Field>
+        <Field label={T("Jam (opsional)")}><input type="time" className="field" value={f.due_time || ''} onChange={set('due_time')} disabled={!f.due_date} /></Field>
+        <Field label={T("Prioritas")}><select className="field" value={f.priority} onChange={set('priority')}>{PRIO.map((p, i) => <option key={p} value={i}>{p}</option>)}</select></Field>
+        <Field label={T("Pengingat")}><select className="field" value={f.reminder_min} onChange={set('reminder_min')} disabled={!f.due_date}>{TREM.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
       </div>
-      <Field label="Tag"><input className="field" value={f.tag || ''} onChange={(e) => setF({ ...f, tag: e.target.value.replace(/\s|#/g, '') })} placeholder="mis. TA" /></Field>
-      <Field label="Catatan"><textarea className="field" rows={3} value={f.notes || ''} onChange={set('notes')} /></Field>
+      <Field label={T("Tag")}><input className="field" value={f.tag || ''} onChange={(e) => setF({ ...f, tag: e.target.value.replace(/\s|#/g, '') })} placeholder={T("mis. TA")} /></Field>
+      <Field label={T("Catatan")}><textarea className="field" rows={3} value={f.notes || ''} onChange={set('notes')} /></Field>
     </Modal>
   );
 }
@@ -46,7 +47,7 @@ function Pomodoro() {
   const prog = 1 - left / f.total;
   return (
     <section data-tour="pomodoro" className="card pad col" style={{ flex: '1 1 330px', alignItems: 'center', gap: 16 }}>
-      <Seg label="Mode" value={f.phase} onChange={f.setPhase} options={[{ value: 'focus', label: `Fokus ${app.settings.focusMin || 25}` }, { value: 'short', label: `Istirahat ${app.settings.shortMin || 5}` }, { value: 'long', label: `Panjang ${app.settings.longMin || 15}` }]} />
+      <Seg label={T("Mode")} value={f.phase} onChange={f.setPhase} options={[{ value: 'focus', label: T('Fokus') + ' ' + (app.settings.focusMin || 25) }, { value: 'short', label: T('Istirahat') + ' ' + (app.settings.shortMin || 5) }, { value: 'long', label: T('Panjang') + ' ' + (app.settings.longMin || 15) }]} />
       <div style={{ position: 'relative', width: 230, height: 230 }}>
         <svg viewBox="0 0 210 210" style={{ width: 230, height: 230, transform: 'rotate(-90deg)' }} aria-hidden="true">
           <circle cx="105" cy="105" r={R} style={{ fill: 'none', stroke: 'var(--surface2)', strokeWidth: 12 }} />
@@ -54,17 +55,19 @@ function Pomodoro() {
         </svg>
         <div className="col" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
           <span className="num" style={{ fontSize: 46, fontWeight: 800 }}>{mmss(left)}</span>
-          <span className="mut" style={{ fontSize: 13 }}>{f.phase === 'focus' ? `Sesi ke-${f.count + 1}` : 'Istirahat'}</span>
+          <span className="mut" style={{ fontSize: 13 }}>{f.phase === 'focus' ? T('Sesi ke-{n}', { n: f.count + 1 }) : T("Istirahat")}</span>
         </div>
       </div>
-      <label className="sr" htmlFor="pomo-l">Sedang mengerjakan</label>
-      <input id="pomo-l" className="field" placeholder="Sedang mengerjakan apa?" value={f.label} onChange={(e) => f.setLabel(e.target.value)} style={{ textAlign: 'center', maxWidth: 280 }} />
+      <label className="sr" htmlFor="pomo-l">{T("Sedang mengerjakan")}</label>
+      <input id="pomo-l" className="field" placeholder={T("Sedang mengerjakan apa?")} value={f.label} onChange={(e) => f.setLabel(e.target.value)} style={{ textAlign: 'center', maxWidth: 280 }} />
       <div className="row">
-        <button className="btn pri" onClick={f.running ? f.pause : f.start} style={{ minWidth: 120 }}><Icon name={f.running ? 'pause' : 'play'} size="sm" />{f.running ? 'Jeda' : left < f.total ? 'Lanjut' : 'Mulai'}</button>
-        <button className="btn" onClick={f.reset}>Reset</button>
-        <button className="btn ghost" onClick={f.skip} title="Lewati ke fase berikutnya">Lewati</button>
+        <button className="btn pri" onClick={f.running ? f.pause : f.start} style={{ minWidth: 120 }}><Icon name={f.running ? 'pause' : 'play'} size="sm" />{f.running ? T("Jeda") : left < f.total ? T("Lanjut") : T("Mulai")}</button>
+        <button className="btn" onClick={f.reset}>{T("Reset")}</button>
+        <button className="btn ghost" onClick={f.skip} title={T("Lewati ke fase berikutnya")}>{T("Lewati")}</button>
       </div>
-      <span className="mut" style={{ fontSize: 12, textAlign: 'center' }}>Selama sesi fokus, notifikasi non-penting (alert harga, ringkasan) ditahan. Pengingat acara tetap muncul.</span>
+      <span className="mut" style={{ fontSize: 12, textAlign: 'center' }}>{T(
+        "Selama sesi fokus, notifikasi non-penting (alert harga, ringkasan) ditahan. Pengingat acara tetap muncul."
+      )}</span>
     </section>
   );
 }
@@ -81,29 +84,29 @@ function Habits({ today }) {
   const streak = (hid) => { let n = 0; let d = parseLocal(today); if (!has(hid, today)) d = addDays(d, -1); while (has(hid, toLocalDate(d))) { n++; d = addDays(d, -1); } return n; };
   return (
     <section className="card pad col" style={{ flex: '1 1 380px', gap: 10 }}>
-      <div className="row"><h2 className="h2 grow">Kebiasaan minggu ini</h2><button className="btn sm" onClick={() => setEdit({ name: '', color: 'c1', sort: (habits.data || []).length, archived: 0 })}><Icon name="plus" size="sm" />Kebiasaan</button></div>
+      <div className="row"><h2 className="h2 grow">{T("Kebiasaan minggu ini")}</h2><button className="btn sm" onClick={() => setEdit({ name: '', color: 'c1', sort: (habits.data || []).length, archived: 0 })}><Icon name="plus" size="sm" />{T("Kebiasaan|add")}</button></div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '130px repeat(7, 32px) 60px', gap: 8, alignItems: 'center', minWidth: 430 }}>
           <span />
           {days.map((d) => <span key={d} className="mut" style={{ textAlign: 'center', fontSize: 11, fontWeight: 700 }}>{DOW_ID[parseLocal(d).getDay()].slice(0, 3)}<br />{Number(d.slice(8))}</span>)}
-          <span className="mut" style={{ fontSize: 11, fontWeight: 700, textAlign: 'center' }}>Streak</span>
+          <span className="mut" style={{ fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{T("Streak")}</span>
           {(habits.data || []).map((h) => (
             <Fragment key={h.id}>
               <button className="btn ghost sm" style={{ justifyContent: 'flex-start', padding: '0 4px' }} onClick={() => setEdit(h)}><span className={`dot k-${h.color}`} />{h.name}</button>
               {days.map((d) => <button key={h.id + d} className={`hb k-${h.color} ${has(h.id, d) ? 'on' : ''} ${d === today ? 'today' : ''}`} aria-label={`${h.name} ${d}`} aria-pressed={has(h.id, d)} disabled={d > today} onClick={() => toggle(h.id, d)} style={d > today ? { opacity: 0.4 } : undefined} />)}
-              <span className="num" style={{ textAlign: 'center', fontWeight: 800 }} title="Hari berturut-turut">{streak(h.id)} hr</span>
+              <span className="num" style={{ textAlign: 'center', fontWeight: 800 }} title={T("Hari berturut-turut")}>{T('{n} hr', { n: streak(h.id) })}</span>
             </Fragment>
           ))}
         </div>
       </div>
       {edit && (
-        <Modal title={edit.id ? 'Edit kebiasaan' : 'Kebiasaan baru'} width={420} onClose={() => setEdit(null)} footer={<>
-          {edit.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { if (await app.confirm(`Hapus kebiasaan “${edit.name}” dan riwayatnya?`, { danger: true, ok: 'Hapus' })) { await DB.remove('habits', edit.id); setEdit(null); } }}>Hapus</button>}
-          <button className="btn" onClick={() => setEdit(null)}>Batal</button>
-          <button className="btn pri" onClick={async () => { if (!edit.name.trim()) return; await DB.save('habits', edit); setEdit(null); }}>Simpan</button>
+        <Modal title={edit.id ? T("Edit kebiasaan") : T("Kebiasaan baru")} width={420} onClose={() => setEdit(null)} footer={<>
+          {edit.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { if (await app.confirm(T('Hapus kebiasaan “{t}” dan riwayatnya?', { t: edit.name }), { danger: true, ok: T("Hapus") })) { await DB.remove('habits', edit.id); setEdit(null); } }}>{T("Hapus")}</button>}
+          <button className="btn" onClick={() => setEdit(null)}>{T("Batal")}</button>
+          <button className="btn pri" onClick={async () => { if (!edit.name.trim()) return; await DB.save('habits', edit); setEdit(null); }}>{T("Simpan")}</button>
         </>}>
-          <Field label="Nama"><input className="field" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
-          <Field label="Warna"><ColorPick value={edit.color} onChange={(c) => setEdit({ ...edit, color: c })} /></Field>
+          <Field label={T("Nama")}><input className="field" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
+          <Field label={T("Warna")}><ColorPick value={edit.color} onChange={(c) => setEdit({ ...edit, color: c })} /></Field>
         </Modal>
       )}
     </section>
@@ -122,11 +125,11 @@ function Stats({ today }) {
   const doneWeek = (done.data || []).filter((t) => t.done_at && toLocalDate(new Date(t.done_at)) >= toLocalDate(start)).length;
   return (
     <section className="card pad col" style={{ flex: '1 1 380px', gap: 10 }}>
-      <h2 className="h2">Statistik 7 hari</h2>
+      <h2 className="h2">{T("Statistik 7 hari")}</h2>
       <div className="row wrap" style={{ gap: 24 }}>
-        <div className="col" style={{ gap: 0 }}><span className="lbl">Waktu fokus</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{Math.floor(total / 60)} j {total % 60} m</span></div>
-        <div className="col" style={{ gap: 0 }}><span className="lbl">Sesi</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{(sessions.data || []).length}</span></div>
-        <div className="col" style={{ gap: 0 }}><span className="lbl">Tugas selesai</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{doneWeek}</span></div>
+        <div className="col" style={{ gap: 0 }}><span className="lbl">{T("Waktu fokus")}</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{T('{n} j', { n: Math.floor(total / 60) })} {total % 60} m</span></div>
+        <div className="col" style={{ gap: 0 }}><span className="lbl">{T("Sesi")}</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{(sessions.data || []).length}</span></div>
+        <div className="col" style={{ gap: 0 }}><span className="lbl">{T("Tugas selesai")}</span><span className="num" style={{ fontSize: 22, fontWeight: 800 }}>{doneWeek}</span></div>
       </div>
       <div style={{ height: 180 }}>
         <ResponsiveContainer>
@@ -134,8 +137,8 @@ function Stats({ today }) {
             <CartesianGrid stroke={C.border} vertical={false} />
             <XAxis dataKey="name" stroke={C.muted} tickLine={false} axisLine={false} />
             <YAxis stroke={C.muted} tickLine={false} axisLine={false} width={30} />
-            <Tooltip cursor={{ fill: C.surface2 }} contentStyle={{ background: C.surface, border: '1px solid ' + C.border, borderRadius: 10, color: C.text }} formatter={(v) => `${v} menit`} />
-            <Bar dataKey="Menit" fill={C.accent} radius={[6, 6, 0, 0]} maxBarSize={32} />
+            <Tooltip cursor={{ fill: C.surface2 }} contentStyle={{ background: C.surface, border: '1px solid ' + C.border, borderRadius: 10, color: C.text }} formatter={(v) => [T('{n} menit', { n: v }), T('Menit')]} />
+            <Bar dataKey="Menit" name={T("Menit")} fill={C.accent} radius={[6, 6, 0, 0]} maxBarSize={32} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -174,29 +177,31 @@ export default function Focus() {
       <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
         <Pomodoro />
         <section className="card pad col" style={{ flex: '2 1 460px', gap: 8 }}>
-          <div className="row wrap"><h2 className="h2 grow">Tugas</h2>
-            <Seg label="Filter tugas" value={filter} onChange={setFilter} options={[{ value: 'today', label: `Hari ini (${lists.today.length})` }, { value: 'upcoming', label: `Mendatang (${lists.upcoming.length})` }, { value: 'all', label: 'Semua' }, { value: 'done', label: 'Selesai' }]} />
+          <div className="row wrap"><h2 className="h2 grow">{T("Tugas")}</h2>
+            <Seg label={T("Filter tugas")} value={filter} onChange={setFilter} options={[{ value: 'today', label: `${T('Hari ini')} (${lists.today.length})` }, { value: 'upcoming', label: `${T('Mendatang')} (${lists.upcoming.length})` }, { value: 'all', label: T("Semua") }, { value: 'done', label: T("Selesai") }]} />
           </div>
           <div className="row">
-            <label className="sr" htmlFor="t-new">Tugas baru</label>
-            <input id="t-new" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Ketik tugas… mis. “revisi abstrak besok 09.00 #TA !tinggi”" />
-            <button className="btn pri" onClick={add}><Icon name="plus" size="sm" />Tambah</button>
+            <label className="sr" htmlFor="t-new">{T("Tugas baru")}</label>
+            <input id="t-new" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={T("Ketik tugas… mis. “revisi abstrak besok 09.00 #TA !tinggi”")} />
+            <button className="btn pri" onClick={add}><Icon name="plus" size="sm" />{T("Tambah")}</button>
           </div>
           {preview && (preview.due_date || preview.tag || preview.priority) ? (
-            <span className="mut" style={{ fontSize: 12 }}>Terbaca: <strong>{preview.title}</strong>{preview.due_date ? ` · ${preview.due_date}` : ''}{preview.due_time ? ` ${preview.due_time}` : ''}{preview.tag ? ` · #${preview.tag}` : ''}{preview.priority ? ` · prioritas ${PRIO[preview.priority].toLowerCase()}` : ''}</span>
-          ) : <span className="mut" style={{ fontSize: 12 }}>Bisa pakai kata: hari ini, besok, lusa, nama hari, 12/11, jam 9, 14.30, #tag, !tinggi</span>}
+            <span className="mut" style={{ fontSize: 12 }}>{T("Terbaca:")} <strong>{preview.title}</strong>{preview.due_date ? ` · ${preview.due_date}` : ''}{preview.due_time ? ` ${preview.due_time}` : ''}{preview.tag ? ` · #${preview.tag}` : ''}{preview.priority ? ` · ${T('prioritas')} ${PRIO[preview.priority].toLowerCase()}` : ''}</span>
+          ) : <span className="mut" style={{ fontSize: 12 }}>{T(
+            "Bisa pakai kata: hari ini, besok, lusa, nama hari, 12/11, jam 9, 14.30, #tag, !tinggi"
+          )}</span>}
           <div className="col" style={{ gap: 2, maxHeight: 460, overflow: 'auto' }}>
-            {shown.length === 0 && <div className="empty">{filter === 'done' ? 'Belum ada tugas selesai.' : 'Tidak ada tugas.'}</div>}
+            {shown.length === 0 && <div className="empty">{filter === 'done' ? T("Belum ada tugas selesai.") : T("Tidak ada tugas.")}</div>}
             {shown.map((t) => {
               const late = !t.done && t.due_date && t.due_date < today;
               return (
                 <div key={t.id} className={`task ${t.done ? 'done' : ''}`}>
-                  <button className={`chk ${t.done ? 'on' : ''}`} aria-label={t.done ? 'Tandai belum selesai' : 'Tandai selesai'} onClick={() => DB.save('tasks', { id: t.id, done: t.done ? 0 : 1, done_at: t.done ? null : new Date().toISOString() })}><Icon name="check" size="sm" /></button>
+                  <button className={`chk ${t.done ? 'on' : ''}`} aria-label={t.done ? T("Tandai belum selesai") : T("Tandai selesai")} onClick={() => DB.save('tasks', { id: t.id, done: t.done ? 0 : 1, done_at: t.done ? null : new Date().toISOString() })}><Icon name="check" size="sm" /></button>
                   <button className="t grow ellipsis" onClick={() => setModal(t)} style={{ border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', textDecoration: t.done ? 'line-through' : 'none' }}>
                     {t.priority > 0 && <Icon name="flag" size="sm" className={`prio-${t.priority}`} />} {t.title}
                   </button>
                   {t.reminder_min >= 0 && t.due_date && !t.done && <Icon name="bell" size="sm" className="mut" />}
-                  {t.due_date && <span className={`num ${late ? 'dn' : 'mut'}`} style={{ fontSize: 12, fontWeight: late ? 700 : 500 }}>{late ? 'terlambat · ' : ''}{t.due_date === today ? 'hari ini' : t.due_date === toLocalDate(addDays(now, 1)) ? 'besok' : t.due_date <= week ? DOW_ID[parseLocal(t.due_date).getDay()] : t.due_date}{t.due_time ? ' ' + t.due_time.replace(':', '.') : ''}</span>}
+                  {t.due_date && <span className={`num ${late ? 'dn' : 'mut'}`} style={{ fontSize: 12, fontWeight: late ? 700 : 500 }}>{late ? T("terlambat · ") : ''}{t.due_date === today ? T("hari ini") : t.due_date === toLocalDate(addDays(now, 1)) ? T("besok") : t.due_date <= week ? DOW_ID[parseLocal(t.due_date).getDay()] : t.due_date}{t.due_time ? ' ' + t.due_time.replace(':', '.') : ''}</span>}
                   {t.tag && <span className="chip">#{t.tag}</span>}
                 </div>
               );

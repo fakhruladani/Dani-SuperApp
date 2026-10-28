@@ -10,9 +10,10 @@ import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Switch, Field, ColorPick } from '../components/ui.jsx';
 import { api, DB, useApp, useNow, useQuery, useDebounced } from '../lib/api.js';
 import { expandAll, toLocalDate, toLocalDateTime, parseLocal, fmtDateLong, fmtTime, addDays, REPEAT_LABEL, MONTH_ID, pad } from '../../shared/recur.js';
+import { T, lang } from '../lib/i18n.js';
 
-const REMINDERS = [[-1, 'Tanpa pengingat'], [0, 'Saat dimulai'], [5, '5 menit sebelum'], [10, '10 menit sebelum'], [15, '15 menit sebelum'], [30, '30 menit sebelum'], [60, '1 jam sebelum'], [120, '2 jam sebelum'], [1440, '1 hari sebelum'], [2880, '2 hari sebelum'], [10080, '1 minggu sebelum']];
-const remLabel = (m) => (REMINDERS.find((r) => r[0] === m) || [m, `${m} menit sebelum`])[1];
+const REMINDERS = [[-1, T('Tanpa pengingat')], [0, T('Saat dimulai')], [5, T('5 menit sebelum')], [10, T('10 menit sebelum')], [15, T('15 menit sebelum')], [30, T('30 menit sebelum')], [60, T('1 jam sebelum')], [120, T('2 jam sebelum')], [1440, T('1 hari sebelum')], [2880, T('2 hari sebelum')], [10080, T('1 minggu sebelum')]];
+const remLabel = (m) => (REMINDERS.find((r) => r[0] === m) || [m, T('{n} menit sebelum', { n: m })])[1];
 
 export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }) {
   const app = useApp();
@@ -31,50 +32,50 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
   const set = (k) => (e) => setF({ ...f, [k]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e });
 
   const save = async () => {
-    if (!f.title.trim()) { app.toast({ text: 'Judul wajib diisi', error: true }); return; }
+    if (!f.title.trim()) { app.toast({ text: T("Judul wajib diisi"), error: true }); return; }
     let start = f.all_day ? f.date : `${f.date}T${f.time}`;
     let end = f.all_day ? (f.endDate < f.date ? f.date : f.endDate) : `${f.endDate}T${f.endTime}`;
     if (!f.all_day && parseLocal(end) <= parseLocal(start)) end = toLocalDateTime(new Date(parseLocal(start).getTime() + 3600000));
     await DB.save('events', { id: initial.id, title: f.title.trim(), description: f.description, location: f.location, start, end, all_day: f.all_day ? 1 : 0, calendar_id: f.calendar_id, repeat: f.repeat, repeat_until: f.repeat !== 'none' && f.repeat_until ? f.repeat_until : null, reminder_min: Number(f.reminder_min) });
-    app.toast(isNew ? 'Acara disimpan' : 'Acara diperbarui');
+    app.toast(isNew ? T('Acara disimpan') : T('Acara diperbarui'));
     onClose(true);
   };
   const del = async () => {
-    if (!(await app.confirm(`Hapus “${initial.title}”${initial.repeat && initial.repeat !== 'none' ? ' beserta semua pengulangannya' : ''}?`, { danger: true, ok: 'Hapus' }))) return;
+    if (!(await app.confirm(initial.repeat && initial.repeat !== 'none' ? T('Hapus “{t}” beserta semua pengulangannya?', { t: initial.title }) : T('Hapus “{t}”?', { t: initial.title }), { danger: true, ok: T("Hapus") }))) return;
     await DB.remove('events', initial.id);
     onClose(true);
   };
 
   return (
-    <Modal title={isNew ? 'Acara / pengingat baru' : 'Edit acara'} onClose={() => onClose(false)} width={600}
+    <Modal title={isNew ? T("Acara / pengingat baru") : T("Edit acara")} onClose={() => onClose(false)} width={600}
       footer={<>
-        {!isNew && <button className="btn danger" onClick={del} style={{ marginRight: 'auto' }}><Icon name="trash" size="sm" />Hapus</button>}
-        <button className="btn" onClick={() => onClose(false)}>Batal</button>
-        <button className="btn pri" onClick={save}>Simpan</button>
+        {!isNew && <button className="btn danger" onClick={del} style={{ marginRight: 'auto' }}><Icon name="trash" size="sm" />{T("Hapus")}</button>}
+        <button className="btn" onClick={() => onClose(false)}>{T("Batal")}</button>
+        <button className="btn pri" onClick={save}>{T("Simpan")}</button>
       </>}>
-      <input className="field" aria-label="Judul" placeholder="Judul, mis. Bimbingan TA" value={f.title} onChange={set('title')} onKeyDown={(e) => e.key === 'Enter' && save()} style={{ fontSize: 18, fontWeight: 700 }} />
-      <div className="row"><Switch on={f.all_day} onChange={set('all_day')} label="Seharian" /><span style={{ fontWeight: 600 }}>Seharian</span></div>
+      <input className="field" aria-label={T("Judul")} placeholder={T("Judul, mis. Bimbingan TA")} value={f.title} onChange={set('title')} onKeyDown={(e) => e.key === 'Enter' && save()} style={{ fontSize: 18, fontWeight: 700 }} />
+      <div className="row"><Switch on={f.all_day} onChange={set('all_day')} label={T("Seharian")} /><span style={{ fontWeight: 600 }}>{T("Seharian")}</span></div>
       <div style={{ display: 'grid', gridTemplateColumns: f.all_day ? '1fr 1fr' : '1.3fr 1fr 1.3fr 1fr', gap: 10 }}>
-        <Field label="Mulai"><input type="date" className="field" value={f.date} onChange={(e) => { const d = e.target.value; setF({ ...f, date: d, endDate: f.endDate < d ? d : f.endDate }); }} /></Field>
-        {!f.all_day && <Field label="Jam"><input type="time" className="field" value={f.time} onChange={(e) => { const t = e.target.value; const [h, m] = t.split(':').map(Number); const et = `${pad(Math.min(23, h + 1))}:${pad(m)}`; setF({ ...f, time: t, endTime: f.endDate === f.date && f.endTime <= t ? et : f.endTime }); }} /></Field>}
-        <Field label="Selesai"><input type="date" className="field" value={f.endDate} min={f.date} onChange={set('endDate')} /></Field>
-        {!f.all_day && <Field label="Jam"><input type="time" className="field" value={f.endTime} onChange={set('endTime')} /></Field>}
+        <Field label={T("Mulai")}><input type="date" className="field" value={f.date} onChange={(e) => { const d = e.target.value; setF({ ...f, date: d, endDate: f.endDate < d ? d : f.endDate }); }} /></Field>
+        {!f.all_day && <Field label={T("Jam")}><input type="time" className="field" value={f.time} onChange={(e) => { const t = e.target.value; const [h, m] = t.split(':').map(Number); const et = `${pad(Math.min(23, h + 1))}:${pad(m)}`; setF({ ...f, time: t, endTime: f.endDate === f.date && f.endTime <= t ? et : f.endTime }); }} /></Field>}
+        <Field label={T("Selesai")}><input type="date" className="field" value={f.endDate} min={f.date} onChange={set('endDate')} /></Field>
+        {!f.all_day && <Field label={T("Jam")}><input type="time" className="field" value={f.endTime} onChange={set('endTime')} /></Field>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label="Pengingat (notifikasi Windows)">
+        <Field label={T("Pengingat (notifikasi Windows)")}>
           <select className="field" value={f.reminder_min} onChange={set('reminder_min')}>{REMINDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </Field>
-        <Field label="Kalender">
+        <Field label={T("Kalender")}>
           <select className="field" value={f.calendar_id} onChange={set('calendar_id')}>{calendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
         </Field>
-        <Field label="Berulang">
+        <Field label={T("Berulang")}>
           <select className="field" value={f.repeat} onChange={set('repeat')}>{Object.entries(REPEAT_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </Field>
-        {f.repeat !== 'none' && <Field label="Berakhir pada (opsional)"><input type="date" className="field" value={f.repeat_until} min={f.date} onChange={set('repeat_until')} /></Field>}
+        {f.repeat !== 'none' && <Field label={T("Berakhir pada (opsional)")}><input type="date" className="field" value={f.repeat_until} min={f.date} onChange={set('repeat_until')} /></Field>}
       </div>
-      <Field label="Lokasi"><input className="field" value={f.location} onChange={set('location')} placeholder="opsional" /></Field>
-      <Field label="Deskripsi"><textarea className="field" rows={3} value={f.description} onChange={set('description')} placeholder="Catatan untuk acara ini" /></Field>
-      {f.repeat !== 'none' && !isNew && <span className="mut" style={{ fontSize: 12 }}>Perubahan berlaku untuk semua pengulangan acara ini.</span>}
+      <Field label={T("Lokasi")}><input className="field" value={f.location} onChange={set('location')} placeholder="opsional" /></Field>
+      <Field label={T("Deskripsi")}><textarea className="field" rows={3} value={f.description} onChange={set('description')} placeholder={T("Catatan untuk acara ini")} /></Field>
+      {f.repeat !== 'none' && !isNew && <span className="mut" style={{ fontSize: 12 }}>{T("Perubahan berlaku untuk semua pengulangan acara ini.")}</span>}
     </Modal>
   );
 }
@@ -218,7 +219,7 @@ export default function Calendar() {
     const [h, m] = quick.time.split(':').map(Number);
     await DB.save('events', { title: quick.title.trim(), start: `${sel}T${quick.time}`, end: `${sel}T${pad(Math.min(23, h + 1))}:${pad(m)}`, all_day: 0, calendar_id: cals.data?.[0]?.id, repeat: 'none', reminder_min: Number(quick.rem) });
     setQuick({ ...quick, title: '' });
-    app.toast('Pengingat dibuat');
+    app.toast(T("Pengingat dibuat"));
   };
 
   const onDrop = async (info) => {
@@ -236,12 +237,12 @@ export default function Calendar() {
       <div className="cal-layout">
         <section className="card cal-main">
           <div className="row wrap">
-            <button className="btn pri" onClick={() => openNew()}><Icon name="plus" size="sm" />Buat</button>
-            <button className="btn" onClick={goToday}>Hari ini</button>
-            <button className="icb" aria-label="Sebelumnya" title={isScroll ? 'Bulan sebelumnya' : 'Sebelumnya'} onClick={goPrev}><Icon name="left" /></button>
-            <button className="icb" aria-label="Berikutnya" title={isScroll ? 'Bulan berikutnya' : 'Berikutnya'} onClick={goNext}><Icon name="right" /></button>
+            <button className="btn pri" onClick={() => openNew()}><Icon name="plus" size="sm" />{T("Buat")}</button>
+            <button className="btn" onClick={goToday}>{T("Hari ini")}</button>
+            <button className="icb" aria-label={T("Sebelumnya")} title={isScroll ? T("Bulan sebelumnya") : T("Sebelumnya")} onClick={goPrev}><Icon name="left" /></button>
+            <button className="icb" aria-label={T("Berikutnya")} title={isScroll ? T("Bulan berikutnya") : T("Berikutnya")} onClick={goNext}><Icon name="right" /></button>
             <span className="grow ellipsis" title={title} style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', minWidth: 120 }}>{title}</span>
-            <Seg label="Tampilan" value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: 'Hari' }, { value: 'timeGridWeek', label: 'Minggu' }, { value: SCROLL_VIEW, label: 'Bulan' }, { value: 'listMonth', label: 'Agenda' }]} />
+            <Seg label={T("Tampilan")} value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: T("Hari") }, { value: 'timeGridWeek', label: T("Minggu") }, { value: SCROLL_VIEW, label: T("Bulan") }, { value: 'listMonth', label: T("Agenda") }]} />
           </div>
           <div ref={wrapRef} className="cal-wrap">
           <FullCalendar
@@ -250,7 +251,7 @@ export default function Calendar() {
             views={{ [SCROLL_VIEW]: { type: 'multiMonth', duration: { months: SPAN }, multiMonthMaxColumns: 1, multiMonthTitleFormat: { month: 'long', year: 'numeric' }, fixedWeekCount: false, showNonCurrentDates: false } }}
             initialView={view}
             initialDate={view === SCROLL_VIEW ? rangeStartFor(focusMonth.current) : app.params.date || undefined}
-            locale={idLocale}
+            locale={lang() === 'en' ? 'en-gb' : idLocale}
             firstDay={1}
             headerToolbar={false}
             height="100%"
@@ -293,66 +294,68 @@ export default function Calendar() {
 
         <aside className="card cal-side">
           <div className="col" style={{ gap: 2 }}>
-            <span className="lbl">{isToday ? 'Hari ini' : 'Tanggal dipilih'}</span>
+            <span className="lbl">{isToday ? T("Hari ini") : T("Tanggal dipilih")}</span>
             <span style={{ fontSize: 20, fontWeight: 800 }}>{fmtDateLong(selDate)}</span>
-            {(holByDate[sel] || []).map((h) => <span key={h.id} className={h.observance ? 'mut' : 'dn'} style={{ fontWeight: 700, fontSize: 13 }}>{h.observance ? 'Perayaan' : 'Libur nasional'} · {h.title}{h.tentative ? ' (tentatif)' : ''}</span>)}
+            {(holByDate[sel] || []).map((h) => <span key={h.id} className={h.observance ? 'mut' : 'dn'} style={{ fontWeight: 700, fontSize: 13 }}>{h.observance ? T("Perayaan") : T("Libur nasional")} · {h.title}{h.tentative ? T(" (tentatif)") : ''}</span>)}
           </div>
-          <Field label="Deskripsi hari">
-            <textarea className="field" rows={3} value={noteText} placeholder="Tulis catatan untuk tanggal ini…" onChange={(e) => { setNoteText(e.target.value); saveNote(sel, e.target.value); }} />
+          <Field label={T("Deskripsi hari")}>
+            <textarea className="field" rows={3} value={noteText} placeholder={T("Tulis catatan untuk tanggal ini…")} onChange={(e) => { setNoteText(e.target.value); saveNote(sel, e.target.value); }} />
           </Field>
           <div className="col" style={{ gap: 8 }}>
-            <div className="row"><span className="grow" style={{ fontWeight: 700, fontSize: 13 }}>Acara & pengingat</span><button className="btn sm" onClick={() => openNew(sel)}><Icon name="plus" size="sm" />Acara</button></div>
-            {dayEvents.length === 0 && dayTasks.length === 0 && <span className="mut" style={{ fontSize: 13 }}>Belum ada acara di tanggal ini.</span>}
+            <div className="row"><span className="grow" style={{ fontWeight: 700, fontSize: 13 }}>{T("Acara & pengingat")}</span><button className="btn sm" onClick={() => openNew(sel)}><Icon name="plus" size="sm" />{T("Acara")}</button></div>
+            {dayEvents.length === 0 && dayTasks.length === 0 && <span className="mut" style={{ fontSize: 13 }}>{T("Belum ada acara di tanggal ini.")}</span>}
             {dayEvents.map((o) => (
               <button key={o.key} className="mini-ev" onClick={() => setModal(events.data.find((e) => e.id === o.id))}>
                 <span className={`dot k-${o.color}`} />
                 <span className="col grow" style={{ gap: 0 }}>
                   <span style={{ fontWeight: 700 }} className="ellipsis">{o.title}</span>
-                  <span className="mut" style={{ fontSize: 12 }}>{o.all_day ? 'Seharian' : `${fmtTime(o.occStart)}–${fmtTime(o.occEnd)}`}{o.repeat && o.repeat !== 'none' ? ' · ' + REPEAT_LABEL[o.repeat].toLowerCase() : ''}</span>
+                  <span className="mut" style={{ fontSize: 12 }}>{o.all_day ? T("Seharian") : `${fmtTime(o.occStart)}–${fmtTime(o.occEnd)}`}{o.repeat && o.repeat !== 'none' ? ' · ' + REPEAT_LABEL[o.repeat].toLowerCase() : ''}</span>
                 </span>
-                {o.reminder_min >= 0 && <span className="chip" title={remLabel(o.reminder_min)}><Icon name="bell" size="sm" />{o.reminder_min >= 1440 ? `${o.reminder_min / 1440} hr` : o.reminder_min >= 60 ? `${o.reminder_min / 60} j` : `${o.reminder_min} m`}</span>}
+                {o.reminder_min >= 0 && <span className="chip" title={remLabel(o.reminder_min)}><Icon name="bell" size="sm" />{o.reminder_min >= 1440 ? T('{n} hr', { n: o.reminder_min / 1440 }) : o.reminder_min >= 60 ? T('{n} j', { n: o.reminder_min / 60 }) : `${o.reminder_min} m`}</span>}
               </button>
             ))}
             {dayTasks.map((t) => (
               <button key={t.id} className="mini-ev" onClick={() => app.nav('focus', { taskId: t.id })}>
                 <Icon name={t.done ? 'check' : 'checklist'} size="sm" />
-                <span className="col grow" style={{ gap: 0 }}><span style={{ fontWeight: 700, textDecoration: t.done ? 'line-through' : 'none' }} className="ellipsis">{t.title}</span><span className="mut" style={{ fontSize: 12 }}>Tugas{t.due_time ? ' · ' + t.due_time.replace(':', '.') : ''}</span></span>
+                <span className="col grow" style={{ gap: 0 }}><span style={{ fontWeight: 700, textDecoration: t.done ? 'line-through' : 'none' }} className="ellipsis">{t.title}</span><span className="mut" style={{ fontSize: 12 }}>{T("Tugas")}{t.due_time ? ' · ' + t.due_time.replace(':', '.') : ''}</span></span>
               </button>
             ))}
           </div>
           <div className="col" style={{ gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontWeight: 700, fontSize: 13 }}>Tambah pengingat cepat</span>
-            <label className="sr" htmlFor="q-title">Judul pengingat</label>
-            <input id="q-title" className="field" placeholder="mis. Bayar UKT" value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addQuick()} />
+            <span style={{ fontWeight: 700, fontSize: 13 }}>{T("Tambah pengingat cepat")}</span>
+            <label className="sr" htmlFor="q-title">{T("Judul pengingat")}</label>
+            <input id="q-title" className="field" placeholder={T("mis. Bayar UKT")} value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addQuick()} />
             <div className="row">
-              <label className="sr" htmlFor="q-time">Jam</label>
+              <label className="sr" htmlFor="q-time">{T("Jam")}</label>
               <input id="q-time" type="time" className="field" value={quick.time} onChange={(e) => setQuick({ ...quick, time: e.target.value })} style={{ width: 118, flex: 'none' }} />
-              <label className="sr" htmlFor="q-rem">Pengingat</label>
-              <select id="q-rem" className="field grow" value={quick.rem} onChange={(e) => setQuick({ ...quick, rem: e.target.value })}>{REMINDERS.slice(1, 8).map(([v, l]) => <option key={v} value={v}>{v === 0 ? 'Saat mulai' : l.replace(' sebelum', '').replace('menit', 'mnt') + ' sblm'}</option>)}</select>
+              <label className="sr" htmlFor="q-rem">{T("Pengingat")}</label>
+              <select id="q-rem" className="field grow" value={quick.rem} onChange={(e) => setQuick({ ...quick, rem: e.target.value })}>{REMINDERS.slice(1, 8).map(([v, l]) => <option key={v} value={v}>{v === 0 ? T("Saat mulai") : v < 60 ? T('{n} mnt sblm', { n: v }) : T('{n} jam sblm', { n: v / 60 })}</option>)}</select>
             </div>
-            <button className="btn pri" onClick={addQuick}><Icon name="bell" size="sm" />Simpan pengingat</button>
-            <span className="mut" style={{ fontSize: 12 }}>Notifikasi Windows muncul sesuai pengingat. Jika laptop mati/tidur saat jadwal, pengingat muncul begitu laptop menyala.</span>
+            <button className="btn pri" onClick={addQuick}><Icon name="bell" size="sm" />{T("Simpan pengingat")}</button>
+            <span className="mut" style={{ fontSize: 12 }}>{T(
+              "Notifikasi Windows muncul sesuai pengingat. Jika laptop mati/tidur saat jadwal, pengingat muncul begitu laptop menyala."
+            )}</span>
           </div>
           <div className="col" style={{ gap: 6, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <div className="row"><span className="grow" style={{ fontWeight: 700, fontSize: 13 }}>Kalender</span><button className="icb sm" aria-label="Tambah kalender" onClick={() => setCalModal({ name: '', color: 'c2', visible: 1, sort: (cals.data || []).length })}><Icon name="plus" size="sm" /></button></div>
+            <div className="row"><span className="grow" style={{ fontWeight: 700, fontSize: 13 }}>{T("Kalender")}</span><button className="icb sm" aria-label={T("Tambah kalender")} onClick={() => setCalModal({ name: '', color: 'c2', visible: 1, sort: (cals.data || []).length })}><Icon name="plus" size="sm" /></button></div>
             {(cals.data || []).map((c) => (
               <div key={c.id} className="row" style={{ fontSize: 13 }}>
-                <button className={`chk ${c.visible !== 0 ? 'on' : ''} k-${c.color}`} style={c.visible !== 0 ? { background: 'var(--k)', borderColor: 'var(--k)' } : { borderColor: 'var(--k)' }} aria-label={`Tampilkan ${c.name}`} onClick={() => DB.save('calendars', { id: c.id, visible: c.visible === 0 ? 1 : 0 })}><Icon name="check" size="sm" /></button>
+                <button className={`chk ${c.visible !== 0 ? 'on' : ''} k-${c.color}`} style={c.visible !== 0 ? { background: 'var(--k)', borderColor: 'var(--k)' } : { borderColor: 'var(--k)' }} aria-label={T('Tampilkan {t}', { t: c.name })} onClick={() => DB.save('calendars', { id: c.id, visible: c.visible === 0 ? 1 : 0 })}><Icon name="check" size="sm" /></button>
                 <span className="grow">{c.name}</span>
                 <button className="icb sm" aria-label={`Edit ${c.name}`} onClick={() => setCalModal(c)}><Icon name="edit" size="sm" /></button>
               </div>
             ))}
             <div className="row" style={{ fontSize: 13 }}>
-              <button className={`chk ${app.settings.showHolidays !== false ? 'on' : ''}`} style={app.settings.showHolidays !== false ? { background: 'var(--neg)', borderColor: 'var(--neg)' } : undefined} aria-label="Tampilkan libur nasional" onClick={() => app.setSetting('showHolidays', app.settings.showHolidays === false)}><Icon name="check" size="sm" /></button>
-              <span className="grow">Libur nasional Indonesia</span>
+              <button className={`chk ${app.settings.showHolidays !== false ? 'on' : ''}`} style={app.settings.showHolidays !== false ? { background: 'var(--neg)', borderColor: 'var(--neg)' } : undefined} aria-label={T("Tampilkan libur nasional")} onClick={() => app.setSetting('showHolidays', app.settings.showHolidays === false)}><Icon name="check" size="sm" /></button>
+              <span className="grow">{T("Libur nasional Indonesia")}</span>
             </div>
             <div className="row" style={{ fontSize: 13 }}>
-              <button className={`chk ${app.settings.showTasksInCalendar !== false ? 'on' : ''}`} aria-label="Tampilkan tugas" onClick={() => app.setSetting('showTasksInCalendar', app.settings.showTasksInCalendar === false)}><Icon name="check" size="sm" /></button>
-              <span className="grow">Tenggat tugas</span>
+              <button className={`chk ${app.settings.showTasksInCalendar !== false ? 'on' : ''}`} aria-label={T("Tampilkan tugas")} onClick={() => app.setSetting('showTasksInCalendar', app.settings.showTasksInCalendar === false)}><Icon name="check" size="sm" /></button>
+              <span className="grow">{T("Tenggat tugas")}</span>
             </div>
             <div className="row wrap" style={{ marginTop: 6 }}>
-              <button className="btn sm" onClick={async () => { const n = await api('import:ics', cals.data?.[0]?.id); if (n != null) app.toast(`${n} acara diimpor`); }}><Icon name="upload" size="sm" />Impor .ics</button>
-              <button className="btn sm" onClick={async () => { const p = await api('export:ics'); if (p) app.toast('Kalender diekspor'); }}><Icon name="download" size="sm" />Ekspor .ics</button>
+              <button className="btn sm" onClick={async () => { const n = await api('import:ics', cals.data?.[0]?.id); if (n != null) app.toast(T('{n} acara diimpor', { n })); }}><Icon name="upload" size="sm" />{T("Impor .ics")}</button>
+              <button className="btn sm" onClick={async () => { const p = await api('export:ics'); if (p) app.toast(T("Kalender diekspor")); }}><Icon name="download" size="sm" />{T("Ekspor .ics")}</button>
             </div>
           </div>
         </aside>
@@ -360,13 +363,13 @@ export default function Calendar() {
 
       {modal && <EventModal initial={modal} calendars={cals.data || []} defaultReminder={app.settings.reminderDefault ?? 30} onClose={() => setModal(null)} />}
       {calModal && (
-        <Modal title={calModal.id ? 'Edit kalender' : 'Kalender baru'} width={420} onClose={() => setCalModal(null)} footer={<>
-          {calModal.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { const n = (events.data || []).filter((e) => e.calendar_id === calModal.id).length; if (!(await app.confirm(`Hapus kalender “${calModal.name}”${n ? ` dan ${n} acaranya` : ''}?`, { danger: true, ok: 'Hapus' }))) return; await DB.removeWhere('events', { calendar_id: calModal.id }); await DB.remove('calendars', calModal.id); setCalModal(null); }}>Hapus</button>}
-          <button className="btn" onClick={() => setCalModal(null)}>Batal</button>
-          <button className="btn pri" onClick={async () => { if (!calModal.name.trim()) return; await DB.save('calendars', calModal); setCalModal(null); }}>Simpan</button>
+        <Modal title={calModal.id ? T("Edit kalender") : T("Kalender baru")} width={420} onClose={() => setCalModal(null)} footer={<>
+          {calModal.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { const n = (events.data || []).filter((e) => e.calendar_id === calModal.id).length; if (!(await app.confirm(n ? T('Hapus kalender “{t}” dan {n} acaranya?', { t: calModal.name, n }) : T('Hapus kalender “{t}”?', { t: calModal.name }), { danger: true, ok: T("Hapus") }))) return; await DB.removeWhere('events', { calendar_id: calModal.id }); await DB.remove('calendars', calModal.id); setCalModal(null); }}>{T("Hapus")}</button>}
+          <button className="btn" onClick={() => setCalModal(null)}>{T("Batal")}</button>
+          <button className="btn pri" onClick={async () => { if (!calModal.name.trim()) return; await DB.save('calendars', calModal); setCalModal(null); }}>{T("Simpan")}</button>
         </>}>
-          <Field label="Nama"><input className="field" value={calModal.name} onChange={(e) => setCalModal({ ...calModal, name: e.target.value })} /></Field>
-          <Field label="Warna"><ColorPick value={calModal.color} onChange={(c) => setCalModal({ ...calModal, color: c })} /></Field>
+          <Field label={T("Nama")}><input className="field" value={calModal.name} onChange={(e) => setCalModal({ ...calModal, name: e.target.value })} /></Field>
+          <Field label={T("Warna")}><ColorPick value={calModal.color} onChange={(c) => setCalModal({ ...calModal, color: c })} /></Field>
         </Modal>
       )}
       <span className="sr">{MONTH_ID[selDate.getMonth()]}</span>

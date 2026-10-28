@@ -1,10 +1,13 @@
+import { t as T, lang } from '../../shared/i18n.js';
+
 export const rupiah = (n, { sign = false, short = false } = {}) => {
   const v = Number(n) || 0;
   const abs = Math.abs(v);
   let s;
-  if (short && abs >= 1e9) s = (abs / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' M';
-  else if (short && abs >= 1e6) s = (abs / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
-  else if (short && abs >= 1e3) s = (abs / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' rb';
+  const [B, M, K] = lang() === 'en' ? [' B', ' M', 'k'] : [' M', ' jt', ' rb'];
+  if (short && abs >= 1e9) s = (abs / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + B;
+  else if (short && abs >= 1e6) s = (abs / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + M;
+  else if (short && abs >= 1e3) s = (abs / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + K;
   else s = abs.toLocaleString('id-ID');
   const pre = v < 0 ? '−' : sign && v > 0 ? '+' : '';
   return `${pre}Rp ${s}`;
@@ -25,19 +28,19 @@ export function priceDigits(p) {
 
 export function timeAgo(ms) {
   const s = Math.round((Date.now() - ms) / 1000);
-  if (s < 60) return 'baru saja';
+  if (s < 60) return T('baru saja');
   const m = Math.round(s / 60);
-  if (m < 60) return `${m} mnt lalu`;
+  if (m < 60) return T('{n} mnt lalu', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h} jam lalu`;
+  if (h < 24) return T('{n} jam lalu', { n: h });
   const d = Math.round(h / 24);
-  return `${d} hari lalu`;
+  return T('{n} hari lalu', { n: d });
 }
 
 export function greeting(d = new Date()) {
   const h = d.getHours();
-  if (h < 11) return 'Selamat pagi';
-  if (h < 15) return 'Selamat siang';
-  if (h < 18) return 'Selamat sore';
-  return 'Selamat malam';
+  if (h < 11) return T('Selamat pagi');
+  if (h < 15) return T('Selamat siang');
+  if (h < 18) return T('Selamat sore');
+  return T('Selamat malam');
 }

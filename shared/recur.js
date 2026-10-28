@@ -1,6 +1,8 @@
 // Shared date + recurrence helpers (used by Electron main and the React renderer).
 // Dates are stored as local wall-clock strings: 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm'.
 
+import { lang, t as T } from './i18n.js';
+
 export const pad = (n) => String(n).padStart(2, '0');
 
 export function parseLocal(s) {
@@ -103,10 +105,17 @@ export function reminderTime(occ, minutesBefore, allDayHour = 7) {
   return new Date(s.getTime() - minutesBefore * 60000);
 }
 
-export const REPEAT_LABEL = { none: 'Tidak berulang', daily: 'Setiap hari', weekly: 'Setiap minggu', monthly: 'Setiap bulan', yearly: 'Setiap tahun' };
-export const DOW_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-export const MONTH_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-export const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+// Language-aware lookups: index like plain arrays/objects, value follows the active language.
+const byLang = (id, en) => new Proxy(id, { get: (_, k) => (lang() === 'en' ? en : id)[k] });
+export const REPEAT_LABEL = byLang(
+  { none: 'Tidak berulang', daily: 'Setiap hari', weekly: 'Setiap minggu', monthly: 'Setiap bulan', yearly: 'Setiap tahun' },
+  { none: 'Does not repeat', daily: 'Every day', weekly: 'Every week', monthly: 'Every month', yearly: 'Every year' });
+export const DOW_ID = byLang(['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+  ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+export const MONTH_ID = byLang(['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+  ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']);
+export const MONTH_SHORT = byLang(['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
 
 export function fmtDateLong(d) {
   return `${DOW_ID[d.getDay()]}, ${d.getDate()} ${MONTH_ID[d.getMonth()]} ${d.getFullYear()}`;
@@ -116,7 +125,8 @@ export function fmtTime(d) {
 }
 
 // --- Indonesian quick-add parser: "revisi abstrak besok 09.00 #TA !tinggi" ---
-const DOW_MAP = { minggu: 0, senin: 1, selasa: 2, rabu: 3, kamis: 4, jumat: 5, "jum'at": 5, sabtu: 6 };
+const DOW_MAP = { minggu: 0, senin: 1, selasa: 2, rabu: 3, kamis: 4, jumat: 5, "jum'at": 5, sabtu: 6,
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 export function parseQuickTask(text, now = new Date()) {
   let t = ' ' + text.trim() + ' ';
   let due_date = null, due_time = null, tag = '', priority = 0;
@@ -126,14 +136,14 @@ export function parseQuickTask(text, now = new Date()) {
     const v = m[1].toLowerCase();
     priority = ['tinggi', 'penting', 'high'].includes(v) ? 2 : ['sedang', 'medium'].includes(v) ? 1 : 0;
   });
-  take(/\s(?:jam|pukul|pkl\.?)?\s*([01]?\d|2[0-3])[.:]([0-5]\d)\b/i, (m) => { due_time = `${pad(+m[1])}:${m[2]}`; });
-  if (!due_time) take(/\s(?:jam|pukul)\s+([01]?\d|2[0-3])\b/i, (m) => { due_time = `${pad(+m[1])}:00`; });
-  take(/\s(hari ini|nanti|besok|lusa)\b/i, (m) => {
+  take(/\s(?:jam|pukul|pkl\.?|at)?\s*([01]?\d|2[0-3])[.:]([0-5]\d)\b/i, (m) => { due_time = `${pad(+m[1])}:${m[2]}`; });
+  if (!due_time) take(/\s(?:jam|pukul|at)\s+([01]?\d|2[0-3])\b/i, (m) => { due_time = `${pad(+m[1])}:00`; });
+  take(/\s(hari ini|nanti|besok|lusa|today|tonight|tomorrow)\b/i, (m) => {
     const v = m[1].toLowerCase();
-    const off = v === 'besok' ? 1 : v === 'lusa' ? 2 : 0;
+    const off = v === 'besok' || v === 'tomorrow' ? 1 : v === 'lusa' ? 2 : 0;
     due_date = toLocalDate(addDays(now, off));
   });
-  if (!due_date) take(/\s(minggu|senin|selasa|rabu|kamis|jumat|jum'at|sabtu)\b/i, (m) => {
+  if (!due_date) take(/\s(minggu|senin|selasa|rabu|kamis|jumat|jum'at|sabtu|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i, (m) => {
     const target = DOW_MAP[m[1].toLowerCase()];
     let diff = (target - now.getDay() + 7) % 7;
     if (diff === 0) diff = 7;

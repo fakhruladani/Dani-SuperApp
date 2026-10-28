@@ -15,6 +15,7 @@ import Link from '@tiptap/extension-link';
 import { getStroke } from 'perfect-freehand';
 import Icon from './Icon.jsx';
 import { api } from '../lib/api.js';
+import { T } from '../lib/i18n.js';
 
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -91,7 +92,7 @@ const InkLayer = memo(function InkLayer({ tool, color, size, strokes, setStrokes
   };
   return (
     <svg ref={ref} className={`ink-layer ${tool === 'type' ? 'passive' : tool === 'erase' ? 'erase' : 'pen'}`} viewBox={`0 0 ${PAGE_W} ${height}`} preserveAspectRatio="none"
-      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-label="Lapisan coretan pena" role="img">
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-label={T("Lapisan coretan pena")} role="img">
       {strokes.map((s, i) => <path key={i} d={cachedPath(s)} fill={s.color} opacity={s.tool === 'hl' ? 0.35 : 1} />)}
       {cur.current && !cur.current.erasing && <path d={strokePath(cur.current)} fill={cur.current.color} opacity={cur.current.tool === 'hl' ? 0.35 : 1} />}
     </svg>
@@ -125,7 +126,7 @@ function ColorMenu({ label, colors, current, onPick, square, children }) {
       {open && (
         <span className="card" role="menu" style={{ position: 'absolute', top: 36, left: 0, zIndex: 20, padding: 8, display: 'flex', gap: 2, boxShadow: 'var(--shadow-lg)' }}>
           {colors.map((c) => <button key={c} role="menuitemradio" aria-checked={current === c} className={`sw ${current === c ? 'on' : ''}`} aria-label={label + ' ' + c} onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(c)}><i style={{ background: c, width: 16, height: 16, borderRadius: square ? 3 : '50%' }} /></button>)}
-          <button className="icb sm" aria-label={'Hapus ' + label.toLowerCase()} title="Hapus" onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(null)}><Icon name="x" size="sm" /></button>
+          <button className="icb sm" aria-label={T('Hapus') + ' ' + label.toLowerCase()} title={T("Hapus")} onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(null)}><Icon name="x" size="sm" /></button>
         </span>
       )}
     </span>
@@ -165,7 +166,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
   useEffect(() => () => flush(), [flush]);
 
   const editor = useEditor({
-    extensions: noteExtensions('Mulai menulis… (pakai mode Pena untuk mencoret bebas)'),
+    extensions: noteExtensions(T('Mulai menulis… (pakai mode Pena untuk mencoret bebas)')),
     content: (() => { try { return note.content ? JSON.parse(note.content) : ''; } catch { return ''; } })(),
     onCreate: ({ editor: ed }) => { latest.current = { title: note.title || '', json: ed.getJSON(), plain: ed.getText(), strokes, dirty: false }; setWords(ed.getText().split(/\s+/).filter(Boolean).length); },
     onUpdate: ({ editor: ed }) => { const plain = ed.getText(); setWords(plain.split(/\s+/).filter(Boolean).length); queue({ json: ed.getJSON(), plain }); },
@@ -222,85 +223,85 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
 
   return (
     <section className="card editor-card">
-      <div className="toolbar" role="toolbar" aria-label="Format catatan">
-        <B label="Urungkan (Ctrl+Z)" icon="undo" run={() => (tool === 'type' ? e.chain().focus().undo().run() : undoInk())} />
-        <B label="Ulangi (Ctrl+Y)" icon="redo" run={() => e.chain().focus().redo().run()} />
+      <div className="toolbar" role="toolbar" aria-label={T("Format catatan")}>
+        <B label={T("Urungkan (Ctrl+Z)")} icon="undo" run={() => (tool === 'type' ? e.chain().focus().undo().run() : undoInk())} />
+        <B label={T("Ulangi (Ctrl+Y)")} icon="redo" run={() => e.chain().focus().redo().run()} />
         <span className="sep" />
-        <label className="sr" htmlFor="ne-font">Font</label>
+        <label className="sr" htmlFor="ne-font">{T("Font")}</label>
         <select id="ne-font" className="field" value={ts.fontFamily || ''} onChange={(ev) => (ev.target.value ? e.chain().focus().setFontFamily(ev.target.value).run() : e.chain().focus().unsetFontFamily().run())} style={{ maxWidth: 150 }}>
-          <option value="">Font bawaan</option>
+          <option value="">{T("Font bawaan")}</option>
           {FONTS.map(([v, l]) => <option key={v} value={v} style={{ fontFamily: v }}>{l}</option>)}
         </select>
-        <label className="sr" htmlFor="ne-size">Ukuran</label>
+        <label className="sr" htmlFor="ne-size">{T("Ukuran")}</label>
         <select id="ne-size" className="field" value={ts.fontSize || ''} onChange={(ev) => (ev.target.value ? e.chain().focus().setFontSize(ev.target.value).run() : e.chain().focus().unsetFontSize().run())}>
-          <option value="">Ukuran</option>
+          <option value="">{T("Ukuran")}</option>
           {SIZES.map((s) => <option key={s} value={s}>{parseInt(s, 10)}</option>)}
         </select>
-        <label className="sr" htmlFor="ne-block">Gaya paragraf</label>
+        <label className="sr" htmlFor="ne-block">{T("Gaya paragraf")}</label>
         <select id="ne-block" className="field" value={e.isActive('heading', { level: 1 }) ? 'h1' : e.isActive('heading', { level: 2 }) ? 'h2' : e.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
           onChange={(ev) => { const v = ev.target.value; if (v === 'p') e.chain().focus().setParagraph().run(); else e.chain().focus().toggleHeading({ level: Number(v[1]) }).run(); }}>
-          <option value="p">Normal</option><option value="h1">Judul 1</option><option value="h2">Judul 2</option><option value="h3">Judul 3</option>
+          <option value="p">{T("Normal")}</option><option value="h1">{T("Judul 1")}</option><option value="h2">{T("Judul 2")}</option><option value="h3">{T("Judul 3")}</option>
         </select>
         <span className="sep" />
-        <B label="Tebal (Ctrl+B)" text="B" style={{ fontWeight: 800 }} on={e.isActive('bold')} run={() => e.chain().focus().toggleBold().run()} />
-        <B label="Miring (Ctrl+I)" text="I" style={{ fontStyle: 'italic', fontFamily: 'Lora, serif' }} on={e.isActive('italic')} run={() => e.chain().focus().toggleItalic().run()} />
-        <B label="Garis bawah (Ctrl+U)" text="U" style={{ textDecoration: 'underline' }} on={e.isActive('underline')} run={() => e.chain().focus().toggleUnderline().run()} />
-        <B label="Coret / strikethrough (Ctrl+Shift+S)" text="S" style={{ textDecoration: 'line-through' }} on={e.isActive('strike')} run={() => e.chain().focus().toggleStrike().run()} />
-        <B label="Kode" text="</>" style={{ fontFamily: 'JetBrains Mono', fontSize: 11 }} on={e.isActive('code')} run={() => e.chain().focus().toggleCode().run()} />
+        <B label={T("Tebal (Ctrl+B)")} text="B" style={{ fontWeight: 800 }} on={e.isActive('bold')} run={() => e.chain().focus().toggleBold().run()} />
+        <B label={T("Miring (Ctrl+I)")} text="I" style={{ fontStyle: 'italic', fontFamily: 'Lora, serif' }} on={e.isActive('italic')} run={() => e.chain().focus().toggleItalic().run()} />
+        <B label={T("Garis bawah (Ctrl+U)")} text="U" style={{ textDecoration: 'underline' }} on={e.isActive('underline')} run={() => e.chain().focus().toggleUnderline().run()} />
+        <B label={T("Coret / strikethrough (Ctrl+Shift+S)")} text="S" style={{ textDecoration: 'line-through' }} on={e.isActive('strike')} run={() => e.chain().focus().toggleStrike().run()} />
+        <B label={T("Kode")} text="</>" style={{ fontFamily: 'JetBrains Mono', fontSize: 11 }} on={e.isActive('code')} run={() => e.chain().focus().toggleCode().run()} />
         <span className="sep" />
-        <ColorMenu label="Warna teks" colors={TEXT_COLORS} current={ts.color} onPick={(c) => (c ? e.chain().focus().setColor(c).run() : e.chain().focus().unsetColor().run())}>
+        <ColorMenu label={T("Warna teks")} colors={TEXT_COLORS} current={ts.color} onPick={(c) => (c ? e.chain().focus().setColor(c).run() : e.chain().focus().unsetColor().run())}>
           <span style={{ fontWeight: 800, fontSize: 14, lineHeight: 1, borderBottom: `3px solid ${ts.color || 'currentColor'}`, padding: '0 2px' }}>A</span>
         </ColorMenu>
-        <ColorMenu label="Stabilo teks" colors={HL_COLORS} current={e.getAttributes('highlight').color} square onPick={(c) => (c ? e.chain().focus().setHighlight({ color: c }).run() : e.chain().focus().unsetHighlight().run())}>
+        <ColorMenu label={T("Stabilo teks")} colors={HL_COLORS} current={e.getAttributes('highlight').color} square onPick={(c) => (c ? e.chain().focus().setHighlight({ color: c }).run() : e.chain().focus().unsetHighlight().run())}>
           <Icon name="hl" size="sm" />
         </ColorMenu>
         <span className="sep" />
-        <B label="Daftar berpoin" icon="list" on={e.isActive('bulletList')} run={() => e.chain().focus().toggleBulletList().run()} />
-        <B label="Daftar bernomor" icon="olist" on={e.isActive('orderedList')} run={() => e.chain().focus().toggleOrderedList().run()} />
-        <B label="Checklist" icon="checklist" on={e.isActive('taskList')} run={() => e.chain().focus().toggleTaskList().run()} />
-        <B label="Kutipan" icon="quote" on={e.isActive('blockquote')} run={() => e.chain().focus().toggleBlockquote().run()} />
-        <B label="Rata kiri" icon="alignL" on={e.isActive({ textAlign: 'left' })} run={() => e.chain().focus().setTextAlign('left').run()} />
-        <B label="Rata tengah" icon="alignC" on={e.isActive({ textAlign: 'center' })} run={() => e.chain().focus().setTextAlign('center').run()} />
-        <B label="Rata kanan" icon="alignR" on={e.isActive({ textAlign: 'right' })} run={() => e.chain().focus().setTextAlign('right').run()} />
-        <B label="Garis pemisah" text="—" run={() => e.chain().focus().setHorizontalRule().run()} />
-        <B label="Tautan" icon="link" on={e.isActive('link') || linkUrl != null} run={() => { if (e.isActive('link')) e.chain().focus().unsetLink().run(); else setLinkUrl('https://'); }} />
+        <B label={T("Daftar berpoin")} icon="list" on={e.isActive('bulletList')} run={() => e.chain().focus().toggleBulletList().run()} />
+        <B label={T("Daftar bernomor")} icon="olist" on={e.isActive('orderedList')} run={() => e.chain().focus().toggleOrderedList().run()} />
+        <B label={T("Checklist")} icon="checklist" on={e.isActive('taskList')} run={() => e.chain().focus().toggleTaskList().run()} />
+        <B label={T("Kutipan")} icon="quote" on={e.isActive('blockquote')} run={() => e.chain().focus().toggleBlockquote().run()} />
+        <B label={T("Rata kiri")} icon="alignL" on={e.isActive({ textAlign: 'left' })} run={() => e.chain().focus().setTextAlign('left').run()} />
+        <B label={T("Rata tengah")} icon="alignC" on={e.isActive({ textAlign: 'center' })} run={() => e.chain().focus().setTextAlign('center').run()} />
+        <B label={T("Rata kanan")} icon="alignR" on={e.isActive({ textAlign: 'right' })} run={() => e.chain().focus().setTextAlign('right').run()} />
+        <B label={T("Garis pemisah")} text="—" run={() => e.chain().focus().setHorizontalRule().run()} />
+        <B label={T("Tautan")} icon="link" on={e.isActive('link') || linkUrl != null} run={() => { if (e.isActive('link')) e.chain().focus().unsetLink().run(); else setLinkUrl('https://'); }} />
         {linkUrl != null && (
           <span className="row" style={{ gap: 4 }}>
-            <label className="sr" htmlFor="ne-link">Alamat tautan</label>
+            <label className="sr" htmlFor="ne-link">{T("Alamat tautan")}</label>
             <input id="ne-link" className="field" autoFocus value={linkUrl} onChange={(ev) => setLinkUrl(ev.target.value)} style={{ width: 200, minHeight: 32 }}
               onKeyDown={(ev) => { if (ev.key === 'Enter') { if (/^https?:\/\//.test(linkUrl)) e.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run(); setLinkUrl(null); } if (ev.key === 'Escape') setLinkUrl(null); }} />
           </span>
         )}
-        <B label="Hapus format" icon="erase" run={() => e.chain().focus().unsetAllMarks().clearNodes().run()} />
+        <B label={T("Hapus format")} icon="erase" run={() => e.chain().focus().unsetAllMarks().clearNodes().run()} />
         <span className="sep" />
-        <span className="row" style={{ gap: 0 }} role="group" aria-label="Mode">
-          <B label="Mode ketik" icon="type" on={tool === 'type'} run={() => setTool('type')} />
-          <B label="Pena — coret bebas" icon="pen" on={tool === 'pen'} run={() => setTool('pen')} />
-          <B label="Stabilo bebas" icon="hl" on={tool === 'hl'} run={() => setTool('hl')} />
-          <B label="Penghapus coretan" icon="erase" on={tool === 'erase'} run={() => setTool('erase')} style={{ color: tool === 'erase' ? undefined : 'var(--muted)' }} />
+        <span className="row" style={{ gap: 0 }} role="group" aria-label={T("Mode")}>
+          <B label={T("Mode ketik")} icon="type" on={tool === 'type'} run={() => setTool('type')} />
+          <B label={T("Pena — coret bebas")} icon="pen" on={tool === 'pen'} run={() => setTool('pen')} />
+          <B label={T("Stabilo bebas")} icon="hl" on={tool === 'hl'} run={() => setTool('hl')} />
+          <B label={T("Penghapus coretan")} icon="erase" on={tool === 'erase'} run={() => setTool('erase')} style={{ color: tool === 'erase' ? undefined : 'var(--muted)' }} />
         </span>
         {(tool === 'pen' || tool === 'hl') && (
-          <span className="row" style={{ gap: 0 }} role="group" aria-label="Warna pena">
-            {PEN_COLORS.map((c) => <button key={c} className={`sw ${penColor === c ? 'on' : ''}`} aria-label={'Warna pena ' + c} onClick={() => setPenColor(c)}><i style={{ background: c, width: 16, height: 16 }} /></button>)}
-            <label className="sr" htmlFor="ne-pen">Ketebalan</label>
+          <span className="row" style={{ gap: 0 }} role="group" aria-label={T("Warna pena")}>
+            {PEN_COLORS.map((c) => <button key={c} className={`sw ${penColor === c ? 'on' : ''}`} aria-label={T('Warna pena') + ' ' + c} onClick={() => setPenColor(c)}><i style={{ background: c, width: 16, height: 16 }} /></button>)}
+            <label className="sr" htmlFor="ne-pen">{T("Ketebalan")}</label>
             <select id="ne-pen" className="field" value={penSize} onChange={(ev) => setPenSize(Number(ev.target.value))} style={{ marginLeft: 4 }}>
-              <option value={1}>Tipis</option><option value={2}>Sedang</option><option value={4}>Tebal</option><option value={7}>Sangat tebal</option>
+              <option value={1}>{T("Tipis")}</option><option value={2}>{T("Sedang")}</option><option value={4}>{T("Tebal")}</option><option value={7}>{T("Sangat tebal")}</option>
             </select>
           </span>
         )}
-        {strokes.length > 0 && <button className="btn sm ghost" onClick={() => setStrokes([])}>Hapus semua coretan</button>}
+        {strokes.length > 0 && <button className="btn sm ghost" onClick={() => setStrokes([])}>{T("Hapus semua coretan")}</button>}
         <span className="row" style={{ marginLeft: 'auto', gap: 0 }}>
-          <B label="Perkecil (Ctrl+-)" icon="zoomOut" run={() => setZoom(Math.max(50, zoom - 10))} />
-          <button className="btn sm ghost num" onClick={() => setZoom(100)} title="Reset zoom (Ctrl+0)" style={{ minWidth: 56 }}>{zoom}%</button>
-          <B label="Perbesar (Ctrl++)" icon="zoomIn" run={() => setZoom(Math.min(200, zoom + 10))} />
+          <B label={T("Perkecil (Ctrl+-)")} icon="zoomOut" run={() => setZoom(Math.max(50, zoom - 10))} />
+          <button className="btn sm ghost num" onClick={() => setZoom(100)} title={T("Reset zoom (Ctrl+0)")} style={{ minWidth: 56 }}>{zoom}%</button>
+          <B label={T("Perbesar (Ctrl++)")} icon="zoomIn" run={() => setZoom(Math.min(200, zoom + 10))} />
         </span>
       </div>
       <div className="paper-scroll">
         <div style={{ width: PAGE_W * scale, height: pageH * scale, margin: '24px auto', position: 'relative' }}>
           <div className="paper" style={{ width: PAGE_W, minHeight: pageH, margin: 0, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', left: 0, top: 0 }}>
             <div ref={pageRef}>
-              <label className="sr" htmlFor="ne-title">Judul catatan</label>
-              <input id="ne-title" className="title-input" placeholder="Judul catatan" value={title} onChange={(ev) => { setTitle(ev.target.value); queue({ title: ev.target.value }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); e.commands.focus('start'); } }} />
+              <label className="sr" htmlFor="ne-title">{T("Judul catatan")}</label>
+              <input id="ne-title" className="title-input" placeholder={T("Judul catatan")} value={title} onChange={(ev) => { setTitle(ev.target.value); queue({ title: ev.target.value }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); e.commands.focus('start'); } }} />
               <EditorContent editor={e} />
             </div>
             <InkLayer tool={tool} color={penColor} size={penSize} strokes={strokes} setStrokes={setStrokes} height={pageH} />
@@ -308,13 +309,13 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, zoo
         </div>
       </div>
       <div className="row wrap mut" style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 12, gap: 14 }}>
-        <span>{savedAt ? `Tersimpan otomatis · ${savedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : 'Tersimpan otomatis'}</span>
+        <span>{savedAt ? T('Tersimpan otomatis') + ' · ' + savedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : T("Tersimpan otomatis")}</span>
         <span>{words} kata</span>
-        <span>{strokes.length} coretan</span>
+        <span>{T('{n} coretan', { n: strokes.length })}</span>
         <span className="grow" />
-        <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title="Buka catatan ini sebagai jendela mengambang (sticky note)"><Icon name="widget" size="sm" />Jendela mengambang</button>
-        <button className="btn sm ghost" onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" />{note.pinned ? 'Lepas sematan' : 'Sematkan'}</button>
-        <button className="btn sm ghost danger" onClick={onDelete}><Icon name="trash" size="sm" />Hapus</button>
+        <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title={T("Buka catatan ini sebagai jendela mengambang (sticky note)")}><Icon name="widget" size="sm" />{T("Jendela mengambang")}</button>
+        <button className="btn sm ghost" onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" />{note.pinned ? T("Lepas sematan") : T("Sematkan")}</button>
+        <button className="btn sm ghost danger" onClick={onDelete}><Icon name="trash" size="sm" />{T("Hapus")}</button>
       </div>
     </section>
   );

@@ -6,6 +6,7 @@ import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
 import { rupiah, parseAmount, formatAmountInput } from '../lib/format.js';
 import { MONTH_ID, MONTH_SHORT, pad, toLocalDate } from '../../shared/recur.js';
 import { wealthSummary, fmtDateID } from '../../shared/wealth.js';
+import { T } from '../lib/i18n.js';
 
 
 function AmountInput({ value, onChange, className = 'field', ...rest }) {
@@ -20,25 +21,25 @@ export function TxModal({ initial, cats, onClose }) {
   const list = cats.filter((c) => c.kind === f.kind && !c.archived);
   useEffect(() => { if (!list.find((c) => c.id === f.category_id)) setF((x) => ({ ...x, category_id: list[0]?.id || '' })); }, [f.kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = async (again) => {
-    if (!f.amount) { app.toast({ text: 'Nominal wajib diisi', error: true }); return; }
+    if (!f.amount) { app.toast({ text: T("Nominal wajib diisi"), error: true }); return; }
     await DB.save('fin_tx', f);
-    app.toast('Transaksi disimpan');
+    app.toast(T("Transaksi disimpan"));
     if (again) setF({ ...f, id: undefined, amount: 0, description: '', note: '' }); else onClose();
   };
   return (
-    <Modal title={f.id ? 'Edit transaksi' : 'Transaksi baru'} onClose={onClose} width={480} footer={<>
-      {f.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('fin_tx', f.id); onClose(); }}>Hapus</button>}
-      {!f.id && <button className="btn" onClick={() => save(true)}>Simpan & tambah lagi</button>}
-      <button className="btn pri" onClick={() => save(false)}>Simpan</button>
+    <Modal title={f.id ? T("Edit transaksi") : T("Transaksi baru")} onClose={onClose} width={480} footer={<>
+      {f.id && <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('fin_tx', f.id); onClose(); }}>{T("Hapus")}</button>}
+      {!f.id && <button className="btn" onClick={() => save(true)}>{T("Simpan & tambah lagi")}</button>}
+      <button className="btn pri" onClick={() => save(false)}>{T("Simpan")}</button>
     </>}>
-      <Seg value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={[{ value: 'out', label: 'Pengeluaran' }, { value: 'in', label: 'Pemasukan' }]} label="Jenis" />
-      <Field label="Nominal (Rp)"><AmountInput value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} style={{ fontSize: 22, fontWeight: 800 }} onKeyDown={(e) => e.key === 'Enter' && save(false)} /></Field>
+      <Seg value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={[{ value: 'out', label: T("Pengeluaran") }, { value: 'in', label: T("Pemasukan") }]} label={T("Jenis")} />
+      <Field label={T("Nominal (Rp)")}><AmountInput value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} style={{ fontSize: 22, fontWeight: 800 }} onKeyDown={(e) => e.key === 'Enter' && save(false)} /></Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label="Tanggal"><input type="date" className="field" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-        <Field label="Kategori"><select className="field" value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+        <Field label={T("Tanggal")}><input type="date" className="field" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
+        <Field label={T("Kategori")}><select className="field" value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
       </div>
-      <Field label="Keterangan"><input className="field" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder="mis. Makan siang" /></Field>
-      <Field label="Catatan (opsional)"><input className="field" value={f.note || ''} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
+      <Field label={T("Keterangan")}><input className="field" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder={T("mis. Makan siang")} /></Field>
+      <Field label={T("Catatan (opsional)")}><input className="field" value={f.note || ''} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
     </Modal>
   );
 }
@@ -50,12 +51,12 @@ function TxRow({ tx, cats, onDelete }) {
   const list = cats.filter((c) => c.kind === r.kind);
   return (
     <tr>
-      <td style={{ width: 70 }}><input className="cell num" aria-label="Tanggal" value={r.date.slice(8)} onChange={(e) => setR({ ...r, date: r.date.slice(0, 8) + e.target.value.replace(/\D/g, '').slice(0, 2) })} onBlur={(e) => { const d = Math.min(31, Math.max(1, Number(e.target.value) || 1)); commit({ date: r.date.slice(0, 8) + pad(d) }); }} style={{ width: 44 }} /></td>
-      <td><input className="cell" aria-label="Keterangan" value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} /></td>
-      <td><select className="cell" aria-label="Kategori" value={r.category_id || ''} onChange={(e) => commit({ category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
-      <td className="r"><AmountInput className="cell num up" aria-label="Masuk" value={r.kind === 'in' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'in' || v !== r.amount)) { const cat = r.kind !== 'in' ? cats.find((c) => c.kind === 'in')?.id : r.category_id; commit({ kind: 'in', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
-      <td className="r"><AmountInput className="cell num dn" aria-label="Keluar" value={r.kind === 'out' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'out' || v !== r.amount)) { const cat = r.kind !== 'out' ? cats.find((c) => c.kind === 'out')?.id : r.category_id; commit({ kind: 'out', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
-      <td style={{ width: 44 }}><button className="icb sm" aria-label="Hapus baris" onClick={() => onDelete(tx)}><Icon name="trash" size="sm" /></button></td>
+      <td style={{ width: 70 }}><input className="cell num" aria-label={T("Tanggal")} value={r.date.slice(8)} onChange={(e) => setR({ ...r, date: r.date.slice(0, 8) + e.target.value.replace(/\D/g, '').slice(0, 2) })} onBlur={(e) => { const d = Math.min(31, Math.max(1, Number(e.target.value) || 1)); commit({ date: r.date.slice(0, 8) + pad(d) }); }} style={{ width: 44 }} /></td>
+      <td><input className="cell" aria-label={T("Keterangan")} value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} /></td>
+      <td><select className="cell" aria-label={T("Kategori")} value={r.category_id || ''} onChange={(e) => commit({ category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
+      <td className="r"><AmountInput className="cell num up" aria-label={T("Masuk")} value={r.kind === 'in' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'in' || v !== r.amount)) { const cat = r.kind !== 'in' ? cats.find((c) => c.kind === 'in')?.id : r.category_id; commit({ kind: 'in', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
+      <td className="r"><AmountInput className="cell num dn" aria-label={T("Keluar")} value={r.kind === 'out' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'out' || v !== r.amount)) { const cat = r.kind !== 'out' ? cats.find((c) => c.kind === 'out')?.id : r.category_id; commit({ kind: 'out', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
+      <td style={{ width: 44 }}><button className="icb sm" aria-label={T("Hapus baris")} onClick={() => onDelete(tx)}><Icon name="trash" size="sm" /></button></td>
     </tr>
   );
 }
@@ -89,7 +90,7 @@ function Monthly({ year, month, setMonth, cats }) {
     setNr({ day: nr.day, description: '', category_id: nr.category_id, inn: 0, out: 0 });
     setTimeout(() => document.getElementById('nr-desc')?.focus(), 50);
   };
-  const del = async (t) => { await DB.remove('fin_tx', t.id); app.toast('Baris dihapus'); };
+  const del = async (t) => { await DB.remove('fin_tx', t.id); app.toast(T("Baris dihapus")); };
 
   return (
     <>
@@ -99,43 +100,43 @@ function Monthly({ year, month, setMonth, cats }) {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        <div className="card stat"><span className="lbl">Pemasukan</span><span className="v num up">{rupiah(tin)}</span><span className="mut" style={{ fontSize: 12 }}>{(tx.data || []).filter((t) => t.kind === 'in').length} transaksi</span></div>
-        <div className="card stat"><span className="lbl">Pengeluaran</span><span className="v num dn">{rupiah(tout)}</span><span className="mut" style={{ fontSize: 12 }}>{(tx.data || []).filter((t) => t.kind === 'out').length} transaksi</span></div>
-        <div className="card stat"><span className="lbl">Selisih</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>{tin ? `${Math.round(((tin - tout) / tin) * 100)}% dari pemasukan` : '—'}</span></div>
-        <div className="card stat"><span className="lbl">Sisa anggaran</span><span className={`v num ${cap && cap - spentBudgeted < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - spentBudgeted) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? `dari ${rupiah(cap)} (kategori beranggaran)${isCur ? ` · ${daysLeft} hari lagi` : ''}` : 'belum ada anggaran'}</span></div>
+        <div className="card stat"><span className="lbl">{T("Pemasukan")}</span><span className="v num up">{rupiah(tin)}</span><span className="mut" style={{ fontSize: 12 }}>{T('{n} transaksi', { n: (tx.data || []).filter((t) => t.kind === 'in').length })}</span></div>
+        <div className="card stat"><span className="lbl">{T("Pengeluaran")}</span><span className="v num dn">{rupiah(tout)}</span><span className="mut" style={{ fontSize: 12 }}>{T('{n} transaksi', { n: (tx.data || []).filter((t) => t.kind === 'out').length })}</span></div>
+        <div className="card stat"><span className="lbl">{T("Selisih")}</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>{tin ? T('{n}% dari pemasukan', { n: Math.round(((tin - tout) / tin) * 100) }) : '—'}</span></div>
+        <div className="card stat"><span className="lbl">{T("Sisa anggaran")}</span><span className={`v num ${cap && cap - spentBudgeted < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - spentBudgeted) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? T('dari {v} (kategori beranggaran)', { v: rupiah(cap) }) + (isCur ? ' · ' + T('{n} hari lagi', { n: daysLeft }) : '') : T("belum ada anggaran")}</span></div>
       </div>
       <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
         <section className="card" style={{ flex: '999 1 600px', minWidth: 0, overflow: 'hidden' }}>
           <div className="row wrap" style={{ padding: '12px 16px' }}>
-            <h2 className="h2 grow">Lembar {MONTH_ID[month - 1]} {year}</h2>
-            <label className="sr" htmlFor="fq">Cari</label>
-            <input id="fq" className="field" placeholder="Cari keterangan" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 180 }} />
-            <label className="sr" htmlFor="fc">Kategori</label>
+            <h2 className="h2 grow">{T("Lembar")} {MONTH_ID[month - 1]} {year}</h2>
+            <label className="sr" htmlFor="fq">{T("Cari")}</label>
+            <input id="fq" className="field" placeholder={T("Cari keterangan")} value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 180 }} />
+            <label className="sr" htmlFor="fc">{T("Kategori")}</label>
             <select id="fc" className="field" value={catF} onChange={(e) => setCatF(e.target.value)} style={{ width: 170 }}>
-              <option value="">Semua kategori</option>
+              <option value="">{T("Semua kategori")}</option>
               {cats.map((c) => <option key={c.id} value={c.id}>{c.kind === 'in' ? '↑ ' : '↓ '}{c.name}</option>)}
             </select>
           </div>
           <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 420px)', minHeight: 260 }}>
             <table className="tbl">
-              <thead><tr><th>Tgl</th><th>Keterangan</th><th>Kategori</th><th className="r">Masuk</th><th className="r">Keluar</th><th /></tr></thead>
+              <thead><tr><th>{T("Tgl")}</th><th>{T("Keterangan")}</th><th>{T("Kategori")}</th><th className="r">{T("Masuk")}</th><th className="r">{T("Keluar")}</th><th /></tr></thead>
               <tbody>
                 {rows.map((t) => <TxRow key={t.id} tx={t} cats={cats} onDelete={del} />)}
                 <tr style={{ background: 'var(--accent-soft)' }}>
-                  <td><input className="cell num" aria-label="Tanggal baru" placeholder={isCur ? String(today.getDate()) : '1'} value={nr.day} onChange={(e) => setNr({ ...nr, day: e.target.value.replace(/\D/g, '').slice(0, 2) })} style={{ width: 44 }} /></td>
-                  <td><input id="nr-desc" className="cell" aria-label="Keterangan baru" placeholder="+ Ketik transaksi baru…" value={nr.description} onChange={(e) => setNr({ ...nr, description: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addRow()} /></td>
-                  <td><select className="cell" aria-label="Kategori baru" value={nr.category_id} onChange={(e) => setNr({ ...nr, category_id: e.target.value })}><option value="">(otomatis)</option>{cats.filter((c) => !c.archived).map((c) => <option key={c.id} value={c.id}>{c.kind === 'in' ? '↑ ' : '↓ '}{c.name}</option>)}</select></td>
-                  <td className="r"><AmountInput className="cell num" aria-label="Masuk baru" placeholder="0" value={nr.inn} onChange={(v) => setNr((x) => ({ ...x, inn: v, out: v ? 0 : x.out }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
-                  <td className="r"><AmountInput className="cell num" aria-label="Keluar baru" placeholder="0" value={nr.out} onChange={(v) => setNr((x) => ({ ...x, out: v, inn: v ? 0 : x.inn }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
-                  <td><button className="icb sm" aria-label="Tambah baris" onClick={addRow}><Icon name="plus" size="sm" /></button></td>
+                  <td><input className="cell num" aria-label={T("Tanggal baru")} placeholder={isCur ? String(today.getDate()) : '1'} value={nr.day} onChange={(e) => setNr({ ...nr, day: e.target.value.replace(/\D/g, '').slice(0, 2) })} style={{ width: 44 }} /></td>
+                  <td><input id="nr-desc" className="cell" aria-label={T("Keterangan baru")} placeholder={T("+ Ketik transaksi baru…")} value={nr.description} onChange={(e) => setNr({ ...nr, description: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addRow()} /></td>
+                  <td><select className="cell" aria-label={T("Kategori baru")} value={nr.category_id} onChange={(e) => setNr({ ...nr, category_id: e.target.value })}><option value="">{T("(otomatis)")}</option>{cats.filter((c) => !c.archived).map((c) => <option key={c.id} value={c.id}>{c.kind === 'in' ? '↑ ' : '↓ '}{c.name}</option>)}</select></td>
+                  <td className="r"><AmountInput className="cell num" aria-label={T("Masuk baru")} placeholder="0" value={nr.inn} onChange={(v) => setNr((x) => ({ ...x, inn: v, out: v ? 0 : x.out }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
+                  <td className="r"><AmountInput className="cell num" aria-label={T("Keluar baru")} placeholder="0" value={nr.out} onChange={(v) => setNr((x) => ({ ...x, out: v, inn: v ? 0 : x.inn }))} onKeyDown={(e) => e.key === 'Enter' && addRow()} style={{ textAlign: 'right', width: 116 }} /></td>
+                  <td><button className="icb sm" aria-label={T("Tambah baris")} onClick={addRow}><Icon name="plus" size="sm" /></button></td>
                 </tr>
               </tbody>
-              <tfoot><tr><td colSpan={3}>Total {MONTH_ID[month - 1]}</td><td className="r num up">{rupiah(tin)}</td><td className="r num dn">{rupiah(tout)}</td><td /></tr></tfoot>
+              <tfoot><tr><td colSpan={3}>{T("Total")} {MONTH_ID[month - 1]}</td><td className="r num up">{rupiah(tin)}</td><td className="r num dn">{rupiah(tout)}</td><td /></tr></tfoot>
             </table>
           </div>
         </section>
         <section className="card pad col" style={{ flex: '1 1 300px', gap: 12 }}>
-          <div className="row"><h2 className="h2 grow">Anggaran {MONTH_SHORT[month - 1]}</h2><span className="mut" style={{ fontSize: 12 }}>klik angka untuk ubah</span></div>
+          <div className="row"><h2 className="h2 grow">{T("Anggaran")} {MONTH_SHORT[month - 1]}</h2><span className="mut" style={{ fontSize: 12 }}>{T("klik angka untuk ubah")}</span></div>
           {(budgets.data || []).map((b) => {
             const p = b.budget ? Math.round((b.spent / b.budget) * 100) : 0;
             return (
@@ -149,7 +150,7 @@ function Monthly({ year, month, setMonth, cats }) {
                       setEditBudget(null);
                     }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
                   ) : (
-                    <button className="btn sm ghost num" onClick={() => setEditBudget(b.category_id)} title={b.overridden ? 'Anggaran khusus bulan ini' : 'Anggaran default kategori'}>
+                    <button className="btn sm ghost num" onClick={() => setEditBudget(b.category_id)} title={b.overridden ? T("Anggaran khusus bulan ini") : T("Anggaran default kategori")}>
                       {rupiah(b.spent, { short: true })} / {b.budget ? rupiah(b.budget, { short: true }) : '—'}{b.overridden ? ' *' : ''}
                     </button>
                   )}
@@ -158,7 +159,9 @@ function Monthly({ year, month, setMonth, cats }) {
               </div>
             );
           })}
-          <span className="mut" style={{ fontSize: 12 }}>* anggaran khusus bulan ini. Default per kategori diatur di tab “Kategori & anggaran”.</span>
+          <span className="mut" style={{ fontSize: 12 }}>{T(
+            "* anggaran khusus bulan ini. Default per kategori diatur di tab “Kategori & anggaran”."
+          )}</span>
         </section>
       </div>
     </>
@@ -184,21 +187,21 @@ function Recap({ year, cats, goMonth }) {
   const catRows = rec.data.categories.filter((c) => c.kind === catKind).sort((a, b) => b.total - a.total);
   const maxCell = Math.max(1, ...catRows.flatMap((c) => c.months));
   const pie = catRows.slice(0, 7).map((c) => ({ name: names[c.category_id] || '—', value: c.total }));
-  if (catRows.length > 7) pie.push({ name: 'Lainnya', value: catRows.slice(7).reduce((s, c) => s + c.total, 0) });
-  const delta = (a, b) => (b ? `${a >= b ? '+' : '−'}${Math.abs(Math.round(((a - b) / b) * 100))}% vs ${year - 1}` : `tidak ada data ${year - 1}`);
+  if (catRows.length > 7) pie.push({ name: T("Lainnya"), value: catRows.slice(7).reduce((s, c) => s + c.total, 0) });
+  const delta = (a, b) => (b ? `${a >= b ? '+' : '−'}${Math.abs(Math.round(((a - b) / b) * 100))}% vs ${year - 1}` : T('tidak ada data {y}', { y: year - 1 }));
   const tip = { contentStyle: { background: C.surface, border: '1px solid ' + C.border, borderRadius: 10, color: C.text }, itemStyle: { color: C.text }, labelStyle: { color: C.text }, formatter: (v) => rupiah(v) };
   let run = 0;
 
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        <div className="card stat"><span className="lbl">Pemasukan {year}</span><span className="v num up">{rupiah(tin)}</span><span className="mut" style={{ fontSize: 12 }}>{delta(tin, pin)}</span></div>
-        <div className="card stat"><span className="lbl">Pengeluaran {year}</span><span className="v num dn">{rupiah(tout)}</span><span className="mut" style={{ fontSize: 12 }}>{delta(tout, pout)}</span></div>
-        <div className="card stat"><span className="lbl">Total selisih</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>Tingkat tabungan {tin ? Math.round(((tin - tout) / tin) * 100) : 0}%</span></div>
-        <div className="card stat"><span className="lbl">Rata-rata pengeluaran</span><span className="v num">{rupiah(tout / activeMonths)}</span><span className="mut" style={{ fontSize: 12 }}>per bulan aktif ({activeMonths} bulan)</span></div>
+        <div className="card stat"><span className="lbl">{T("Pemasukan")} {year}</span><span className="v num up">{rupiah(tin)}</span><span className="mut" style={{ fontSize: 12 }}>{delta(tin, pin)}</span></div>
+        <div className="card stat"><span className="lbl">{T("Pengeluaran")} {year}</span><span className="v num dn">{rupiah(tout)}</span><span className="mut" style={{ fontSize: 12 }}>{delta(tout, pout)}</span></div>
+        <div className="card stat"><span className="lbl">{T("Total selisih")}</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>{T("Tingkat tabungan")} {tin ? Math.round(((tin - tout) / tin) * 100) : 0}%</span></div>
+        <div className="card stat"><span className="lbl">{T("Rata-rata pengeluaran")}</span><span className="v num">{rupiah(tout / activeMonths)}</span><span className="mut" style={{ fontSize: 12 }}>{T("per bulan aktif (")}{activeMonths} {T("bulan)")}</span></div>
       </div>
       <section className="card pad col" style={{ gap: 8 }}>
-        <h2 className="h2">Arus kas bulanan {year}</h2>
+        <h2 className="h2">{T("Arus kas bulanan")} {year}</h2>
         <div style={{ height: 280 }}>
           <ResponsiveContainer>
             <ComposedChart data={chart} margin={{ left: 10, right: 10, top: 10 }}>
@@ -207,19 +210,19 @@ function Recap({ year, cats, goMonth }) {
               <YAxis stroke={C.muted} tickLine={false} axisLine={false} tickFormatter={(v) => rupiah(v, { short: true }).replace('Rp ', '')} width={60} />
               <Tooltip {...tip} cursor={{ fill: C.surface2 }} />
               <Legend />
-              <Bar dataKey="Pemasukan" fill={C.pos} radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="Pengeluaran" fill={C.neg} radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Line dataKey="Kumulatif" stroke={C.accent} strokeWidth={2} dot={false} type="monotone" />
+              <Bar dataKey="Pemasukan" name={T("Pemasukan")} fill={C.pos} radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="Pengeluaran" name={T("Pengeluaran")} fill={C.neg} radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Line dataKey="Kumulatif" name={T("Kumulatif")} stroke={C.accent} strokeWidth={2} dot={false} type="monotone" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
       </section>
       <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
         <section className="card" style={{ flex: '999 1 520px', minWidth: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px' }}><h2 className="h2">Rekap per bulan</h2></div>
+          <div style={{ padding: '14px 16px' }}><h2 className="h2">{T("Rekap per bulan")}</h2></div>
           <div style={{ overflowX: 'auto' }}>
             <table className="tbl">
-              <thead><tr><th>Bulan</th><th className="r">Pemasukan</th><th className="r">Pengeluaran</th><th className="r">Selisih</th><th className="r">Saldo kumulatif</th><th className="r">Transaksi</th></tr></thead>
+              <thead><tr><th>{T("Bulan")}</th><th className="r">{T("Pemasukan")}</th><th className="r">{T("Pengeluaran")}</th><th className="r">{T("Selisih")}</th><th className="r">{T("Saldo kumulatif")}</th><th className="r">{T("Transaksi")}</th></tr></thead>
               <tbody>
                 {m.map((x, i) => { run += x.in - x.out; return (
                   <tr key={i} onClick={() => goMonth(i + 1)} style={{ cursor: 'pointer' }}>
@@ -232,13 +235,13 @@ function Recap({ year, cats, goMonth }) {
                   </tr>
                 ); })}
               </tbody>
-              <tfoot><tr><td>Total</td><td className="r num up">{rupiah(tin)}</td><td className="r num dn">{rupiah(tout)}</td><td className="r num">{rupiah(tin - tout)}</td><td /><td className="r num">{m.reduce((s, x) => s + x.n, 0)}</td></tr></tfoot>
+              <tfoot><tr><td>{T("Total")}</td><td className="r num up">{rupiah(tin)}</td><td className="r num dn">{rupiah(tout)}</td><td className="r num">{rupiah(tin - tout)}</td><td /><td className="r num">{m.reduce((s, x) => s + x.n, 0)}</td></tr></tfoot>
             </table>
           </div>
         </section>
         <section className="card pad col" style={{ flex: '1 1 320px', gap: 8 }}>
-          <div className="row"><h2 className="h2 grow">Komposisi</h2><Seg value={catKind} onChange={setCatKind} options={[{ value: 'out', label: 'Keluar' }, { value: 'in', label: 'Masuk' }]} label="Jenis" /></div>
-          {pie.length === 0 ? <div className="empty">Belum ada data.</div> : (
+          <div className="row"><h2 className="h2 grow">{T("Komposisi")}</h2><Seg value={catKind} onChange={setCatKind} options={[{ value: 'out', label: T("Keluar") }, { value: 'in', label: T("Masuk") }]} label={T("Jenis")} /></div>
+          {pie.length === 0 ? <div className="empty">{T("Belum ada data.")}</div> : (
             <div style={{ height: 240 }}>
               <ResponsiveContainer>
                 <PieChart>
@@ -254,15 +257,15 @@ function Recap({ year, cats, goMonth }) {
         </section>
       </div>
       <section className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '14px 16px' }}><h2 className="h2">{catKind === 'out' ? 'Pengeluaran' : 'Pemasukan'} per kategori × bulan</h2></div>
+        <div style={{ padding: '14px 16px' }}><h2 className="h2">{catKind === 'out' ? T("Pengeluaran") : T("Pemasukan")} {T("per kategori × bulan")}</h2></div>
         <div style={{ overflowX: 'auto' }}>
           <table className="tbl">
-            <thead><tr><th>Kategori</th>{MONTH_SHORT.map((x) => <th key={x} className="r">{x}</th>)}<th className="r">Total</th><th className="r">Rata²</th></tr></thead>
+            <thead><tr><th>{T("Kategori")}</th>{MONTH_SHORT.map((x) => <th key={x} className="r">{x}</th>)}<th className="r">{T("Total")}</th><th className="r">{T("Rata²")}</th></tr></thead>
             <tbody>
-              {catRows.length === 0 && <tr><td colSpan={15} className="mut">Belum ada data tahun {year}.</td></tr>}
+              {catRows.length === 0 && <tr><td colSpan={15} className="mut">{T("Belum ada data tahun")} {year}.</td></tr>}
               {catRows.map((c) => (
                 <tr key={c.category_id}>
-                  <td style={{ fontWeight: 600 }}>{names[c.category_id] || '(tanpa kategori)'}</td>
+                  <td style={{ fontWeight: 600 }}>{names[c.category_id] || T("(tanpa kategori)")}</td>
                   {c.months.map((v, i) => <td key={i} className="r num" style={{ padding: '6px 6px' }}><span className="heat" style={{ minWidth: 70, background: v ? `color-mix(in srgb, ${catKind === 'out' ? 'var(--neg)' : 'var(--pos)'} ${Math.round(8 + (v / maxCell) * 40)}%, transparent)` : 'transparent' }}>{v ? rupiah(v, { short: true }).replace('Rp ', '') : '·'}</span></td>)}
                   <td className="r num" style={{ fontWeight: 800 }}>{rupiah(c.total, { short: true })}</td>
                   <td className="r num mut">{rupiah(c.total / activeMonths, { short: true })}</td>
@@ -282,11 +285,11 @@ function Categories({ cats }) {
   const counts = useQuery(async () => { const tx = await DB.list('fin_tx'); const c = {}; tx.forEach((t) => { c[t.category_id] = (c[t.category_id] || 0) + 1; }); return c; }, [], ['fin_tx']);
   const block = (kind) => (
     <section className="card pad col" style={{ flex: '1 1 380px', gap: 6 }}>
-      <div className="row"><h2 className="h2 grow">{kind === 'in' ? 'Kategori pemasukan' : 'Kategori pengeluaran & anggaran default'}</h2><button className="btn sm" onClick={() => setEdit({ name: '', kind, budget: 0, sort: cats.length, archived: 0 })}><Icon name="plus" size="sm" />Tambah</button></div>
+      <div className="row"><h2 className="h2 grow">{kind === 'in' ? T("Kategori pemasukan") : T("Kategori pengeluaran & anggaran default")}</h2><button className="btn sm" onClick={() => setEdit({ name: '', kind, budget: 0, sort: cats.length, archived: 0 })}><Icon name="plus" size="sm" />{T("Tambah")}</button></div>
       {cats.filter((c) => c.kind === kind).map((c) => (
         <div key={c.id} className="task" style={{ opacity: c.archived ? 0.55 : 1 }}>
-          <span className="grow" style={{ fontWeight: 600 }}>{c.name}{c.archived ? ' (diarsipkan)' : ''}</span>
-          {kind === 'out' && <span className="num mut">{c.budget ? rupiah(c.budget) + '/bln' : 'tanpa anggaran'}</span>}
+          <span className="grow" style={{ fontWeight: 600 }}>{c.name}{c.archived ? T(" (diarsipkan)") : ''}</span>
+          {kind === 'out' && <span className="num mut">{c.budget ? rupiah(c.budget) + '/bln' : T("tanpa anggaran")}</span>}
           <span className="chip">{counts.data?.[c.id] || 0} trx</span>
           <button className="icb sm" aria-label={`Edit ${c.name}`} onClick={() => setEdit(c)}><Icon name="edit" size="sm" /></button>
         </div>
@@ -297,14 +300,14 @@ function Categories({ cats }) {
     <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
       {block('out')}{block('in')}
       {edit && (
-        <Modal title={edit.id ? 'Edit kategori' : 'Kategori baru'} width={420} onClose={() => setEdit(null)} footer={<>
-          {edit.id && (counts.data?.[edit.id] ? <button className="btn" style={{ marginRight: 'auto' }} onClick={async () => { await DB.save('fin_categories', { id: edit.id, archived: edit.archived ? 0 : 1 }); setEdit(null); }}>{edit.archived ? 'Aktifkan' : 'Arsipkan'}</button>
-            : <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('fin_categories', edit.id); setEdit(null); }}>Hapus</button>)}
-          <button className="btn" onClick={() => setEdit(null)}>Batal</button>
-          <button className="btn pri" onClick={async () => { if (!edit.name.trim()) return; await DB.save('fin_categories', edit); setEdit(null); app.toast('Kategori disimpan'); }}>Simpan</button>
+        <Modal title={edit.id ? T("Edit kategori") : T("Kategori baru")} width={420} onClose={() => setEdit(null)} footer={<>
+          {edit.id && (counts.data?.[edit.id] ? <button className="btn" style={{ marginRight: 'auto' }} onClick={async () => { await DB.save('fin_categories', { id: edit.id, archived: edit.archived ? 0 : 1 }); setEdit(null); }}>{edit.archived ? T("Aktifkan") : T("Arsipkan")}</button>
+            : <button className="btn danger" style={{ marginRight: 'auto' }} onClick={async () => { await DB.remove('fin_categories', edit.id); setEdit(null); }}>{T("Hapus")}</button>)}
+          <button className="btn" onClick={() => setEdit(null)}>{T("Batal")}</button>
+          <button className="btn pri" onClick={async () => { if (!edit.name.trim()) return; await DB.save('fin_categories', edit); setEdit(null); app.toast(T("Kategori disimpan")); }}>{T("Simpan")}</button>
         </>}>
-          <Field label="Nama"><input className="field" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
-          {edit.kind === 'out' && <Field label="Anggaran default per bulan (Rp)" hint="Bisa diubah khusus per bulan dari panel anggaran."><AmountInput value={edit.budget} onChange={(budget) => setEdit((x) => ({ ...x, budget }))} /></Field>}
+          <Field label={T("Nama")}><input className="field" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
+          {edit.kind === 'out' && <Field label={T("Anggaran default per bulan (Rp)")} hint={T("Bisa diubah khusus per bulan dari panel anggaran.")}><AmountInput value={edit.budget} onChange={(budget) => setEdit((x) => ({ ...x, budget }))} /></Field>}
         </Modal>
       )}
     </div>
@@ -327,14 +330,14 @@ function WealthRow({ r, current, catColor, onUpdate }) {
   const old = !current;
   return (
     <tr style={old ? { color: 'var(--muted)' } : undefined}>
-      <td style={{ width: 136, padding: '6px 4px 6px 10px' }}><input type="date" className="cell num" aria-label="Tanggal" value={x.date} onChange={(e) => e.target.value && commit({ date: e.target.value })} /></td>
-      <td><span className="row" style={{ gap: 6 }}><span className="dot" style={{ background: catColor }} /><input className="cell" list="wl-cats" aria-label="Kategori" value={x.category || ''} onChange={(e) => setX({ ...x, category: e.target.value })} onBlur={() => commit({ category: x.category.trim() })} style={{ minWidth: 90 }} /></span></td>
-      <td><input className="cell" list="wl-names" aria-label="Nama aset" value={x.name || ''} onChange={(e) => setX({ ...x, name: e.target.value })} onBlur={() => commit({ name: x.name.trim() })} style={{ minWidth: 130, fontWeight: 600 }} /></td>
-      <td className="r"><SignedInput value={x.value} aria-label="Nilai" onCommit={(v) => v !== x.value && commit({ value: v })} style={{ textAlign: 'right', width: 130, textDecoration: old ? 'line-through' : 'none', color: x.value < 0 ? 'var(--neg)' : undefined }} /></td>
-      <td><input className="cell" aria-label="Catatan" value={x.note || ''} onChange={(e) => setX({ ...x, note: e.target.value })} onBlur={() => commit({ note: x.note })} style={{ minWidth: 90 }} /></td>
+      <td style={{ width: 136, padding: '6px 4px 6px 10px' }}><input type="date" className="cell num" aria-label={T("Tanggal")} value={x.date} onChange={(e) => e.target.value && commit({ date: e.target.value })} /></td>
+      <td><span className="row" style={{ gap: 6 }}><span className="dot" style={{ background: catColor }} /><input className="cell" list="wl-cats" aria-label={T("Kategori")} value={x.category || ''} onChange={(e) => setX({ ...x, category: e.target.value })} onBlur={() => commit({ category: x.category.trim() })} style={{ minWidth: 90 }} /></span></td>
+      <td><input className="cell" list="wl-names" aria-label={T("Nama aset")} value={x.name || ''} onChange={(e) => setX({ ...x, name: e.target.value })} onBlur={() => commit({ name: x.name.trim() })} style={{ minWidth: 130, fontWeight: 600 }} /></td>
+      <td className="r"><SignedInput value={x.value} aria-label={T("Nilai")} onCommit={(v) => v !== x.value && commit({ value: v })} style={{ textAlign: 'right', width: 130, textDecoration: old ? 'line-through' : 'none', color: x.value < 0 ? 'var(--neg)' : undefined }} /></td>
+      <td><input className="cell" aria-label={T("Catatan")} value={x.note || ''} onChange={(e) => setX({ ...x, note: e.target.value })} onBlur={() => commit({ note: x.note })} style={{ minWidth: 90 }} /></td>
       <td style={{ whiteSpace: 'nowrap', width: 1, padding: '6px 8px' }}>
-        {old ? <span className="mut" style={{ fontSize: 12, marginRight: 6 }}>riwayat</span> : <button className="icb sm" title="Perbarui nilai (baris baru tanggal hari ini)" aria-label="Perbarui nilai" onClick={() => onUpdate(x)}><Icon name="refresh" size="sm" /></button>}
-        <button className="icb sm" aria-label="Hapus baris" onClick={() => DB.remove('wealth', r.id)}><Icon name="trash" size="sm" /></button>
+        {old ? <span className="mut" style={{ fontSize: 12, marginRight: 6 }}>{T("riwayat")}</span> : <button className="icb sm" title={T("Perbarui nilai (baris baru tanggal hari ini)")} aria-label={T("Perbarui nilai")} onClick={() => onUpdate(x)}><Icon name="refresh" size="sm" /></button>}
+        <button className="icb sm" aria-label={T("Hapus baris")} onClick={() => DB.remove('wealth', r.id)}><Icon name="trash" size="sm" /></button>
       </td>
     </tr>
   );
@@ -353,7 +356,7 @@ function Wealth() {
   const colorOf = (cat) => { const i = s.categories.findIndex((c) => c.name.toLowerCase() === String(cat || '').trim().toLowerCase()); return C.c[(i < 0 ? 7 : i) % C.c.length]; };
   const add = async (over = {}) => {
     const r = { ...nr, ...over };
-    if (!r.name.trim() || !r.category.trim() || !r.value) { app.toast({ text: 'Isi kategori, nama aset, dan nilai', error: true }); return; }
+    if (!r.name.trim() || !r.category.trim() || !r.value) { app.toast({ text: T("Isi kategori, nama aset, dan nilai"), error: true }); return; }
     await DB.save('wealth', { ...r, category: r.category.trim(), name: r.name.trim() });
     setNr({ ...empty, date: r.date });
     setTimeout(() => document.getElementById('wl-new-cat')?.focus(), 50);
@@ -372,40 +375,42 @@ function Wealth() {
       <datalist id="wl-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
       <section className="card" style={{ flex: '999 1 640px', minWidth: 0, overflow: 'hidden' }}>
         <div className="row wrap" style={{ padding: '12px 16px' }}>
-          <h2 className="h2 grow">Lembar kekayaan</h2>
-          <label className="row" style={{ gap: 8, fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={showOld} onChange={(e) => setShowOld(e.target.checked)} />Tampilkan riwayat nilai lama</label>
+          <h2 className="h2 grow">{T("Lembar kekayaan")}</h2>
+          <label className="row" style={{ gap: 8, fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={showOld} onChange={(e) => setShowOld(e.target.checked)} />{T("Tampilkan riwayat nilai lama")}</label>
         </div>
         <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)', minHeight: 260 }}>
           <table className="tbl">
-            <thead><tr><th>Tanggal</th><th>Kategori</th><th>Nama aset</th><th className="r">Nilai (Rp)</th><th>Catatan</th><th /></tr></thead>
+            <thead><tr><th>{T("Tanggal")}</th><th>{T("Kategori")}</th><th>{T("Nama aset")}</th><th className="r">{T("Nilai (Rp)")}</th><th>{T("Catatan")}</th><th /></tr></thead>
             <tbody>
               {shown.map((r) => <WealthRow key={r.id} r={r} current={s.currentIds.has(r.id)} catColor={colorOf(r.category)} onUpdate={(x) => { setNr({ date: today, category: x.category, name: x.name, value: x.value, note: '' }); setTimeout(() => document.getElementById('wl-new-val')?.focus(), 50); }} />)}
               <tr style={{ background: 'var(--accent-soft)' }}>
-                <td><input type="date" className="cell num" aria-label="Tanggal baru" value={nr.date} onChange={(e) => setNr({ ...nr, date: e.target.value || today })} /></td>
-                <td><input id="wl-new-cat" className="cell" list="wl-cats" aria-label="Kategori baru" placeholder="Ketik kategori…" value={nr.category} onChange={(e) => setNr({ ...nr, category: e.target.value })} /></td>
-                <td><input className="cell" list="wl-names" aria-label="Nama aset baru" placeholder="+ Nama aset" value={nr.name} onChange={(e) => setNr({ ...nr, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
-                <td className="r"><SignedInput id="wl-new-val" value={nr.value} aria-label="Nilai baru" placeholder="0" onCommit={(v) => setNr((x) => ({ ...x, value: v }))} onKeyDown={(e) => { if (e.key === 'Enter') add({ value: parseSigned(e.target.value) }); }} style={{ textAlign: 'right', width: 150 }} /></td>
-                <td><input className="cell" aria-label="Catatan baru" placeholder="catatan" value={nr.note} onChange={(e) => setNr({ ...nr, note: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
-                <td><button className="icb sm" aria-label="Tambah baris" onClick={() => add()}><Icon name="plus" size="sm" /></button></td>
+                <td><input type="date" className="cell num" aria-label={T("Tanggal baru")} value={nr.date} onChange={(e) => setNr({ ...nr, date: e.target.value || today })} /></td>
+                <td><input id="wl-new-cat" className="cell" list="wl-cats" aria-label={T("Kategori baru")} placeholder={T("Ketik kategori…")} value={nr.category} onChange={(e) => setNr({ ...nr, category: e.target.value })} /></td>
+                <td><input className="cell" list="wl-names" aria-label={T("Nama aset baru")} placeholder={T("+ Nama aset")} value={nr.name} onChange={(e) => setNr({ ...nr, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
+                <td className="r"><SignedInput id="wl-new-val" value={nr.value} aria-label={T("Nilai baru")} placeholder="0" onCommit={(v) => setNr((x) => ({ ...x, value: v }))} onKeyDown={(e) => { if (e.key === 'Enter') add({ value: parseSigned(e.target.value) }); }} style={{ textAlign: 'right', width: 150 }} /></td>
+                <td><input className="cell" aria-label={T("Catatan baru")} placeholder={T("catatan")} value={nr.note} onChange={(e) => setNr({ ...nr, note: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && add()} /></td>
+                <td><button className="icb sm" aria-label={T("Tambah baris")} onClick={() => add()}><Icon name="plus" size="sm" /></button></td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div className="mut" style={{ padding: '10px 16px', fontSize: 12, lineHeight: 1.5 }}>Ganti nilai aset = tambah baris baru dengan kategori &amp; nama yang sama (atau klik ikon perbarui). Hanya nilai terbaru per aset yang dihitung; baris lama jadi riwayat. Utang ditulis negatif, mis. -1.200.000.</div>
+        <div className="mut" style={{ padding: '10px 16px', fontSize: 12, lineHeight: 1.5 }}>{T(
+          "Ganti nilai aset = tambah baris baru dengan kategori & nama yang sama (atau klik ikon perbarui). Hanya nilai terbaru per aset yang dihitung; baris lama jadi riwayat. Utang ditulis negatif, mis. -1.200.000."
+        )}</div>
       </section>
       <aside className="col" style={{ flex: '1 1 320px', gap: 16 }}>
         <section className="card pad col" style={{ gap: 6, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
-          <span className="lbl" style={{ color: 'var(--accent-text)' }}>Total kekayaan bersih</span>
+          <span className="lbl" style={{ color: 'var(--accent-text)' }}>{T("Total kekayaan bersih")}</span>
           <span className={`num ${s.net < 0 ? 'dn' : ''}`} style={{ fontSize: 30, fontWeight: 800 }}>{rupiah(s.net)}</span>
-          {change != null && <span className={`num ${change >= 0 ? 'up' : 'dn'}`} style={{ fontSize: 13, fontWeight: 700 }}>{rupiah(change, { sign: true })}{s.prev.net ? ` (${change >= 0 ? '+' : '−'}${Math.abs((change / Math.abs(s.prev.net)) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%)` : ''} sejak {fmtDateID(s.prev.date)}</span>}
+          {change != null && <span className={`num ${change >= 0 ? 'up' : 'dn'}`} style={{ fontSize: 13, fontWeight: 700 }}>{rupiah(change, { sign: true })}{s.prev.net ? ` (${change >= 0 ? '+' : '−'}${Math.abs((change / Math.abs(s.prev.net)) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%)` : ''} {T('sejak')} {fmtDateID(s.prev.date)}</span>}
           {t.length > 1 && <>
             <svg viewBox="0 0 240 60" preserveAspectRatio="none" style={{ width: '100%', height: 60, marginTop: 6 }} aria-hidden="true"><polyline points={pts} style={{ fill: 'none', stroke: C.accent, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }} /></svg>
-            <span style={{ fontSize: 11, color: 'var(--accent-text)' }}>Tren total per akhir bulan ({t[0].label}–{t[t.length - 1].label})</span>
+            <span style={{ fontSize: 11, color: 'var(--accent-text)' }}>{T("Tren total per akhir bulan (")}{t[0].label}–{t[t.length - 1].label})</span>
           </>}
         </section>
         <section className="card pad col" style={{ gap: 12 }}>
-          <h2 className="h2">Per kategori</h2>
-          {s.categories.length === 0 && <span className="mut" style={{ fontSize: 13 }}>Belum ada data. Tambahkan baris aset di tabel.</span>}
+          <h2 className="h2">{T("Per kategori")}</h2>
+          {s.categories.length === 0 && <span className="mut" style={{ fontSize: 13 }}>{T("Belum ada data. Tambahkan baris aset di tabel.")}</span>}
           {s.categories.map((c, i) => (
             <div key={c.name} className="col" style={{ gap: 5 }}>
               <div className="row" style={{ fontSize: 13, gap: 8 }}>
@@ -417,8 +422,8 @@ function Wealth() {
               <div className="bar"><span style={{ width: (s.assets ? Math.min(100, Math.round((Math.abs(c.total) / s.assets) * 100)) : 0) + '%', background: C.c[i % C.c.length] }} /></div>
             </div>
           ))}
-          <div className="row" style={{ fontSize: 13, paddingTop: 10, borderTop: '1px solid var(--border)' }}><span className="grow mut">Aset</span><span className="num" style={{ fontWeight: 700 }}>{rupiah(s.assets)}</span></div>
-          <div className="row" style={{ fontSize: 13 }}><span className="grow mut">Utang</span><span className="num dn" style={{ fontWeight: 700 }}>{rupiah(s.debts)}</span></div>
+          <div className="row" style={{ fontSize: 13, paddingTop: 10, borderTop: '1px solid var(--border)' }}><span className="grow mut">{T("Aset")}</span><span className="num" style={{ fontWeight: 700 }}>{rupiah(s.assets)}</span></div>
+          <div className="row" style={{ fontSize: 13 }}><span className="grow mut">{T("Utang")}</span><span className="num dn" style={{ fontWeight: 700 }}>{rupiah(s.debts)}</span></div>
         </section>
       </aside>
     </div>
@@ -448,25 +453,25 @@ export default function Finance() {
     return [...s].sort((a, b) => a - b);
   }, [recap.data, year]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const doImport = async () => { const n = await api('import:csv'); if (n != null) app.toast(`${n} transaksi diimpor`); };
+  const doImport = async () => { const n = await api('import:csv'); if (n != null) app.toast(T('{n} transaksi diimpor', { n })); };
 
   return (
     <div className="page">
       <div className="row wrap">
         {tab !== 'wealth' && <div className="row" style={{ gap: 4 }}>
-          <button className="icb" aria-label="Tahun sebelumnya" onClick={() => setYear(year - 1)}><Icon name="left" /></button>
-          <label className="sr" htmlFor="fy">Tahun</label>
+          <button className="icb" aria-label={T("Tahun sebelumnya")} onClick={() => setYear(year - 1)}><Icon name="left" /></button>
+          <label className="sr" htmlFor="fy">{T("Tahun")}</label>
           <select id="fy" className="field num" value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ width: 'auto', fontSize: 18, fontWeight: 800, border: 0, background: 'transparent' }}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button className="icb" aria-label="Tahun berikutnya" onClick={() => setYear(year + 1)}><Icon name="right" /></button>
+          <button className="icb" aria-label={T("Tahun berikutnya")} onClick={() => setYear(year + 1)}><Icon name="right" /></button>
         </div>}
-        <Seg label="Tampilan keuangan" value={tab} onChange={setTab} options={[{ value: 'month', label: 'Bulanan' }, { value: 'recap', label: 'Rekap tahunan' }, { value: 'cats', label: 'Kategori & anggaran' }, { value: 'wealth', label: 'Total Wealth' }]} />
+        <Seg tour="fin-tabs" label={T("Tampilan keuangan")} value={tab} onChange={setTab} options={[{ value: 'month', label: T("Bulanan") }, { value: 'recap', label: T("Rekap tahunan") }, { value: 'cats', label: T("Kategori & anggaran") }, { value: 'wealth', label: T("Total Wealth") }]} />
         <span className="grow" />
-        {tab !== 'wealth' && <button className="btn" onClick={doImport} title="Impor transaksi dari CSV" aria-label="Impor CSV" style={{ padding: '0 10px' }}><Icon name="upload" size="sm" /></button>}
-        {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast('CSV diekspor'))} title="Ekspor transaksi ke CSV" aria-label="Ekspor CSV" style={{ padding: '0 10px' }}><Icon name="download" size="sm" /></button>}
-        <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast('Excel diekspor'))}><Icon name="table" size="sm" />Ekspor Excel{tab !== 'wealth' ? ` ${year}` : ''}</button>
-        {tab !== 'wealth' && <button className="btn pri" onClick={() => setTxModal({ date: year === now.getFullYear() && month === now.getMonth() + 1 ? toLocalDate(now) : `${year}-${pad(month)}-01` })}><Icon name="plus" size="sm" />Transaksi</button>}
+        {tab !== 'wealth' && <button className="btn" onClick={doImport} title={T("Impor transaksi dari CSV")} aria-label={T("Impor CSV")} style={{ padding: '0 10px' }}><Icon name="upload" size="sm" /></button>}
+        {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast(T("CSV diekspor")))} title={T("Ekspor transaksi ke CSV")} aria-label={T("Ekspor CSV")} style={{ padding: '0 10px' }}><Icon name="download" size="sm" /></button>}
+        <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast(T("Excel diekspor")))}><Icon name="table" size="sm" />{T("Ekspor Excel")}{tab !== 'wealth' ? ` ${year}` : ''}</button>
+        {tab !== 'wealth' && <button className="btn pri" onClick={() => setTxModal({ date: year === now.getFullYear() && month === now.getMonth() + 1 ? toLocalDate(now) : `${year}-${pad(month)}-01` })}><Icon name="plus" size="sm" />{T("Transaksi|add")}</button>}
       </div>
       {cats.data && tab === 'month' && <Monthly year={year} month={month} setMonth={setMonth} cats={cats.data} />}
       {cats.data && tab === 'recap' && <Recap year={year} cats={cats.data} goMonth={(m) => { setMonth(m); setTab('month'); }} />}

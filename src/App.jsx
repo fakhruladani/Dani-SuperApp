@@ -17,17 +17,18 @@ const Clipboard = lazy(() => import('./pages/Clipboard.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Guide = lazy(() => import('./pages/Guide.jsx'));
 import Tour from './components/Tour.jsx';
+import { T } from './lib/i18n.js';
 
 const NAV = [
-  { k: 'home', label: 'Beranda', icon: 'home' },
-  { k: 'cal', label: 'Kalender', icon: 'cal' },
-  { k: 'notes', label: 'Catatan', icon: 'note' },
-  { k: 'fin', label: 'Keuangan', icon: 'wallet' },
-  { k: 'market', label: 'Market & Berita', icon: 'chart' },
-  { k: 'focus', label: 'Fokus & Tugas', icon: 'timer' },
-  { k: 'clip', label: 'Clipboard', icon: 'clip' }
+  { k: 'home', label: T("Beranda"), icon: 'home' },
+  { k: 'cal', label: T("Kalender"), icon: 'cal' },
+  { k: 'notes', label: T("Catatan"), icon: 'note' },
+  { k: 'fin', label: T("Keuangan"), icon: 'wallet' },
+  { k: 'market', label: T("Market & Berita"), icon: 'chart' },
+  { k: 'focus', label: T("Fokus & Tugas"), icon: 'timer' },
+  { k: 'clip', label: T("Clipboard"), icon: 'clip' }
 ];
-const TITLES = { home: 'Beranda', cal: 'Kalender', notes: 'Catatan', fin: 'Keuangan', market: 'Market & Berita', focus: 'Fokus & Tugas', clip: 'Riwayat Clipboard', settings: 'Pengaturan', guide: 'Panduan' };
+const TITLES = { home: T('Beranda'), cal: T('Kalender'), notes: T('Catatan'), fin: T('Keuangan'), market: T('Market & Berita'), focus: T('Fokus & Tugas'), clip: T('Riwayat Clipboard'), settings: T('Pengaturan'), guide: T('Panduan') };
 
 export default function App() {
   const [settings, setSettings] = useState(null);
@@ -123,12 +124,12 @@ export default function App() {
   return (
     <AppCtx.Provider value={ctx}>
       <div className="shell">
-        <nav className="sidebar" aria-label="Menu utama">
+        <nav className="sidebar" aria-label={T("Menu utama")}>
           <div className="brand">
             <div className="logo">D</div>
             <div className="col" style={{ gap: 0 }}>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>Dani SuperApp</span>
-              <span className="mut" style={{ fontSize: 12 }}>Ruang kerja pribadi</span>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>{T("Dani SuperApp")}</span>
+              <span className="mut" style={{ fontSize: 12 }}>{T("Ruang kerja pribadi")}</span>
             </div>
           </div>
           <div className="col" style={{ gap: 2 }}>
@@ -142,13 +143,13 @@ export default function App() {
           </div>
           <div className="col" style={{ marginTop: 'auto', gap: 8 }}>
             {(focus.running || focus.left < focus.total) && <FocusMini focus={focus} onClick={() => nav('focus')} />}
-            <button data-tour="nav-guide" className={`nav ${page === 'guide' ? 'on' : ''}`} onClick={() => nav('guide')} title="Panduan (F1)"><Icon name="book" /><span>Panduan</span></button>
-            <button className={`nav ${page === 'settings' ? 'on' : ''}`} onClick={() => nav('settings')}><Icon name="gear" /><span>Pengaturan</span></button>
+            <button data-tour="nav-guide" className={`nav ${page === 'guide' ? 'on' : ''}`} onClick={() => nav('guide')} title={T("Panduan (F1)")}><Icon name="book" /><span>{T("Panduan")}</span></button>
+            <button className={`nav ${page === 'settings' ? 'on' : ''}`} onClick={() => nav('settings')}><Icon name="gear" /><span>{T("Pengaturan")}</span></button>
             <div className="row" style={{ gap: 6 }}>
-              <button className="btn grow" onClick={toggleTheme} title="Ganti tema">
-                <Icon name={dark ? 'sun' : 'moon'} size="sm" />{dark ? 'Terang' : 'Gelap'}
+              <button className="btn grow" onClick={toggleTheme} title={T("Ganti tema")}>
+                <Icon name={dark ? 'sun' : 'moon'} size="sm" />{dark ? T("Terang") : T("Gelap")}
               </button>
-              {pinSet && <button className="btn" aria-label="Kunci aplikasi (Ctrl+L)" title="Kunci (Ctrl+L)" onClick={() => setLocked(true)}><Icon name="lock" size="sm" /></button>}
+              {pinSet && <button className="btn" aria-label={T("Kunci aplikasi (Ctrl+L)")} title={T("Kunci (Ctrl+L)")} onClick={() => setLocked(true)}><Icon name="lock" size="sm" /></button>}
             </div>
           </div>
         </nav>
@@ -161,12 +162,12 @@ export default function App() {
             </div>
             <button className="searchbox" onClick={() => setPalette(true)}>
               <Icon name="search" size="sm" />
-              <span className="grow">Cari apa saja…</span>
+              <span className="grow">{T("Cari apa saja…")}</span>
               <span className="kbd">Ctrl K</span>
             </button>
-            <button data-tour="quick" className="icb" title="Catatan cepat (Ctrl+Shift+Space)" aria-label="Catatan cepat" onClick={() => api('win:quick')}><Icon name="bolt" /></button>
-            <button className="icb" title="Widget mini" aria-label="Widget mini" onClick={() => api('win:widget')}><Icon name="widget" /></button>
-            <button className="icb" aria-label="Ganti tema" onClick={toggleTheme}><Icon name={dark ? 'sun' : 'moon'} /></button>
+            <button data-tour="quick" className="icb" title={T("Catatan cepat (Ctrl+Shift+Space)")} aria-label={T("Catatan cepat")} onClick={() => api('win:quick')}><Icon name="bolt" /></button>
+            <button className="icb" title={T("Widget mini")} aria-label={T("Widget mini")} onClick={() => api('win:widget')}><Icon name="widget" /></button>
+            <button className="icb" aria-label={T("Ganti tema")} onClick={toggleTheme}><Icon name={dark ? 'sun' : 'moon'} /></button>
           </header>
           <div className="content">
             <Suspense fallback={<div className="page"><div className="skeleton" style={{ height: 200 }} /></div>}>
@@ -183,17 +184,17 @@ export default function App() {
               <>
                 <div className="row" style={{ gap: 8 }}>
                   <div className="logo" style={{ width: 22, height: 22, fontSize: 12, borderRadius: 6 }}>D</div>
-                  <span className="mut grow" style={{ fontSize: 12, fontWeight: 600 }}>{t.late ? 'Pengingat terlewat' : 'Pengingat'}</span>
-                  <button className="icb sm" aria-label="Tutup" onClick={() => dropToast(t.id)}><Icon name="x" size="sm" /></button>
+                  <span className="mut grow" style={{ fontSize: 12, fontWeight: 600 }}>{t.late ? T("Pengingat terlewat") : T("Pengingat")}</span>
+                  <button className="icb sm" aria-label={T("Tutup")} onClick={() => dropToast(t.id)}><Icon name="x" size="sm" /></button>
                 </div>
                 <div className="col" style={{ gap: 2 }}>
                   <strong>{t.title}</strong>
                   <span className="mut" style={{ fontSize: 13, whiteSpace: 'pre-line' }}>{t.body}</span>
                 </div>
                 <div className="row">
-                  <button className="btn sm grow" onClick={() => { api('reminder:snooze', t.logId, 10); dropToast(t.id); }}>Tunda 10 mnt</button>
-                  <button className="btn sm grow" onClick={() => { dropToast(t.id); nav(t.type === 'task' ? 'focus' : 'cal', { date: t.date }); }}>Lihat</button>
-                  <button className="btn sm pri grow" onClick={() => { api('reminder:dismiss', t.logId); if (t.type === 'task') DB.save('tasks', { id: t.refId, done: 1, done_at: new Date().toISOString() }); dropToast(t.id); }}>Selesai</button>
+                  <button className="btn sm grow" onClick={() => { api('reminder:snooze', t.logId, 10); dropToast(t.id); }}>{T("Tunda 10 mnt")}</button>
+                  <button className="btn sm grow" onClick={() => { dropToast(t.id); nav(t.type === 'task' ? 'focus' : 'cal', { date: t.date }); }}>{T("Lihat")}</button>
+                  <button className="btn sm pri grow" onClick={() => { api('reminder:dismiss', t.logId); if (t.type === 'task') DB.save('tasks', { id: t.refId, done: 1, done_at: new Date().toISOString() }); dropToast(t.id); }}>{T("Selesai")}</button>
                 </div>
               </>
             ) : (
@@ -205,10 +206,10 @@ export default function App() {
 
       {palette && <CommandPalette onClose={() => setPalette(false)} />}
       {confirmState && (
-        <Modal title={confirmState.title || 'Konfirmasi'} width={420} onClose={() => { confirmState.resolve(false); setConfirmState(null); }}
+        <Modal title={confirmState.title || T("Konfirmasi")} width={420} onClose={() => { confirmState.resolve(false); setConfirmState(null); }}
           footer={<>
-            <button className="btn" onClick={() => { confirmState.resolve(false); setConfirmState(null); }}>Batal</button>
-            <button className={`btn pri ${confirmState.danger ? 'danger' : ''}`} style={confirmState.danger ? { background: 'var(--neg)', borderColor: 'var(--neg)', color: '#fff' } : undefined} onClick={() => { confirmState.resolve(true); setConfirmState(null); }}>{confirmState.ok || 'Ya'}</button>
+            <button className="btn" onClick={() => { confirmState.resolve(false); setConfirmState(null); }}>{T("Batal")}</button>
+            <button className={`btn pri ${confirmState.danger ? 'danger' : ''}`} style={confirmState.danger ? { background: 'var(--neg)', borderColor: 'var(--neg)', color: '#fff' } : undefined} onClick={() => { confirmState.resolve(true); setConfirmState(null); }}>{confirmState.ok || T("Ya")}</button>
           </>}>
           <p style={{ margin: 0 }}>{confirmState.text}</p>
         </Modal>
@@ -232,7 +233,7 @@ function FocusMini({ focus, onClick }) {
       <Icon name="timer" />
       <span className="col grow" style={{ gap: 0 }}>
         <span style={{ fontWeight: 800 }} className="num">{mmss(left)}</span>
-        <span style={{ fontSize: 12 }}>{focus.phase === 'focus' ? 'Sesi fokus' : 'Istirahat'}{focus.running ? '' : ' · dijeda'}</span>
+        <span style={{ fontSize: 12 }}>{focus.phase === 'focus' ? T("Sesi fokus") : T("Istirahat")}{focus.running ? '' : T(" · dijeda")}</span>
       </span>
     </button>
   );

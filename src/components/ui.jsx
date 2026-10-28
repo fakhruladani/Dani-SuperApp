@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Icon from './Icon.jsx';
 import { wmo } from '../../shared/weather.js';
+import { T } from '../lib/i18n.js';
 
 export function Modal({ title, onClose, children, footer, width = 560, className = '' }) {
   const ref = useRef();
@@ -17,7 +18,7 @@ export function Modal({ title, onClose, children, footer, width = 560, className
         {title != null && (
           <div className="modal-h">
             <h2 className="h2 grow">{title}</h2>
-            <button className="icb sm" aria-label="Tutup" onClick={onClose}><Icon name="x" size="sm" /></button>
+            <button className="icb sm" aria-label={T("Tutup")} onClick={onClose}><Icon name="x" size="sm" /></button>
           </div>
         )}
         <div className="modal-b">{children}</div>
@@ -31,9 +32,9 @@ export function Switch({ on, onChange, label }) {
   return <button type="button" role="switch" aria-checked={!!on} aria-label={label} className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)} />;
 }
 
-export function Seg({ value, options, onChange, label }) {
+export function Seg({ value, options, onChange, label, tour }) {
   return (
-    <div className="seg" role="tablist" aria-label={label}>
+    <div className="seg" role="tablist" aria-label={label} data-tour={tour}>
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} className={`tab ${value === o.value ? 'on' : ''}`} onClick={() => onChange(o.value)}>{o.label}</button>
       ))}
@@ -75,9 +76,9 @@ export function Field({ label, children, hint }) {
 export const COLORS = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'];
 export function ColorPick({ value, onChange }) {
   return (
-    <div className="row" role="radiogroup" aria-label="Warna">
+    <div className="row" role="radiogroup" aria-label={T("Warna")}>
       {COLORS.map((c) => (
-        <button key={c} type="button" role="radio" aria-checked={value === c} aria-label={'Warna ' + c} className={`sw ${value === c ? 'on' : ''}`} onClick={() => onChange(c)}>
+        <button key={c} type="button" role="radio" aria-checked={value === c} aria-label={T('Warna {c}', { c })} className={`sw ${value === c ? 'on' : ''}`} onClick={() => onChange(c)}>
           <i className={`k-${c}`} style={{ background: 'var(--k)' }} />
         </button>
       ))}

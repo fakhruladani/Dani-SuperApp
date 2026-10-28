@@ -4,6 +4,7 @@ import NoteEditor from '../components/NoteEditor.jsx';
 import { Modal, Field } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
+import { T } from '../lib/i18n.js';
 
 export default function Notes() {
   const app = useApp();
@@ -32,7 +33,7 @@ export default function Notes() {
   const onSave = useCallback((row) => DB.save('notes', row), []);
 
   const del = async () => {
-    if (!(await app.confirm(`Hapus catatan “${sel.title || 'Tanpa judul'}”?`, { danger: true, ok: 'Hapus' }))) return;
+    if (!(await app.confirm(T('Hapus catatan “{t}”?', { t: sel.title || T('Tanpa judul') }), { danger: true, ok: T("Hapus") }))) return;
     await DB.remove('notes', sel.id);
     setSelId(null);
   };
@@ -42,22 +43,22 @@ export default function Notes() {
       <div className="notes-layout">
         <aside className="card notes-list">
           <div className="row">
-            <label className="sr" htmlFor="n-q">Cari catatan</label>
-            <input id="n-q" className="field" placeholder="Cari catatan…" value={q} onChange={(e) => setQ(e.target.value)} />
-            <button className="btn pri" aria-label="Catatan baru" title="Catatan baru" onClick={() => create()} style={{ padding: '0 10px' }}><Icon name="plus" /></button>
+            <label className="sr" htmlFor="n-q">{T("Cari catatan")}</label>
+            <input id="n-q" className="field" placeholder={T("Cari catatan…")} value={q} onChange={(e) => setQ(e.target.value)} />
+            <button className="btn pri" aria-label={T("Catatan baru")} title={T("Catatan baru")} onClick={() => create()} style={{ padding: '0 10px' }}><Icon name="plus" /></button>
           </div>
-          <button className="btn sm" onClick={() => setTplOpen(true)}><Icon name="note" size="sm" />Baru dari template</button>
+          <button className="btn sm" onClick={() => setTplOpen(true)}><Icon name="note" size="sm" />{T("Baru dari template")}</button>
           <div className="row wrap" style={{ gap: 6 }}>
-            <button className={`chip ${!tag ? 'on' : ''}`} onClick={() => setTag('')}>Semua</button>
-            <button className={`chip ${tag === '__pin' ? 'on' : ''}`} onClick={() => setTag('__pin')}>Disematkan</button>
+            <button className={`chip ${!tag ? 'on' : ''}`} onClick={() => setTag('')}>{T("Semua")}</button>
+            <button className={`chip ${tag === '__pin' ? 'on' : ''}`} onClick={() => setTag('__pin')}>{T("Disematkan")}</button>
             {tags.map((t) => <button key={t} className={`chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)}>#{t}</button>)}
           </div>
           <div className="col" style={{ gap: 2, overflow: 'auto', flex: 1, margin: '0 -4px', padding: '0 4px' }}>
-            {list.length === 0 && <div className="empty">{notes.data?.length ? 'Tidak ada yang cocok.' : 'Belum ada catatan. Klik + untuk membuat.'}</div>}
+            {list.length === 0 && <div className="empty">{notes.data?.length ? T("Tidak ada yang cocok.") : T("Belum ada catatan. Klik + untuk membuat.")}</div>}
             {list.map((n) => (
               <button key={n.id} className={`note-item ${n.id === selId ? 'on' : ''}`} onClick={() => setSelId(n.id)}>
-                <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis grow">{n.title || 'Tanpa judul'}</span>{n.sticky ? <span title="Sedang terbuka sebagai jendela mengambang" style={{ display: 'inline-flex' }}><Icon name="widget" size="sm" className="mut" /></span> : null}</span>
-                <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 80) || (n.ink && n.ink !== '[]' ? 'Coretan pena' : 'Kosong')}</span>
+                <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis grow">{n.title || T("Tanpa judul")}</span>{n.sticky ? <span title={T("Sedang terbuka sebagai jendela mengambang")} style={{ display: 'inline-flex' }}><Icon name="widget" size="sm" className="mut" /></span> : null}</span>
+                <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 80) || (n.ink && n.ink !== '[]' ? T("Coretan pena") : T("Kosong"))}</span>
                 <span className="mut" style={{ fontSize: 11 }}>{timeAgo(new Date(n.updated_at).getTime())}{n.tag ? ` · #${n.tag}` : ''}</span>
               </button>
             ))}
@@ -66,28 +67,28 @@ export default function Notes() {
         {sel ? (
           <div className="col grow" style={{ minWidth: 0, gap: 8 }}>
             <div className="row" style={{ gap: 6 }}>
-              <span className="mut" style={{ fontSize: 13 }}>Tag:</span>
+              <span className="mut" style={{ fontSize: 13 }}>{T("Tag:")}</span>
               {tagEdit != null ? (
-                <input className="field" autoFocus value={tagEdit} onChange={(e) => setTagEdit(e.target.value.replace(/\s/g, ''))} onBlur={() => { DB.save('notes', { id: sel.id, tag: tagEdit }); setTagEdit(null); }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} style={{ width: 180, minHeight: 32 }} aria-label="Tag catatan" />
+                <input className="field" autoFocus value={tagEdit} onChange={(e) => setTagEdit(e.target.value.replace(/\s/g, ''))} onBlur={() => { DB.save('notes', { id: sel.id, tag: tagEdit }); setTagEdit(null); }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} style={{ width: 180, minHeight: 32 }} aria-label={T("Tag catatan")} />
               ) : (
-                <button className="chip" onClick={() => setTagEdit(sel.tag || '')}>{sel.tag ? '#' + sel.tag : '+ tambah tag'}</button>
+                <button className="chip" onClick={() => setTagEdit(sel.tag || '')}>{sel.tag ? '#' + sel.tag : T("+ tambah tag")}</button>
               )}
             </div>
             <NoteEditor key={sel.id} note={sel} onSave={onSave} onDelete={del} onPin={(p) => DB.save('notes', { id: sel.id, pinned: p ? 1 : 0 })} onFloat={() => api('sticky:open', sel.id)} zoom={zoom} setZoom={setZoom} />
           </div>
         ) : (
           <section className="card editor-card" style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <div className="empty"><Icon name="note" size="lg" /><p>Pilih atau buat catatan.</p><button className="btn pri" onClick={() => create()}><Icon name="plus" size="sm" />Catatan baru</button></div>
+            <div className="empty"><Icon name="note" size="lg" /><p>{T("Pilih atau buat catatan.")}</p><button className="btn pri" onClick={() => create()}><Icon name="plus" size="sm" />{T("Catatan baru")}</button></div>
           </section>
         )}
       </div>
       {tplOpen && (
-        <Modal title="Buat dari template" width={460} onClose={() => setTplOpen(false)}>
+        <Modal title={T("Buat dari template")} width={460} onClose={() => setTplOpen(false)}>
           <div className="col" style={{ gap: 6 }}>
             {(templates.data || []).map((t) => (
               <div key={t.id} className="row">
                 <button className="mini-ev grow" onClick={() => create(t)}><Icon name="note" size="sm" /><span style={{ fontWeight: 700 }}>{t.name}</span></button>
-                <button className="icb sm" aria-label={`Hapus template ${t.name}`} onClick={() => DB.remove('note_templates', t.id)}><Icon name="trash" size="sm" /></button>
+                <button className="icb sm" aria-label={T('Hapus template {t}', { t: t.name })} onClick={() => DB.remove('note_templates', t.id)}><Icon name="trash" size="sm" /></button>
               </div>
             ))}
           </div>
@@ -103,10 +104,10 @@ function TemplateFromNote({ note }) {
   const app = useApp();
   return (
     <div className="col" style={{ gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-      <Field label="Simpan catatan yang terbuka sebagai template">
+      <Field label={T("Simpan catatan yang terbuka sebagai template")}>
         <div className="row">
-          <input className="field" placeholder="Nama template" value={name} onChange={(e) => setName(e.target.value)} />
-          <button className="btn" onClick={async () => { if (!name.trim()) return; await DB.save('note_templates', { name: name.trim(), content: note.content }); setName(''); app.toast('Template disimpan'); }}>Simpan</button>
+          <input className="field" placeholder={T("Nama template")} value={name} onChange={(e) => setName(e.target.value)} />
+          <button className="btn" onClick={async () => { if (!name.trim()) return; await DB.save('note_templates', { name: name.trim(), content: note.content }); setName(''); app.toast(T("Template disimpan")); }}>{T("Simpan")}</button>
         </div>
       </Field>
     </div>
