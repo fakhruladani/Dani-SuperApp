@@ -7,6 +7,9 @@ import { rupiah, parseAmount, formatAmountInput } from '../lib/format.js';
 import { MONTH_ID, MONTH_SHORT, pad, toLocalDate } from '../../shared/recur.js';
 import { wealthSummary, fmtDateID } from '../../shared/wealth.js';
 import { T } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
+import { openMenu, textItems } from '../components/ContextMenu.jsx';
+import { copyText } from '../lib/menus.js';
 
 
 function AmountInput({ value, onChange, className = 'field', ...rest }) {
@@ -49,8 +52,21 @@ function TxRow({ tx, cats, onDelete }) {
   useEffect(() => setR(tx), [tx]);
   const commit = (patch) => { const next = { ...r, ...patch }; setR(next); DB.save('fin_tx', { id: tx.id, ...patch }); };
   const list = cats.filter((c) => c.kind === r.kind);
+  const app = useApp();
+  const menu = (e) => {
+    const { id, created_at, updated_at, ...copy } = tx;
+    const el = e.target.closest('input, select');
+    openMenu(e, [
+      { label: T('Duplikat'), icon: 'duplicate', run: () => DB.save('fin_tx', copy) },
+      { label: T('Duplikat ke hari ini'), icon: 'cal', run: () => DB.save('fin_tx', { ...copy, date: toLocalDate(new Date()) }) },
+      { label: T('Salin nominal'), icon: 'copy', run: () => copyText(app, String(tx.amount)) },
+      '-',
+      { label: T('Hapus baris'), icon: 'trash', danger: true, run: () => onDelete(tx) },
+      ...(el?.tagName === 'INPUT' ? ['-', ...textItems({ undo: false, hasSelection: el.selectionEnd > el.selectionStart })] : [])
+    ]);
+  };
   return (
-    <tr>
+    <tr onContextMenu={menu}>
       <td style={{ width: 70 }}><input className="cell num" aria-label={T("Tanggal")} value={r.date.slice(8)} onChange={(e) => setR({ ...r, date: r.date.slice(0, 8) + e.target.value.replace(/\D/g, '').slice(0, 2) })} onBlur={(e) => { const d = Math.min(31, Math.max(1, Number(e.target.value) || 1)); commit({ date: r.date.slice(0, 8) + pad(d) }); }} style={{ width: 44 }} /></td>
       <td><input className="cell" aria-label={T("Keterangan")} value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} /></td>
       <td><select className="cell" aria-label={T("Kategori")} value={r.category_id || ''} onChange={(e) => commit({ category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
@@ -63,6 +79,7 @@ function TxRow({ tx, cats, onDelete }) {
 
 function Monthly({ year, month, setMonth, cats }) {
   const app = useApp();
+  const sideW = usePanelWidth('finSide', 320, 260, 520);
   const ym = `${year}-${pad(month)}`;
   const tx = useQuery(() => DB.list('fin_tx', { where: { date: { prefix: ym } }, order: 'date,created_at' }), [ym], ['fin_tx']);
   const budgets = useQuery(() => api('fin:budgets', year, month), [ym], ['fin_tx', 'fin_budgets', 'fin_categories']);
@@ -105,8 +122,8 @@ function Monthly({ year, month, setMonth, cats }) {
         <div className="card stat"><span className="lbl">{T("Selisih")}</span><span className="v num">{rupiah(tin - tout)}</span><span className="mut" style={{ fontSize: 12 }}>{tin ? T('{n}% dari pemasukan', { n: Math.round(((tin - tout) / tin) * 100) }) : '—'}</span></div>
         <div className="card stat"><span className="lbl">{T("Sisa anggaran")}</span><span className={`v num ${cap && cap - spentBudgeted < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - spentBudgeted) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? T('dari {v} (kategori beranggaran)', { v: rupiah(cap) }) + (isCur ? ' · ' + T('{n} hari lagi', { n: daysLeft }) : '') : T("belum ada anggaran")}</span></div>
       </div>
-      <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
-        <section className="card" style={{ flex: '999 1 600px', minWidth: 0, overflow: 'hidden' }}>
+      <div className="row" style={{ gap: 16, alignItems: 'stretch' }}>
+        <section className="card" style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden', alignSelf: 'flex-start' }}>
           <div className="row wrap" style={{ padding: '12px 16px' }}>
             <h2 className="h2 grow">{T("Lembar")} {MONTH_ID[month - 1]} {year}</h2>
             <label className="sr" htmlFor="fq">{T("Cari")}</label>
@@ -135,7 +152,8 @@ function Monthly({ year, month, setMonth, cats }) {
             </table>
           </div>
         </section>
-        <section className="card pad col" style={{ flex: '1 1 300px', gap: 12 }}>
+        <Resizer panel={sideW} side="right" label={T('Ubah lebar panel anggaran')} />
+        <section className="card pad col" style={{ flex: 'none', width: sideW.width, gap: 12, alignSelf: 'flex-start' }}>
           <div className="row"><h2 className="h2 grow">{T("Anggaran")} {MONTH_SHORT[month - 1]}</h2><span className="mut" style={{ fontSize: 12 }}>{T("klik angka untuk ubah")}</span></div>
           {(budgets.data || []).map((b) => {
             const p = b.budget ? Math.round((b.spent / b.budget) * 100) : 0;
@@ -328,8 +346,19 @@ function WealthRow({ r, current, catColor, onUpdate }) {
   useEffect(() => setX(r), [r]);
   const commit = (patch) => { setX({ ...x, ...patch }); DB.save('wealth', { id: r.id, ...patch }); };
   const old = !current;
+  const app = useApp();
+  const menu = (e) => {
+    const el = e.target.closest('input');
+    openMenu(e, [
+      !old && { label: T('Perbarui nilai'), icon: 'refresh', run: () => onUpdate(x) },
+      { label: T('Salin nilai'), icon: 'copy', run: () => copyText(app, String(r.value)) },
+      '-',
+      { label: T('Hapus baris'), icon: 'trash', danger: true, run: () => DB.remove('wealth', r.id) },
+      ...(el ? ['-', ...textItems({ undo: false, hasSelection: el.selectionEnd > el.selectionStart })] : [])
+    ]);
+  };
   return (
-    <tr style={old ? { color: 'var(--muted)' } : undefined}>
+    <tr style={old ? { color: 'var(--muted)' } : undefined} onContextMenu={menu}>
       <td style={{ width: 136, padding: '6px 4px 6px 10px' }}><input type="date" className="cell num" aria-label={T("Tanggal")} value={x.date} onChange={(e) => e.target.value && commit({ date: e.target.value })} /></td>
       <td><span className="row" style={{ gap: 6 }}><span className="dot" style={{ background: catColor }} /><input className="cell" list="wl-cats" aria-label={T("Kategori")} value={x.category || ''} onChange={(e) => setX({ ...x, category: e.target.value })} onBlur={() => commit({ category: x.category.trim() })} style={{ minWidth: 90 }} /></span></td>
       <td><input className="cell" list="wl-names" aria-label={T("Nama aset")} value={x.name || ''} onChange={(e) => setX({ ...x, name: e.target.value })} onBlur={() => commit({ name: x.name.trim() })} style={{ minWidth: 130, fontWeight: 600 }} /></td>
@@ -345,6 +374,7 @@ function WealthRow({ r, current, catColor, onUpdate }) {
 
 function Wealth() {
   const app = useApp();
+  const sideW = usePanelWidth('wealthSide', 340, 280, 560);
   const C = useMemo(() => themeColors(), [app.dark]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows = useQuery(() => DB.list('wealth', { order: 'date desc,updated_at desc' }), [], ['wealth']);
   const [showOld, setShowOld] = useState(true);
@@ -370,10 +400,10 @@ function Wealth() {
   const pts = t.map((x, i) => `${t.length > 1 ? (i / (t.length - 1)) * 240 : 120},${max === min ? 30 : 54 - ((x.net - min) / (max - min)) * 48}`).join(' ');
 
   return (
-    <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
+    <div className="row" style={{ gap: 16, alignItems: 'stretch' }}>
       <datalist id="wl-cats">{cats.map((c) => <option key={c} value={c} />)}</datalist>
       <datalist id="wl-names">{names.map((n) => <option key={n} value={n} />)}</datalist>
-      <section className="card" style={{ flex: '999 1 640px', minWidth: 0, overflow: 'hidden' }}>
+      <section className="card" style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden', alignSelf: 'flex-start' }}>
         <div className="row wrap" style={{ padding: '12px 16px' }}>
           <h2 className="h2 grow">{T("Lembar kekayaan")}</h2>
           <label className="row" style={{ gap: 8, fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={showOld} onChange={(e) => setShowOld(e.target.checked)} />{T("Tampilkan riwayat nilai lama")}</label>
@@ -398,7 +428,8 @@ function Wealth() {
           "Ganti nilai aset = tambah baris baru dengan kategori & nama yang sama (atau klik ikon perbarui). Hanya nilai terbaru per aset yang dihitung; baris lama jadi riwayat. Utang ditulis negatif, mis. -1.200.000."
         )}</div>
       </section>
-      <aside className="col" style={{ flex: '1 1 320px', gap: 16 }}>
+      <Resizer panel={sideW} side="right" label={T('Ubah lebar panel ringkasan')} />
+      <aside className="col" style={{ flex: 'none', width: sideW.width, gap: 16, alignSelf: 'flex-start' }}>
         <section className="card pad col" style={{ gap: 6, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
           <span className="lbl" style={{ color: 'var(--accent-text)' }}>{T("Total kekayaan bersih")}</span>
           <span className={`num ${s.net < 0 ? 'dn' : ''}`} style={{ fontSize: 30, fontWeight: 800 }}>{rupiah(s.net)}</span>

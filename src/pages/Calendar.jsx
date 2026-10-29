@@ -11,6 +11,10 @@ import { Modal, Seg, Switch, Field, ColorPick } from '../components/ui.jsx';
 import { api, DB, useApp, useNow, useQuery, useDebounced } from '../lib/api.js';
 import { expandAll, toLocalDate, toLocalDateTime, parseLocal, fmtDateLong, fmtTime, addDays, REPEAT_LABEL, MONTH_ID, pad } from '../../shared/recur.js';
 import { T, lang } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
+import { openMenu } from '../components/ContextMenu.jsx';
+import TaskModal from '../components/TaskModal.jsx';
+import { eventItems, taskItems } from '../lib/menus.js';
 
 const REMINDERS = [[-1, T('Tanpa pengingat')], [0, T('Saat dimulai')], [5, T('5 menit sebelum')], [10, T('10 menit sebelum')], [15, T('15 menit sebelum')], [30, T('30 menit sebelum')], [60, T('1 jam sebelum')], [120, T('2 jam sebelum')], [1440, T('1 hari sebelum')], [2880, T('2 hari sebelum')], [10080, T('1 minggu sebelum')]];
 const remLabel = (m) => (REMINDERS.find((r) => r[0] === m) || [m, T('{n} menit sebelum', { n: m })])[1];
@@ -102,6 +106,10 @@ export default function Calendar() {
   const [sel, setSel] = useState(() => app.params.date || toLocalDate(new Date()));
   const [modal, setModal] = useState(null);
   const [calModal, setCalModal] = useState(null);
+  const [taskModal, setTaskModal] = useState(null);
+  const sideW = usePanelWidth('calSide', 340, 280, 560);
+  // FullCalendar only re-measures on window resize; tell it when the side panel width changes
+  useEffect(() => { const id = requestAnimationFrame(() => calRef.current?.getApi().updateSize()); return () => cancelAnimationFrame(id); }, [sideW.width]);
 
   const cals = useQuery(() => DB.list('calendars', { order: 'sort' }), [], ['calendars']);
   const events = useQuery(() => DB.list('events'), [], ['events']);
@@ -232,6 +240,28 @@ export default function Calendar() {
 
   const isToday = sel === toLocalDate(now);
 
+  // ---------- right-click menus ----------
+  const openDay = (d) => { setSel(d); if (!isScroll) apiCal()?.gotoDate(d); };
+  const evMenu = (ev, type, row, date) => {
+    if (type === 'event') { const full = events.data?.find((x) => x.id === row.id); if (full) openMenu(ev, eventItems(app, full, { onEdit: setModal, onOpenDay: openDay, date })); return; }
+    if (type === 'task') { openMenu(ev, taskItems(app, row, { onEdit: setTaskModal })); return; }
+    if (type === 'holiday') openMenu(ev, [{ label: T('Lihat tanggal ini'), icon: 'cal', run: () => openDay(row.start) }]);
+  };
+  const evMenuRef = useRef(evMenu); evMenuRef.current = evMenu;
+  const dayMenu = (ev) => {
+    const cell = ev.target.closest('[data-date]');
+    if (!cell) return;
+    const d = cell.getAttribute('data-date').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+    openMenu(ev, [
+      { label: T('Buat acara di {d}', { d: fmtDateLong(parseLocal(d)) }), icon: 'plus', run: () => { setSel(d); openNew(d); } },
+      { label: T('Acara seharian'), icon: 'cal', run: () => { setSel(d); openNew(d, null, null, true); } },
+      '-',
+      { label: T('Pilih tanggal ini'), icon: 'check', run: () => setSel(d) },
+      { label: T('Buka tampilan Hari'), icon: 'calcheck', disabled: view === 'timeGridDay', run: () => { setSel(d); setView('timeGridDay'); app.setSetting('calView', 'timeGridDay'); apiCal()?.changeView('timeGridDay', d); } }
+    ]);
+  };
+
   return (
     <div className="page full" style={{ paddingBottom: 24 }}>
       <div className="cal-layout">
@@ -244,7 +274,7 @@ export default function Calendar() {
             <span className="grow ellipsis" title={title} style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', minWidth: 120 }}>{title}</span>
             <Seg label={T("Tampilan")} value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: T("Hari") }, { value: 'timeGridWeek', label: T("Minggu") }, { value: SCROLL_VIEW, label: T("Bulan") }, { value: 'listMonth', label: T("Agenda") }]} />
           </div>
-          <div ref={wrapRef} className="cal-wrap">
+          <div ref={wrapRef} className="cal-wrap" onContextMenu={dayMenu}>
           <FullCalendar
             ref={calRef}
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
@@ -288,11 +318,13 @@ export default function Calendar() {
             }}
             eventDrop={onDrop}
             eventResize={onDrop}
+            eventDidMount={(info) => info.el.addEventListener('contextmenu', (ev) => evMenuRef.current(ev, info.event.extendedProps.type, info.event.extendedProps.row, toLocalDate(info.event.start)))}
           />
           </div>
         </section>
 
-        <aside className="card cal-side">
+        <Resizer panel={sideW} side="right" label={T('Ubah lebar panel tanggal')} />
+        <aside className="card cal-side" style={{ width: sideW.width }}>
           <div className="col" style={{ gap: 2 }}>
             <span className="lbl">{isToday ? T("Hari ini") : T("Tanggal dipilih")}</span>
             <span style={{ fontSize: 20, fontWeight: 800 }}>{fmtDateLong(selDate)}</span>
@@ -305,7 +337,7 @@ export default function Calendar() {
             <div className="row"><span className="grow" style={{ fontWeight: 700, fontSize: 13 }}>{T("Acara & pengingat")}</span><button className="btn sm" onClick={() => openNew(sel)}><Icon name="plus" size="sm" />{T("Acara")}</button></div>
             {dayEvents.length === 0 && dayTasks.length === 0 && <span className="mut" style={{ fontSize: 13 }}>{T("Belum ada acara di tanggal ini.")}</span>}
             {dayEvents.map((o) => (
-              <button key={o.key} className="mini-ev" onClick={() => setModal(events.data.find((e) => e.id === o.id))}>
+              <button key={o.key} className="mini-ev" onClick={() => setModal(events.data.find((e) => e.id === o.id))} onContextMenu={(ev) => evMenu(ev, 'event', o, sel)}>
                 <span className={`dot k-${o.color}`} />
                 <span className="col grow" style={{ gap: 0 }}>
                   <span style={{ fontWeight: 700 }} className="ellipsis">{o.title}</span>
@@ -315,7 +347,7 @@ export default function Calendar() {
               </button>
             ))}
             {dayTasks.map((t) => (
-              <button key={t.id} className="mini-ev" onClick={() => app.nav('focus', { taskId: t.id })}>
+              <button key={t.id} className="mini-ev" onClick={() => app.nav('focus', { taskId: t.id })} onContextMenu={(ev) => evMenu(ev, 'task', t)}>
                 <Icon name={t.done ? 'check' : 'checklist'} size="sm" />
                 <span className="col grow" style={{ gap: 0 }}><span style={{ fontWeight: 700, textDecoration: t.done ? 'line-through' : 'none' }} className="ellipsis">{t.title}</span><span className="mut" style={{ fontSize: 12 }}>{T("Tugas")}{t.due_time ? ' · ' + t.due_time.replace(':', '.') : ''}</span></span>
               </button>
@@ -361,6 +393,7 @@ export default function Calendar() {
         </aside>
       </div>
 
+      {taskModal && <TaskModal task={taskModal} onClose={() => setTaskModal(null)} />}
       {modal && <EventModal initial={modal} calendars={cals.data || []} defaultReminder={app.settings.reminderDefault ?? 30} onClose={() => setModal(null)} />}
       {calModal && (
         <Modal title={calModal.id ? T("Edit kalender") : T("Kalender baru")} width={420} onClose={() => setCalModal(null)} footer={<>

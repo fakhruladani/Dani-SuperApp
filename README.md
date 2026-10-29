@@ -22,6 +22,8 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 | **Market & Berita** | Watchlist IHSG, LQ45, USD/IDR, emas, saham bank, S&P 500, Bitcoin, dan simbol apa pun dari Yahoo Finance. Grafik candle atau garis dengan volume dan MA 20/50. Alert harga lewat notifikasi. Berita dari RSS media Indonesia, bisa ditambah sendiri, dan disimpan untuk dibaca nanti. |
 | **Fokus & Tugas** | Pomodoro dengan mode jangan ganggu, tugas dengan input bahasa alami (`revisi abstrak besok 09.00 #TA !tinggi`), kebiasaan mingguan dengan streak, statistik fokus 7 hari. |
 | **Panduan & tur** | Menu Panduan (F1) berisi semua fitur, letaknya, cara memakainya, dan pintasan keyboard, lengkap dengan pencarian. Tur singkat menyorot tiap bagian aplikasi dan muncul otomatis saat pertama kali dibuka. |
+| **Menu klik kanan** | Aksi cepat sesuai tempatnya: catatan (sematkan, duplikat, ekspor, hapus), isi catatan (format, gambar), acara dan tanggal kalender, tugas (tenggat, prioritas, buka proyek), kartu proyek, transaksi, Total Wealth, saham, berita, clipboard, dan potong/salin/tempel di semua kolom teks. |
+| **Panel bisa digeser** | Lebar menu kiri, daftar catatan, panel kalender, anggaran, alert market, ringkasan Total Wealth, daftar proyek, dan daftar isi panduan bisa digeser kiri-kanan. Klik dua kali garisnya untuk ukuran awal. Ukuran diingat. |
 | **Update otomatis** | Aplikasi mengecek GitHub Releases, mengunduh versi baru di latar belakang, lalu menawarkan "Pasang & mulai ulang" dari Pengaturan atau menu tray. |
 | **Dua bahasa** | Indonesia dan English untuk seluruh tampilan, panduan, tur, notifikasi, menu tray, dan ekspor Excel. Data yang kamu tulis sendiri tidak ikut diterjemahkan. |
 | **Lainnya** | Ctrl+K untuk cari dan perintah, catatan cepat dari mana saja (Ctrl+Shift+Space), widget mini selalu di atas, riwayat clipboard (opsional), ringkasan pagi, kunci PIN, backup otomatis harian. |
@@ -58,9 +60,9 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 |---|---|
 | ![Panduan](docs/screenshots/panduan.png) | ![Tur](docs/screenshots/tur.png) |
 
-| Proyek | |
+| Proyek | Menu klik kanan |
 |---|---|
-| ![Proyek](docs/screenshots/proyek.png) | |
+| ![Proyek](docs/screenshots/proyek.png) | ![Menu klik kanan](docs/screenshots/klik-kanan.png) |
 
 | English: Beranda | English: Keuangan |
 |---|---|

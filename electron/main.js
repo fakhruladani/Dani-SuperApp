@@ -389,6 +389,10 @@ h('import:ics', async (calendarId) => {
 });
 // ---------------- note images & export ----------------
 // ---------------- auto-update ----------------
+// text commands for the right-click menu (run on the window that asked)
+const EDIT_CMDS = new Set(['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll']);
+h('edit:cmd', (e, cmd) => { if (EDIT_CMDS.has(cmd)) e.sender[cmd](); });
+h('edit:copyImageAt', (e, x, y) => e.sender.copyImageAt(Number(x) | 0, Number(y) | 0));
 h('update:status', () => upd.status());
 h('update:check', () => upd.check());
 h('update:install', () => upd.install());
@@ -475,7 +479,7 @@ h('nav:pending', () => { const n = pendingNav; pendingNav = null; return n; });
 h('theme:get', () => ({ dark: effectiveDark(), setting: db.getSetting('theme', 'system') }));
 h('app:info', () => ({ version: app.getVersion(), packaged: app.isPackaged, dataDir: app.getPath('userData'), encrypted: safeStorage.isEncryptionAvailable(), backupDir: backupDir() }));
 
-const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf', 'sticky:setTop', 'sticky:setColor', 'print:ready']);
+const NEEDS_EVENT = new Set(['win:hideSelf', 'win:closeSelf', 'sticky:setTop', 'sticky:setColor', 'print:ready', 'edit:cmd', 'edit:copyImageAt']);
 function registerIpc() {
   ipcMain.handle('invoke', async (e, name, ...args) => {
     if (!trusted(e)) throw new Error('Untrusted sender');

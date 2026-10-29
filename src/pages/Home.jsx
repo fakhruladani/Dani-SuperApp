@@ -6,6 +6,8 @@ import { rupiah, num, pct, timeAgo, greeting } from '../lib/format.js';
 import { wmo } from '../../shared/weather.js';
 import { expandAll, toLocalDate, fmtTime, DOW_ID, addDays, parseQuickTask, parseLocal } from '../../shared/recur.js';
 import { T } from '../lib/i18n.js';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { taskItems, newsItems, noteItems } from '../lib/menus.js';
 
 function useWeather() {
   const [w, setW] = useState({ data: null, loading: true, error: null });
@@ -158,7 +160,10 @@ export default function Home() {
           <div className="row"><h2 className="h2 grow">{T("Agenda 7 hari")}</h2><button className="btn sm" onClick={() => app.nav('cal')}>{T("Kalender")}</button></div>
           {agenda.data?.length === 0 && <div className="empty">{T("Belum ada agenda minggu ini.")}</div>}
           {(agenda.data || []).map((o) => (
-            <button key={o.key} className="row" onClick={() => app.nav('cal', { date: toLocalDate(o.occStart) })} style={{ gap: 12, alignItems: 'flex-start', border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'var(--text)' }}>
+            <button key={o.key} className="row" onClick={() => app.nav('cal', { date: toLocalDate(o.occStart) })} onContextMenu={(e) => openMenu(e, [
+              { label: T('Buka di kalender'), icon: 'cal', run: () => app.nav('cal', { date: toLocalDate(o.occStart) }) },
+              !o.holiday && { label: T('Edit acara…'), icon: 'edit', run: () => app.nav('cal', { date: toLocalDate(o.occStart), eventId: o.id }) }
+            ])} style={{ gap: 12, alignItems: 'flex-start', border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'var(--text)' }}>
               <div className="col" style={{ width: 50, flex: 'none', alignItems: 'center', padding: '5px 0', borderRadius: 10, background: toLocalDate(o.occStart) === today ? 'var(--accent)' : 'var(--surface2)', color: toLocalDate(o.occStart) === today ? 'var(--on-accent)' : 'var(--text)', gap: 0 }}>
                 <span style={{ fontSize: 11, fontWeight: 700 }}>{DOW_ID[o.occStart.getDay()].slice(0, 3).toUpperCase()}</span>
                 <span className="num" style={{ fontSize: 17, fontWeight: 800 }}>{o.occStart.getDate()}</span>
@@ -203,7 +208,7 @@ export default function Home() {
           </div>
           {todayTasks.length === 0 && <div className="empty">{T("Tidak ada tugas untuk hari ini.")}</div>}
           {todayTasks.map((t) => (
-            <div key={t.id} className="task">
+            <div key={t.id} className="task" onContextMenu={(e) => openMenu(e, taskItems(app, t, { onEdit: (x) => app.nav('focus', { taskId: x.id }) }))}>
               <button className="chk" aria-label={T('Selesaikan {t}', { t: t.title })} onClick={() => DB.save('tasks', { id: t.id, done: 1, done_at: new Date().toISOString() })}><Icon name="check" size="sm" /></button>
               <span className="t grow ellipsis">{t.priority === 2 && <Icon name="flag" size="sm" className="prio-2" />} {t.title}</span>
               {t.due_date && <span className={`mut num ${t.due_date < today ? 'dn' : ''}`} style={{ fontSize: 12 }}>{t.due_date < today ? T("terlambat") : t.due_time ? t.due_time.replace(':', '.') : T("hari ini")}</span>}
@@ -247,7 +252,7 @@ export default function Home() {
           {!news && <div className="skeleton" style={{ height: 140 }} />}
           {news?.length === 0 && <div className="empty">{T("Berita tidak bisa dimuat.")}</div>}
           {(news || []).map((n) => (
-            <a key={n.id} href={n.link} onClick={(e) => { e.preventDefault(); api('shell:open', n.link); }} className="col" style={{ gap: 2, textDecoration: 'none', color: 'var(--text)', padding: '8px', margin: '0 -8px', borderRadius: 10 }}>
+            <a key={n.id} href={n.link} onClick={(e) => { e.preventDefault(); api('shell:open', n.link); }} onContextMenu={(e) => openMenu(e, newsItems(app, n))} className="col" style={{ gap: 2, textDecoration: 'none', color: 'var(--text)', padding: '8px', margin: '0 -8px', borderRadius: 10 }}>
               <span style={{ fontWeight: 600, lineHeight: 1.4 }}>{n.title}</span>
               <span className="mut" style={{ fontSize: 12 }}>{n.source} · {timeAgo(n.date)}</span>
             </a>
@@ -258,7 +263,7 @@ export default function Home() {
           <div className="row"><h2 className="h2 grow">{T("Catatan terbaru")}</h2><button className="btn sm" onClick={() => app.nav('notes')}>{T("Buka")}</button></div>
           {recentNotes.data?.length === 0 && <div className="empty">{T("Belum ada catatan.")}</div>}
           {(recentNotes.data || []).map((n) => (
-            <button key={n.id} className="note-item" onClick={() => app.nav('notes', { noteId: n.id })}>
+            <button key={n.id} className="note-item" onClick={() => app.nav('notes', { noteId: n.id })} onContextMenu={(e) => openMenu(e, noteItems(app, n, { onOpen: (x) => app.nav('notes', { noteId: x.id }) }))}>
               <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis">{n.title || T("Tanpa judul")}</span></span>
               <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 90) || '—'}</span>
             </button>

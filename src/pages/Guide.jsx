@@ -3,9 +3,11 @@ import Icon from '../components/Icon.jsx';
 import { useApp } from '../lib/api.js';
 import { GUIDE, SHORTCUTS, TOUR } from '../lib/guide.js';
 import { T } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
 
 export default function Guide() {
   const app = useApp();
+  const navW = usePanelWidth('guideNav', 250, 200, 420);
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
   const sections = useMemo(() => GUIDE.map((s) => {
@@ -28,7 +30,7 @@ export default function Guide() {
       </section>
 
       <div className="row" style={{ gap: 16, alignItems: 'flex-start' }}>
-        <aside className="card guide-nav">
+        <aside className="card guide-nav" style={{ width: navW.width }}>
           <label className="sr" htmlFor="guide-q">{T("Cari di panduan")}</label>
           <input id="guide-q" className="field" placeholder={T("Cari fitur, mis. pengingat")} value={q} onChange={(e) => setQ(e.target.value)} />
           <nav className="col" style={{ gap: 2 }} aria-label={T("Daftar isi panduan")}>
@@ -36,6 +38,7 @@ export default function Guide() {
             {!query && <button className="nav" onClick={() => jump('pintasan')}><Icon name="bolt" size="sm" /><span>{T("Pintasan keyboard")}</span></button>}
           </nav>
         </aside>
+        <Resizer panel={navW} className="guide-resizer" label={T('Ubah lebar daftar isi')} />
 
         <div className="col grow" style={{ gap: 16, minWidth: 0 }}>
           {sections.length === 0 && <div className="card pad empty">{T("Tidak ada yang cocok dengan “")}{q}{T("”. Coba kata lain, misalnya “backup” atau “pena”.")}</div>}

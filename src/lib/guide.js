@@ -13,7 +13,9 @@ const GUIDE_ID = [
       ['Catatan cepat', 'Tekan Ctrl+Shift+Space dari aplikasi mana pun untuk mencatat tugas, catatan, pengingat, atau transaksi tanpa membuka aplikasi.'],
       ['Widget mini', 'Tombol kotak-kotak di kanan atas membuka widget jam, agenda, dan tugas yang selalu di atas.'],
       ['Mode terang/gelap', 'Tombol bulan/matahari di kanan atas, atau Pengaturan → Umum → Tema (bisa ikut Windows).'],
-      ['Tutup jendela', 'Tombol × hanya menyembunyikan jendela ke tray, pengingat tetap jalan. Untuk keluar penuh: klik kanan ikon tray → Keluar.']
+      ['Tutup jendela', 'Tombol × hanya menyembunyikan jendela ke tray, pengingat tetap jalan. Untuk keluar penuh: klik kanan ikon tray → Keluar.'],
+      ['Menu klik kanan', 'Klik kanan pada catatan, acara, tanggal kalender, tugas, proyek, transaksi, saham, berita, atau teks untuk aksi cepat: duplikat, ubah tenggat, prioritas, ekspor, salin, hapus.'],
+      ['Ubah lebar panel', 'Geser garis di antara panel ke kiri atau kanan: menu kiri, daftar catatan, panel kalender, anggaran, alert market, ringkasan Total Wealth, daftar proyek, dan daftar isi panduan. Klik dua kali garisnya untuk kembali ke ukuran awal. Ukuran diingat.']
     ],
     open: { page: 'home' }
   },

@@ -6,6 +6,8 @@ import { DB, useApp, useNow, useQuery, themeColors } from '../lib/api.js';
 import { mmss, useFocusLeft } from '../lib/focus.js';
 import { toLocalDate, addDays, parseQuickTask, DOW_ID, parseLocal } from '../../shared/recur.js';
 import { T } from '../lib/i18n.js';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { taskItems } from '../lib/menus.js';
 import TaskModal, { PRIO } from '../components/TaskModal.jsx';
 
 function Pomodoro() {
@@ -61,7 +63,11 @@ function Habits({ today }) {
           <span className="mut" style={{ fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{T("Streak")}</span>
           {(habits.data || []).map((h) => (
             <Fragment key={h.id}>
-              <button className="btn ghost sm" style={{ justifyContent: 'flex-start', padding: '0 4px' }} onClick={() => setEdit(h)}><span className={`dot k-${h.color}`} />{h.name}</button>
+              <button className="btn ghost sm" style={{ justifyContent: 'flex-start', padding: '0 4px' }} onClick={() => setEdit(h)} onContextMenu={(e) => openMenu(e, [
+                { label: T('Edit kebiasaan'), icon: 'edit', run: () => setEdit(h) },
+                '-',
+                { label: T('Hapus kebiasaan'), icon: 'trash', danger: true, run: async () => { if (await app.confirm(T('Hapus kebiasaan “{t}” dan riwayatnya?', { t: h.name }), { danger: true, ok: T('Hapus') })) DB.remove('habits', h.id); } }
+              ])}><span className={`dot k-${h.color}`} />{h.name}</button>
               {days.map((d) => <button key={h.id + d} className={`hb k-${h.color} ${has(h.id, d) ? 'on' : ''} ${d === today ? 'today' : ''}`} aria-label={`${h.name} ${d}`} aria-pressed={has(h.id, d)} disabled={d > today} onClick={() => toggle(h.id, d)} style={d > today ? { opacity: 0.4 } : undefined} />)}
               <span className="num" style={{ textAlign: 'center', fontWeight: 800 }} title={T("Hari berturut-turut")}>{T('{n} hr', { n: streak(h.id) })}</span>
             </Fragment>
@@ -164,7 +170,7 @@ export default function Focus() {
             {shown.map((t) => {
               const late = !t.done && t.due_date && t.due_date < today;
               return (
-                <div key={t.id} className={`task ${t.done ? 'done' : ''}`}>
+                <div key={t.id} className={`task ${t.done ? 'done' : ''}`} onContextMenu={(e) => openMenu(e, taskItems(app, t, { onEdit: setModal }))}>
                   <button className={`chk ${t.done ? 'on' : ''}`} aria-label={t.done ? T("Tandai belum selesai") : T("Tandai selesai")} onClick={() => DB.save('tasks', { id: t.id, done: t.done ? 0 : 1, done_at: t.done ? null : new Date().toISOString() })}><Icon name="check" size="sm" /></button>
                   <button className="t grow ellipsis" onClick={() => setModal(t)} style={{ border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', textDecoration: t.done ? 'line-through' : 'none' }}>
                     {t.priority > 0 && <Icon name="flag" size="sm" className={`prio-${t.priority}`} />} {t.title}

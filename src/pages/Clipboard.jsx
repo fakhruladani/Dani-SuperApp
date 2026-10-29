@@ -4,6 +4,8 @@ import { Switch } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 import { T } from '../lib/i18n.js';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { copyText, clipToNote } from '../lib/menus.js';
 
 export default function Clipboard() {
   const app = useApp();
@@ -28,13 +30,19 @@ export default function Clipboard() {
         <input id="cq" className="field" placeholder={T("Cari di riwayat…")} value={q} onChange={(e) => setQ(e.target.value)} />
         {shown.length === 0 && <div className="empty">{on ? T("Belum ada yang tersalin.") : T("Aktifkan untuk mulai menyimpan riwayat.")}</div>}
         {shown.map((c) => (
-          <div key={c.id} className="task" style={{ alignItems: 'flex-start' }}>
+          <div key={c.id} className="task" style={{ alignItems: 'flex-start' }} onContextMenu={(e) => openMenu(e, [
+            { label: T('Salin'), icon: 'copy', run: () => copyText(app, c.text) },
+            { label: c.pinned ? T('Lepas sematan') : T('Sematkan'), icon: 'pinned', run: () => DB.save('clipboard', { id: c.id, pinned: c.pinned ? 0 : 1 }) },
+            { label: T('Simpan sebagai catatan'), icon: 'note', run: () => clipToNote(app, c.text) },
+            '-',
+            { label: T('Hapus'), icon: 'trash', danger: true, run: () => DB.remove('clipboard', c.id) }
+          ])}>
             <button className="grow" onClick={async () => { await api('clipboard:write', c.text); app.toast(T("Disalin ke clipboard")); }} style={{ border: 0, background: 'transparent', textAlign: 'left', color: 'var(--text)', padding: 0, minWidth: 0 }} title={T("Klik untuk menyalin")}>
               <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflow: 'hidden', fontSize: 13.5 }}>{c.text}</div>
               <span className="mut" style={{ fontSize: 11 }}>{timeAgo(new Date(c.updated_at).getTime())} · {T('{n} karakter', { n: c.text.length })}</span>
             </button>
             <button className={`icb sm ${c.pinned ? 'on' : ''}`} aria-label={c.pinned ? T("Lepas sematan") : T("Sematkan")} onClick={() => DB.save('clipboard', { id: c.id, pinned: c.pinned ? 0 : 1 })}><Icon name="pinned" size="sm" /></button>
-            <button className="icb sm" aria-label={T("Simpan sebagai catatan")} onClick={async () => { const n = await DB.save('notes', { title: c.text.slice(0, 40), content: JSON.stringify({ type: 'doc', content: c.text.split('\n').map((l) => ({ type: 'paragraph', content: l ? [{ type: 'text', text: l }] : [] })) }), plain: c.text, ink: '[]', pinned: 0 }); app.nav('notes', { noteId: n.id }); }}><Icon name="note" size="sm" /></button>
+            <button className="icb sm" aria-label={T("Simpan sebagai catatan")} onClick={() => clipToNote(app, c.text)}><Icon name="note" size="sm" /></button>
             <button className="icb sm" aria-label={T("Hapus")} onClick={() => DB.remove('clipboard', c.id)}><Icon name="trash" size="sm" /></button>
           </div>
         ))}

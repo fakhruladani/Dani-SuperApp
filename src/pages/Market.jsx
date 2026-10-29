@@ -6,6 +6,9 @@ import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
 import { num, pct, timeAgo } from '../lib/format.js';
 import { tickerLabel } from './Home.jsx';
 import { T } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { newsItems, copyText } from '../lib/menus.js';
 
 const RANGES = [['1d', '1H'], ['5d', '5H'], ['1mo', '1B'], ['3mo', '3B'], ['6mo', '6B'], ['1y', '1T'], ['5y', '5T']];
 const digits = (p) => (p == null ? 2 : p >= 1000 ? 2 : p >= 10 ? 2 : 4);
@@ -119,7 +122,7 @@ function News({ initialCat = 'fin' }) {
       {cat === 'saved' && shown.length === 0 && <div className="empty">{T("Belum ada berita yang disimpan. Klik ikon penanda pada berita.")}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '0 20px' }}>
         {shown.map((n) => (
-          <div key={n.link} className="news-item">
+          <div key={n.link} className="news-item" onContextMenu={(e) => openMenu(e, newsItems(app, n, { saved: savedIds.has(n.link), toggleSave }))}>
             {n.img ? <img className="news-thumb" src={n.img} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} /> : <div className="news-thumb">{n.source.split(' ')[0].slice(0, 7).toUpperCase()}</div>}
             <a href={n.link} onClick={(e) => { e.preventDefault(); api('shell:open', n.link); }} className="col grow" style={{ gap: 4, minWidth: 0, textDecoration: 'none', color: 'var(--text)' }}>
               <span style={{ fontWeight: 700, lineHeight: 1.4 }}>{n.title}</span>
@@ -139,6 +142,7 @@ function News({ initialCat = 'fin' }) {
 
 export default function Market() {
   const app = useApp();
+  const sideW = usePanelWidth('marketSide', 320, 260, 520);
   const [tab, setTab] = useState(app.params.tab || 'market');
   const wl = useQuery(() => DB.list('watchlist', { order: 'sort' }), [], ['watchlist']);
   const alerts = useQuery(() => DB.list('price_alerts', { order: 'created_at desc' }), [], ['price_alerts']);
@@ -194,7 +198,13 @@ export default function Market() {
               const x = quotes[w.symbol];
               const upx = (x?.change || 0) >= 0;
               return (
-                <button key={w.symbol} className={`card tick ${sel === w.symbol ? 'on' : ''}`} onClick={() => setSel(w.symbol)}>
+                <button key={w.symbol} className={`card tick ${sel === w.symbol ? 'on' : ''}`} onClick={() => setSel(w.symbol)} onContextMenu={(e) => openMenu(e, [
+                  { label: T('Buka grafik'), icon: 'chart', run: () => setSel(w.symbol) },
+                  { label: T('Salin simbol'), icon: 'copy', run: () => copyText(app, w.symbol) },
+                  { label: T('Buka di Yahoo Finance'), icon: 'external', run: () => api('shell:open', 'https://finance.yahoo.com/quote/' + encodeURIComponent(w.symbol)) },
+                  '-',
+                  { label: T('Hapus dari watchlist'), icon: 'trash', danger: true, run: async () => { if (await app.confirm(T('Hapus {t} dari watchlist?', { t: w.symbol }), { danger: true, ok: T('Hapus') })) { await DB.remove('watchlist', w.symbol); if (sel === w.symbol) setSel(null); } } }
+                ])}>
                   <div className="row"><span style={{ fontWeight: 800 }} className="grow ellipsis">{tickerLabel(w)}</span>{x && !x.error && <span className={`num ${upx ? 'up' : 'dn'}`} style={{ fontSize: 13, fontWeight: 700 }}>{pct(x.changePct)}</span>}</div>
                   {!x ? <div className="skeleton" style={{ height: 26 }} /> : x.error ? <span className="mut" style={{ fontSize: 13 }}>{T("Data tidak tersedia")}</span> : <span className="num" style={{ fontSize: 20, fontWeight: 800 }}>{num(x.price, digits(x.price))}</span>}
                   <Sparkline data={x?.spark} up={upx} height={32} />
@@ -205,8 +215,8 @@ export default function Market() {
           </div>
 
           {sel && (
-            <div className="row wrap" style={{ gap: 16, alignItems: 'flex-start' }}>
-              <section className="card pad col" style={{ flex: '999 1 620px', minWidth: 0, gap: 12 }}>
+            <div className="row" style={{ gap: 16, alignItems: 'stretch' }}>
+              <section className="card pad col" style={{ flex: '1 1 0', minWidth: 0, gap: 12, alignSelf: 'flex-start' }}>
                 <div className="row wrap">
                   <div className="col grow" style={{ gap: 2 }}>
                     <span style={{ fontSize: 20, fontWeight: 800 }}>{selName} <span className="mut" style={{ fontSize: 14, fontWeight: 600 }}>{sel}</span></span>
@@ -218,7 +228,8 @@ export default function Market() {
                 </div>
                 <PriceChart symbol={sel} range={range} type={ctype} showMA={ma} />
               </section>
-              <section className="card pad col" style={{ flex: '1 1 300px', gap: 12 }}>
+              <Resizer panel={sideW} side="right" label={T('Ubah lebar panel alert')} />
+              <section className="card pad col" style={{ flex: 'none', width: sideW.width, gap: 12, alignSelf: 'flex-start' }}>
                 <h2 className="h2">{T("Alert harga")} {sel.replace('.JK', '')}</h2>
                 <div className="row">
                   <label className="sr" htmlFor="al-op">{T("Kondisi")}</label>

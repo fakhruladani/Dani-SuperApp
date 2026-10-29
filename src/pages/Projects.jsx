@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Field, ColorPick, Switch, Empty } from '../components/ui.jsx';
 import TaskModal from '../components/TaskModal.jsx';
-import { DB, useApp, useNow, useQuery } from '../lib/api.js';
+import { api, DB, useApp, useNow, useQuery } from '../lib/api.js';
 import { toLocalDate, addDays, parseLocal, parseQuickTask, fmtDateLong, DOW_ID } from '../../shared/recur.js';
 import { T } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { taskItems } from '../lib/menus.js';
 
 // A project is a task tag (#TA) plus optional metadata (name, deadline, color) in `projects`.
 // Tags that only exist on tasks still show up, so tagging a task is enough to start a project.
@@ -93,11 +96,12 @@ function ProjectModal({ initial, onClose }) {
 }
 
 function TaskLine({ t, today, onOpen }) {
+  const app = useApp();
   const late = !t.done && t.due_date && t.due_date < today;
   const week = toLocalDate(addDays(parseLocal(today), 7));
   const when = !t.due_date ? '' : t.due_date === today ? T('hari ini') : t.due_date === toLocalDate(addDays(parseLocal(today), 1)) ? T('besok') : t.due_date <= week && t.due_date > today ? DOW_ID[parseLocal(t.due_date).getDay()] : t.due_date;
   return (
-    <div className={`task ${t.done ? 'done' : ''}`}>
+    <div className={`task ${t.done ? 'done' : ''}`} onContextMenu={(e) => openMenu(e, taskItems(app, t, { onEdit: onOpen }))}>
       <button className={`chk ${t.done ? 'on' : ''}`} aria-label={t.done ? T('Tandai belum selesai') : T('Tandai selesai')} onClick={() => DB.save('tasks', { id: t.id, done: t.done ? 0 : 1, done_at: t.done ? null : new Date().toISOString() })}><Icon name="check" size="sm" /></button>
       <button className="t grow ellipsis" onClick={() => onOpen(t)} style={{ border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', textDecoration: t.done ? 'line-through' : 'none' }}>
         {t.priority > 0 && <Icon name="flag" size="sm" className={`prio-${t.priority}`} />} {t.title}
@@ -115,6 +119,7 @@ export default function Projects() {
   const projects = useQuery(() => DB.list('projects', { order: 'sort' }), [], ['projects']);
   const groups = useGroups(tasks.data || [], projects.data || [], today);
   const [view, setView] = useState('active');
+  const listW = usePanelWidth('projList', 360, 260, 600);
   const [sel, setSel] = useState(app.params.tag ? keyOf(app.params.tag) : null);
   const [edit, setEdit] = useState(null);
   const [taskModal, setTaskModal] = useState(null);
@@ -124,6 +129,17 @@ export default function Projects() {
   const shown = groups.filter((g) => (view === 'archived' ? g.archived : !g.archived));
   const cur = groups.find((g) => g.key === sel) || shown[0] || null;
   useEffect(() => { setShowDone(false); setQuick(''); }, [cur?.key]);
+  useEffect(() => { if (app.params.tag) { const k = keyOf(app.params.tag); setSel(k); const g = groups.find((x) => x.key === k); if (g) setView(g.archived ? 'archived' : 'active'); } }, [app.params._t]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cardMenu = (e, g) => openMenu(e, [
+    { label: T('Buka'), icon: 'project', run: () => setSel(g.key) },
+    { label: g.meta ? T('Edit proyek') : T('Atur proyek'), icon: 'edit', run: () => { setSel(g.key); setEdit(g.meta || { tag: g.tag, name: '', color: g.color }); } },
+    { label: g.archived ? T('Aktifkan lagi') : T('Arsipkan'), icon: 'folder', run: () => DB.save('projects', g.meta ? { id: g.meta.id, archived: g.archived ? 0 : 1 } : { tag: g.tag, name: '', color: g.color, archived: 1, sort: Date.now() }) },
+    '-',
+    { label: T('Salin tag #{t}', { t: g.tag }), icon: 'copy', run: () => { api('clipboard:write', '#' + g.tag); app.toast(T('Disalin ke clipboard')); } },
+    g.meta && '-',
+    g.meta && { label: T('Hapus info proyek'), icon: 'trash', danger: true, run: async () => { if (await app.confirm(T('Hapus info proyek “{t}”? Tugas dengan tag ini tetap ada.', { t: g.name }), { danger: true, ok: T('Hapus') })) DB.remove('projects', g.meta.id); } }
+  ]);
 
   const addTask = async () => {
     if (!cur || !quick.trim()) return;
@@ -146,11 +162,11 @@ export default function Projects() {
         <div className="card pad"><Empty icon="project">{view === 'archived' ? T('Belum ada proyek diarsipkan.') : T('Belum ada proyek. Beri tag pada tugas (mis. #TA) atau klik “Proyek baru”.')}</Empty></div>
       ) : (
         <div className="proj-layout">
-          <div className="col" style={{ gap: 10 }}>
+          <div className="col" style={{ gap: 10, width: listW.width, flex: 'none', alignSelf: 'flex-start' }}>
             {shown.map((g) => {
               const cd = countdown(g.deadline, today);
               return (
-                <button key={g.key} className={`card proj-card k-${g.color} ${cur?.key === g.key ? 'on' : ''}`} onClick={() => setSel(g.key)} aria-pressed={cur?.key === g.key}>
+                <button key={g.key} className={`card proj-card k-${g.color} ${cur?.key === g.key ? 'on' : ''}`} onClick={() => setSel(g.key)} onContextMenu={(e) => cardMenu(e, g)} aria-pressed={cur?.key === g.key}>
                   <div className="row" style={{ gap: 8 }}>
                     <span className="dot" style={{ background: 'var(--k)' }} />
                     <strong className="grow ellipsis" style={{ textAlign: 'left' }}>{g.name}</strong>
@@ -170,8 +186,9 @@ export default function Projects() {
             })}
           </div>
 
+          <Resizer panel={listW} label={T('Ubah lebar daftar proyek')} />
           {cur && (
-            <section className={`card pad col k-${cur.color}`} style={{ gap: 14 }} aria-label={cur.name}>
+            <section className={`card pad col k-${cur.color}`} style={{ gap: 14, flex: '1 1 0', minWidth: 0, alignSelf: 'flex-start' }} aria-label={cur.name}>
               <div className="row wrap" style={{ gap: 10, alignItems: 'flex-start' }}>
                 <div className="col grow" style={{ gap: 2, minWidth: 0 }}>
                   <h2 className="h2 ellipsis" style={{ fontSize: 22 }}>{cur.name}</h2>

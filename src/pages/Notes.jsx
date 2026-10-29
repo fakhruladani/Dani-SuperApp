@@ -5,6 +5,9 @@ import { Modal, Field } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 import { T } from '../lib/i18n.js';
+import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
+import { openMenu } from '../components/ContextMenu.jsx';
+import { noteItems } from '../lib/menus.js';
 
 export default function Notes() {
   const app = useApp();
@@ -16,6 +19,7 @@ export default function Notes() {
   const [zoom, setZoomState] = useState(app.settings.noteZoom || 100);
   const [tplOpen, setTplOpen] = useState(false);
   const [tagEdit, setTagEdit] = useState(null);
+  const listW = usePanelWidth('notesList', 290, 220, 520);
   const setZoom = (z) => { setZoomState(z); app.setSetting('noteZoom', z); };
 
   const create = useCallback(async (tpl) => {
@@ -41,7 +45,7 @@ export default function Notes() {
   return (
     <div className="page full" style={{ paddingBottom: 24 }}>
       <div className="notes-layout">
-        <aside className="card notes-list">
+        <aside className="card notes-list" style={{ width: listW.width }}>
           <div className="row">
             <label className="sr" htmlFor="n-q">{T("Cari catatan")}</label>
             <input id="n-q" className="field" placeholder={T("Cari catatan…")} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -56,7 +60,7 @@ export default function Notes() {
           <div className="col" style={{ gap: 2, overflow: 'auto', flex: 1, margin: '0 -4px', padding: '0 4px' }}>
             {list.length === 0 && <div className="empty">{notes.data?.length ? T("Tidak ada yang cocok.") : T("Belum ada catatan. Klik + untuk membuat.")}</div>}
             {list.map((n) => (
-              <button key={n.id} className={`note-item ${n.id === selId ? 'on' : ''}`} onClick={() => setSelId(n.id)}>
+              <button key={n.id} className={`note-item ${n.id === selId ? 'on' : ''}`} onClick={() => setSelId(n.id)} onContextMenu={(e) => openMenu(e, noteItems(app, n, { onOpen: (x) => setSelId(x.id), onDeleted: (x) => { if (x.id === selId) setSelId(null); } }))}>
                 <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis grow">{n.title || T("Tanpa judul")}</span>{n.sticky ? <span title={T("Sedang terbuka sebagai jendela mengambang")} style={{ display: 'inline-flex' }}><Icon name="widget" size="sm" className="mut" /></span> : null}</span>
                 <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 80) || (n.ink && n.ink !== '[]' ? T("Coretan pena") : T("Kosong"))}</span>
                 <span className="mut" style={{ fontSize: 11 }}>{timeAgo(new Date(n.updated_at).getTime())}{n.tag ? ` · #${n.tag}` : ''}</span>
@@ -64,6 +68,7 @@ export default function Notes() {
             ))}
           </div>
         </aside>
+        <Resizer panel={listW} label={T('Ubah lebar daftar catatan')} />
         {sel ? (
           <div className="col grow" style={{ minWidth: 0, gap: 8 }}>
             <div className="row" style={{ gap: 6 }}>

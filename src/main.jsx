@@ -6,6 +6,7 @@ import Quick from './pages/Quick.jsx';
 import Widget from './pages/Widget.jsx';
 import Sticky from './pages/Sticky.jsx';
 import Print from './pages/Print.jsx';
+import ContextMenuHost from './components/ContextMenu.jsx';
 import { api, on } from './lib/api.js';
 
 const route = location.hash.replace(/^#/, '');
@@ -13,4 +14,5 @@ const applyTheme = (t) => document.documentElement.classList.toggle('dark', !!t?
 if (!route.startsWith('/print/')) { api('theme:get').then(applyTheme); on('theme:changed', applyTheme); }
 
 const Root = route === '/quick' ? Quick : route === '/widget' ? Widget : route.startsWith('/sticky/') ? Sticky : route.startsWith('/print/') ? Print : App;
-createRoot(document.getElementById('root')).render(<Root />);
+// every window gets the right-click menu host, except the hidden PDF print window
+createRoot(document.getElementById('root')).render(route.startsWith('/print/') ? <Root /> : <><Root /><ContextMenuHost /></>);

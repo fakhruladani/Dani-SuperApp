@@ -18,6 +18,7 @@ const Clipboard = lazy(() => import('./pages/Clipboard.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Guide = lazy(() => import('./pages/Guide.jsx'));
 import Tour from './components/Tour.jsx';
+import Resizer, { usePanelWidth } from './components/Resizer.jsx';
 import { T } from './lib/i18n.js';
 
 const NAV = [
@@ -115,6 +116,7 @@ export default function App() {
     return { cal: occ.length, focus: tasks.length };
   }, [today], ['events', 'tasks']);
 
+  const sidebarW = usePanelWidth('sidebar', 236, 190, 340, { settings, setSetting });
   const ctx = useMemo(() => ({ settings, setSetting, dark, toggleTheme, nav, page, params, toast: pushToast, confirm, focus, pinSet, lock: () => setLocked(true), reloadSettings: loadSettings, startTour: (i = 0) => setTour(i) }), [settings, setSetting, dark, toggleTheme, nav, page, params, pushToast, confirm, focus, pinSet, loadSettings]);
 
   useEffect(() => {
@@ -128,7 +130,7 @@ export default function App() {
   return (
     <AppCtx.Provider value={ctx}>
       <div className="shell">
-        <nav className="sidebar" aria-label={T("Menu utama")}>
+        <nav className="sidebar" aria-label={T("Menu utama")} style={{ width: sidebarW.width }}>
           <div className="brand">
             <div className="logo">D</div>
             <div className="col" style={{ gap: 0 }}>
@@ -158,6 +160,7 @@ export default function App() {
           </div>
         </nav>
 
+        <Resizer panel={sidebarW} className="edge" label={T('Ubah lebar menu')} />
         <div className="main">
           <header className="topbar">
             <div className="title">

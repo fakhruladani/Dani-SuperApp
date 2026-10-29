@@ -19,6 +19,7 @@ import Icon from './Icon.jsx';
 import { api } from '../lib/api.js';
 import { T } from '../lib/i18n.js';
 import { imageFiles, insertImageFiles } from '../lib/images.js';
+import { openMenu, textItems } from './ContextMenu.jsx';
 
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -287,6 +288,53 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
   );
   const scale = zoom / 100;
 
+  // right-click on the page: pen tools in pen mode, image actions on a picture, text + formatting otherwise
+  const pageMenu = (ev) => {
+    if (ev.target.closest('.title-input')) return; // plain input: default text menu
+    if (tool !== 'type') {
+      openMenu(ev, [
+        { label: T('Mode ketik'), icon: 'type', run: () => setTool('type') },
+        { label: T('Pena'), icon: 'pen', disabled: tool === 'pen', run: () => setTool('pen') },
+        { label: T('Stabilo bebas'), icon: 'hl', disabled: tool === 'hl', run: () => setTool('hl') },
+        { label: T('Penghapus coretan'), icon: 'erase', disabled: tool === 'erase', run: () => setTool('erase') },
+        '-',
+        { label: T('Urungkan coretan'), icon: 'undo', disabled: !history.length, run: undoInk },
+        { label: T('Hapus semua coretan'), icon: 'trash', danger: true, disabled: !strokes.length, run: () => setStrokes([]) }
+      ]);
+      return;
+    }
+    const img = ev.target.closest('.ProseMirror img');
+    if (img) {
+      const pos = e.view.posAtDOM(img, 0);
+      e.chain().setNodeSelection(pos).run();
+      openMenu(ev, [
+        { label: T('Salin gambar'), icon: 'copy', run: () => api('edit:copyImageAt', Math.round(ev.clientX), Math.round(ev.clientY)) },
+        { label: T('Sisipkan gambar lain…'), icon: 'image', run: () => fileRef.current?.click() },
+        '-',
+        { label: T('Hapus gambar'), icon: 'trash', danger: true, run: () => e.chain().focus().setNodeSelection(pos).deleteSelection().run() }
+      ]);
+      return;
+    }
+    if (!ev.target.closest('.ProseMirror')) return;
+    const hasSel = !e.state.selection.empty;
+    const base = textItems({ hasSelection: hasSel }).map((it) => (it === '-' ? it
+      : it.icon === 'undo' ? { ...it, disabled: !e.can().undo(), run: () => e.chain().focus().undo().run() }
+        : it.icon === 'redo' ? { ...it, disabled: !e.can().redo(), run: () => e.chain().focus().redo().run() }
+          : it.icon === 'selectAll' ? { ...it, run: () => e.chain().focus().selectAll().run() } : it));
+    openMenu(ev, [
+      ...base,
+      '-',
+      { label: T('Tebal'), glyph: 'B', hint: 'Ctrl+B', disabled: !hasSel, run: () => e.chain().focus().toggleBold().run() },
+      { label: T('Miring'), glyph: 'I', glyphStyle: { fontStyle: 'italic', fontFamily: 'Lora, serif' }, hint: 'Ctrl+I', disabled: !hasSel, run: () => e.chain().focus().toggleItalic().run() },
+      { label: T('Coret'), glyph: 'S', glyphStyle: { textDecoration: 'line-through' }, hint: 'Ctrl+Shift+S', disabled: !hasSel, run: () => e.chain().focus().toggleStrike().run() },
+      { label: T('Stabilo kuning'), icon: 'hl', disabled: !hasSel, run: () => e.chain().focus().toggleHighlight({ color: HL_COLORS[0] }).run() },
+      { label: T('Hapus format'), icon: 'erase', disabled: !hasSel, run: () => e.chain().focus().unsetAllMarks().run() },
+      '-',
+      { label: T('Checklist'), icon: 'checklist', run: () => e.chain().focus().toggleTaskList().run() },
+      { label: T('Sisipkan gambar…'), icon: 'image', run: () => fileRef.current?.click() }
+    ]);
+  };
+
   return (
     <section className="card editor-card">
       <div className="toolbar" role="toolbar" aria-label={T("Format catatan")}>
@@ -366,7 +414,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
       </div>
       <div className="paper-scroll">
         <div style={{ width: PAGE_W * scale, height: pageH * scale, margin: '24px auto', position: 'relative' }}>
-          <div className="paper" style={{ width: PAGE_W, minHeight: pageH, margin: 0, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', left: 0, top: 0 }}>
+          <div className="paper" onContextMenu={pageMenu} style={{ width: PAGE_W, minHeight: pageH, margin: 0, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', left: 0, top: 0 }}>
             <div ref={pageRef}>
               <label className="sr" htmlFor="ne-title">{T("Judul catatan")}</label>
               <input id="ne-title" className="title-input" placeholder={T("Judul catatan")} value={title} onChange={(ev) => { setTitle(ev.target.value); queue({ title: ev.target.value }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); e.commands.focus('start'); } }} />
