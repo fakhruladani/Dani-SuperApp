@@ -21,6 +21,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npx vite build
+      # create the release first: electron-builder uploads files in parallel and, when no release exists
+      # yet, can create two releases for the same tag (v0.8.0 happened), which breaks the download URLs
+      - name: Create release
+        shell: bash
+        run: gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "${GITHUB_REF_NAME#v}" --notes "Dani SuperApp ${GITHUB_REF_NAME#v}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and publish installer
         run: npx electron-builder --win nsis --x64 --publish always
         env:
