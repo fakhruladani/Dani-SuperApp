@@ -344,3 +344,14 @@ select.field { padding-right: 28px; }
 .resizer.edge { width: 8px; margin: 0 -4px; }
 .resizer.edge::after { top: 0; bottom: 0; left: 3px; }
 body.resizing, body.resizing * { cursor: col-resize !important; user-select: none !important; }
+
+/* ---------- Total Wealth (lembar per tanggal) ---------- */
+.ws-table td.ws-td { padding: 4px 6px; }
+.ws-table .ws-cell { text-align: right; min-width: 118px; padding-right: 10px; }
+.ws-table .ws-cell.carried::placeholder { color: var(--muted); font-style: italic; opacity: .75; }
+.ws-table .ws-sticky { position: sticky; left: 0; z-index: 2; background: var(--surface); }
+.ws-table th.ws-sticky { z-index: 3; background: var(--surface2); }
+.ws-table tr:hover td.ws-sticky { background: color-mix(in srgb, var(--surface2) 60%, var(--surface)); }
+.ws-colhead { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-weight: 700; font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 6px; white-space: nowrap; }
+.ws-colhead:hover { background: var(--surface3, var(--surface)); }
+.ws-cat { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }

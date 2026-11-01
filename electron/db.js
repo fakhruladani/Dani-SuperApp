@@ -8,6 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { t as T } from '../shared/i18n.js';
+import { assetKey, latestByAsset } from '../shared/wealth.js';
 
 const require = createRequire(import.meta.url);
 const initSqlJs = require('sql.js');
@@ -314,6 +315,76 @@ export function search(q) {
   for (const r of all(`SELECT id, description, date, amount, kind FROM fin_tx WHERE description LIKE ? OR note LIKE ? ORDER BY date DESC LIMIT 8`, [like, like]))
     res.push({ type: 'tx', id: r.id, title: r.description, sub: `${r.date} · ${r.kind === 'in' ? '+' : '−'}Rp ${Number(r.amount).toLocaleString('id-ID')}`, date: r.date });
   return res;
+}
+
+// ---------- Total Wealth sheet (bulk edits, one change event each) ----------
+const wkey = (date, c) => date + '|' + assetKey(c);
+function wealthIndex() {
+  const m = new Map();
+  for (const r of all('SELECT * FROM wealth ORDER BY date, updated_at')) m.set(wkey(r.date, r), r);
+  return m;
+}
+/** cells: [{ date, name, category, value }]; an existing cell on that date for that account is updated. */
+export function wealthImport(cells) {
+  const idx = wealthIndex();
+  let n = 0;
+  for (const c of cells) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(c.date) || !String(c.name || '').trim()) continue;
+    const ex = idx.get(wkey(c.date, c));
+    const row = upsert('wealth', { ...(ex ? { id: ex.id } : {}), date: c.date, category: String(c.category || '').trim(), name: String(c.name).trim(), value: Math.round(Number(c.value) || 0), note: ex?.note || '' }, true);
+    idx.set(wkey(c.date, c), row);
+    n++;
+  }
+  changed('wealth');
+  return n;
+}
+/** New dated row: copies every account's value known at that date (existing cells on that date are kept). */
+export function wealthSnapshot(date) {
+  const idx = wealthIndex();
+  const latest = latestByAsset(all('SELECT * FROM wealth'), date);
+  let n = 0;
+  for (const r of latest.values()) {
+    if (idx.has(wkey(date, r))) continue;
+    upsert('wealth', { date, category: r.category || '', name: r.name, value: r.value, note: '' }, true);
+    n++;
+  }
+  changed('wealth');
+  return n;
+}
+export function wealthMoveDate(from, to) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(to) || from === to) return 0;
+  const idx = wealthIndex();
+  const rows = all('SELECT * FROM wealth WHERE date = ?', [from]);
+  for (const r of rows) {
+    const clash = idx.get(wkey(to, r));
+    if (clash) run('DELETE FROM wealth WHERE id = ?', [clash.id]); // the moved row wins
+    run('UPDATE wealth SET date = ?, updated_at = ? WHERE id = ?', [to, nowIso(), r.id]);
+  }
+  changed('wealth');
+  return rows.length;
+}
+export function wealthDeleteDate(date) {
+  run('DELETE FROM wealth WHERE date = ?', [date]);
+  changed('wealth');
+  return true;
+}
+/** Renames an account (column) everywhere; merges into an existing account on the same date if needed. */
+export function wealthRenameCol(from, to) {
+  const fk = assetKey(from), tk = assetKey(to);
+  const rows = all('SELECT * FROM wealth').filter((r) => assetKey(r) === fk);
+  if (fk !== tk) {
+    const idx = wealthIndex();
+    for (const r of rows) { const clash = idx.get(wkey(r.date, to)); if (clash) run('DELETE FROM wealth WHERE id = ?', [clash.id]); }
+  }
+  for (const r of rows) run('UPDATE wealth SET name = ?, category = ?, updated_at = ? WHERE id = ?', [String(to.name).trim(), String(to.category || '').trim(), nowIso(), r.id]);
+  changed('wealth');
+  return rows.length;
+}
+export function wealthDeleteCol(col) {
+  const k = assetKey(col);
+  for (const r of all('SELECT id, category, name FROM wealth')) if (assetKey(r) === k) run('DELETE FROM wealth WHERE id = ?', [r.id]);
+  changed('wealth');
+  return true;
 }
 
 // ---------- note images ----------

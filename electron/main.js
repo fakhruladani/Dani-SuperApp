@@ -397,6 +397,24 @@ h('update:status', () => upd.status());
 h('update:check', () => upd.check());
 h('update:install', () => upd.install());
 
+// ---------------- Total Wealth sheet ----------------
+h('wealth:import', (cells) => db.wealthImport(Array.isArray(cells) ? cells : []));
+h('wealth:snapshot', (date) => db.wealthSnapshot(String(date)));
+h('wealth:moveDate', (from, to) => db.wealthMoveDate(String(from), String(to)));
+h('wealth:deleteDate', (date) => db.wealthDeleteDate(String(date)));
+h('wealth:renameCol', (from, to) => db.wealthRenameCol(from || {}, to || {}));
+h('wealth:deleteCol', (col) => db.wealthDeleteCol(col || {}));
+h('clipboard:read', () => clipboard.readText());
+h('file:readText', async () => {
+  const r = await dialog.showOpenDialog(mainWin, { title: T('Impor dari spreadsheet'), filters: [{ name: 'CSV / TSV', extensions: ['csv', 'tsv', 'txt'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const buf = fs.readFileSync(r.filePaths[0]);
+  if (buf.length > 5 * 1024 * 1024) throw new Error(T('File terlalu besar'));
+  // UTF-16 (Excel "Unicode text") or UTF-8
+  if (buf[0] === 0xff && buf[1] === 0xfe) return buf.toString('utf16le');
+  return buf.toString('utf8');
+});
+
 h('img:put', (noteId, mime, bytes) => db.imagePut(String(noteId || ''), String(mime), bytes));
 const fileSafe = (s) => (String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || T('Tanpa judul'));
 const extOf = (mime) => ({ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif' }[mime] || 'img');

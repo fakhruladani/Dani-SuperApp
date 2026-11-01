@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import * as db from './db.js';
 import { MONTH_ID, parseLocal, pad } from '../shared/recur.js';
 import { t as T } from '../shared/i18n.js';
-import { wealthSummary } from '../shared/wealth.js';
+import { wealthMatrix } from '../shared/wealth.js';
 
 const require = createRequire(import.meta.url);
 let ExcelJS = null; // loaded on first export
@@ -48,16 +48,18 @@ export async function exportFinanceXlsx(year, filePath) {
     const t = ws.addRow({ k: T('Total'), i: { formula: `SUM(D2:D${Math.max(2, n)})` }, o: { formula: `SUM(E2:E${Math.max(2, n)})` } });
     t.font = { bold: true };
   }
-  // total wealth (all dates; only the newest value per asset counts)
-  const wrows = db.list('wealth', { order: 'date desc' });
-  const ws = wealthSummary(wrows);
+  // total wealth: same layout as the app (one row per date, one column per account, total)
+  const m = wealthMatrix(db.list('wealth'), db.getSetting('wealthCols', []));
   const ww = wb.addWorksheet('Total Wealth');
-  head(ww, [{ header: T('Tanggal'), key: 'd', width: 12 }, { header: T('Kategori'), key: 'c', width: 18 }, { header: T('Nama aset'), key: 'a', width: 28 }, { header: T('Nilai'), key: 'v', width: 18, style: { numFmt: money } }, { header: T('Status'), key: 's', width: 12 }, { header: T('Catatan'), key: 'n', width: 30 }]);
-  wrows.forEach((r) => ww.addRow({ d: r.date, c: r.category, a: r.name, v: r.value, s: ws.currentIds.has(r.id) ? T('dihitung') : T('riwayat'), n: r.note || '' }));
-  ww.addRow({});
-  ws.categories.forEach((c) => ww.addRow({ c: c.name, a: T('Total kategori'), v: c.total }));
-  const tw = ww.addRow({ c: T('TOTAL BERSIH'), v: ws.net });
-  tw.font = { bold: true };
+  head(ww, [{ header: T('Tanggal'), key: 'd', width: 12 }, ...m.columns.map((c, i) => ({ header: c.category ? `${c.name} (${c.category})` : c.name, key: 'a' + i, width: 18, style: { numFmt: money } })), { header: T('Total'), key: 't', width: 18, style: { numFmt: money } }, { header: T('Perubahan'), key: 'p', width: 16, style: { numFmt: money } }]);
+  m.snaps.forEach((sn) => {
+    const row = { d: parseLocal(sn.date), t: sn.total, p: sn.delta };
+    m.columns.forEach((c, i) => { row['a' + i] = sn.cells[c.key].value; });
+    const xr = ww.addRow(row);
+    xr.getCell('d').numFmt = 'dd/mm/yyyy';
+    m.columns.forEach((c, i) => { if (sn.cells[c.key].carried) xr.getCell('a' + i).font = { italic: true, color: { argb: 'FF8A94A6' } }; });
+    xr.getCell('t').font = { bold: true };
+  });
   await wb.xlsx.writeFile(filePath);
   return filePath;
 }

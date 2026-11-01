@@ -72,7 +72,10 @@ const GUIDE_ID = [
       ['Anggaran', 'Panel kanan menunjukkan pemakaian per kategori. Klik angkanya untuk anggaran khusus bulan itu. Anggaran default ada di tab "Kategori & anggaran".'],
       ['Sisa anggaran', 'Total anggaran dikurangi pengeluaran di kategori yang punya anggaran. Set anggaran 0 bila tidak ingin memakainya.'],
       ['Rekap tahunan', 'Grafik arus kas, perbandingan dengan tahun lalu, tabel per bulan, dan komposisi per kategori.'],
-      ['Total Wealth', 'Tab terakhir. Catat nilai aset (cash, saham, kripto, emas, kategori bebas). Total dihitung dari nilai terbaru tiap aset. Utang ditulis negatif. Ikon ⟳ membuat baris nilai baru untuk aset yang sama.'],
+      ['Total Wealth', 'Tab terakhir, seperti spreadsheet: satu kolom per akun (bank, e-wallet, cash, saham, reksa dana), satu baris per tanggal, plus kolom Total dan Perubahan. "Tanggal baru" menyalin nilai terakhir, jadi cukup ubah yang berubah. Sel kosong memakai nilai tanggal sebelumnya. Utang ditulis negatif.'],
+      ['Grafik kekayaan', 'Di atas tabel. Sumbu waktunya mengikuti tanggal pencatatan yang sebenarnya, jadi jarak antar titik sesuai jarak antar tanggal. Pilih rentang 3 bulan sampai Semua, atau Per akun untuk melihat komposisinya.'],
+      ['Impor dari spreadsheet', 'Total Wealth → "Impor / tempel": salin tabel dari Google Sheets/Excel (Tanggal + kolom akun) lalu tempel, atau pilih file CSV. Kolom Total dilewati, format tanggal D/M atau M/D dikenali otomatis.'],
+      ['Kolom akun', 'Klik judul kolom untuk ganti nama atau kategori. Klik kanan untuk geser kiri/kanan atau hapus kolom.'],
       ['Ekspor & impor', 'Ekspor Excel (semua sheet termasuk Total Wealth), ekspor CSV, dan impor CSV lewat ikon di kanan atas.']
     ],
     open: { page: 'fin' }
