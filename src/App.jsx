@@ -18,6 +18,7 @@ const Clipboard = lazy(() => import('./pages/Clipboard.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Guide = lazy(() => import('./pages/Guide.jsx'));
 import Tour from './components/Tour.jsx';
+import QuickBot from './components/QuickBot.jsx';
 import Resizer, { usePanelWidth } from './components/Resizer.jsx';
 import { T } from './lib/i18n.js';
 
@@ -184,6 +185,7 @@ export default function App() {
         </div>
       </div>
 
+      {!locked && <QuickBot />}
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className="card toast" role="status">

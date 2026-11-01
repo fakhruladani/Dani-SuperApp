@@ -56,6 +56,7 @@ const P = {
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01',
   key: 'M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7zM16 8h.01',
   folder: 'M3 6h6l2 2h10v11H3z',
+  chat: 'M4 5h16v11H10l-5 4v-4H4zM8 10h8M8 13h5',
   cut: 'M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.4 20 18M8.1 16.6 20 6',
   paste: 'M9 3h6v3H9zM8 4H5v17h14V4h-3M9 12h6M9 16h4',
   selectAll: 'M4 4h16v16H4zM8 8h8v8H8z',
