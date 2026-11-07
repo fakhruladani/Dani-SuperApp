@@ -6,7 +6,7 @@ import { t as T } from '../../shared/i18n.js';
 const GUIDE_ID = [
   {
     id: 'mulai', icon: 'bolt', title: 'Mulai cepat', where: 'Seluruh aplikasi',
-    intro: 'Dani SuperApp berjalan di latar belakang sejak Windows menyala. Ikon "D" ada di tray (pojok kanan bawah). Klik ikon itu untuk membuka jendela utama.',
+    intro: 'D\'Super App berjalan di latar belakang sejak Windows menyala. Ikon "D" ada di tray (pojok kanan bawah). Klik ikon itu untuk membuka jendela utama.',
     items: [
       ['Pindah menu', 'Pakai menu di kiri, atau Ctrl+1 sampai Ctrl+8 sesuai urutan menu.'],
       ['Cari apa saja', 'Tekan Ctrl+K untuk mencari catatan, acara, tugas, dan transaksi, atau menjalankan perintah seperti "Buat catatan baru".'],

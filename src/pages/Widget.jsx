@@ -19,7 +19,7 @@ export default function Widget() {
   return (
     <div className="win-small" style={{ padding: 14, gap: 12, borderRadius: 0 }}>
       <div className="row drag">
-        <span className="lbl grow">{T("Dani SuperApp")}</span>
+        <span className="lbl grow">{T("D'Super App")}</span>
         <button className="icb sm nodrag" aria-label={T("Buka aplikasi")} onClick={() => api('win:show')}><Icon name="external" size="sm" /></button>
         <button className="icb sm nodrag" aria-label={T("Tutup widget")} onClick={() => api('win:closeSelf')}><Icon name="x" size="sm" /></button>
       </div>

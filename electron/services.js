@@ -9,7 +9,7 @@ import { t as T, lang } from '../shared/i18n.js';
 const require = createRequire(import.meta.url);
 const iconv = require('iconv-lite');
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DaniSuperApp/1.0';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DSuperApp/1.0';
 
 async function fetchRaw(url, { timeout = 15000, headers = {} } = {}) {
   const ctl = new AbortController();
@@ -81,7 +81,7 @@ export async function searchPlace(q) {
 
 export async function reverseGeocode(lat, lon) {
   try {
-    const j = await fetchJson(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14&accept-language=id`, { headers: { 'User-Agent': 'DaniSuperApp/1.0 (personal desktop app)' } });
+    const j = await fetchJson(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14&accept-language=id`, { headers: { 'User-Agent': 'DSuperApp/1.0 (personal desktop app)' } });
     const a = j.address || {};
     const local = a.village || a.suburb || a.neighbourhood || a.town || a.city_district || a.city || a.county;
     const city = a.city || a.town || a.county || a.state;

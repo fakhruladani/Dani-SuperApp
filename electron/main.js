@@ -77,7 +77,7 @@ function createMain() {
   const c = themeColors();
   mainWin = new BrowserWindow({
     width: 1380, height: 880, minWidth: 980, minHeight: 640, show: false, backgroundColor: c.bg,
-    title: 'Dani SuperApp', icon: asset('icon.png'),
+    title: "D'Super App", icon: asset('icon.png'),
     titleBarStyle: 'hidden', titleBarOverlay: { color: c.surface, symbolColor: c.text, height: 44 },
     webPreferences
   });
@@ -171,7 +171,7 @@ function newSticky() {
 // ---------------- tray ----------------
 function createTray() {
   tray = new Tray(nativeImage.createFromPath(asset('tray.png')));
-  tray.setToolTip('Dani SuperApp');
+  tray.setToolTip("D'Super App");
   buildTrayMenu();
   tray.on('click', () => showMain());
 }
@@ -179,7 +179,7 @@ function buildTrayMenu() {
   const u = upd.status();
   tray?.setContextMenu(Menu.buildFromTemplate([
     ...(u.state === 'ready' ? [{ label: T('Pasang pembaruan {v} & mulai ulang', { v: u.version }), click: () => upd.install() }, { type: 'separator' }] : []),
-    { label: T('Buka Dani SuperApp'), click: () => showMain() },
+    { label: T("Buka D'Super App"), click: () => showMain() },
     { label: T('Catatan cepat'), accelerator: db.getSetting('quickShortcut'), click: toggleQuick },
     { label: T('Widget mini'), click: toggleWidget },
     { label: T('Sticky note baru'), click: () => newSticky() },
@@ -343,7 +343,7 @@ h('backup:chooseDir', async () => {
 h('backup:restore', async (filePath, keyHex) => {
   let p = filePath;
   if (!p) {
-    const r = await dialog.showOpenDialog(mainWin, { title: T('Pilih file backup'), defaultPath: backupDir(), filters: [{ name: T('Backup Dani SuperApp'), extensions: ['dsabak', 'enc'] }], properties: ['openFile'] });
+    const r = await dialog.showOpenDialog(mainWin, { title: T('Pilih file backup'), defaultPath: backupDir(), filters: [{ name: T("Backup D'Super App"), extensions: ['dsabak', 'enc'] }], properties: ['openFile'] });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
     p = r.filePaths[0];
   }
@@ -378,7 +378,7 @@ h('import:csv', async () => {
   return io.importFinanceCsv(r.filePaths[0]);
 });
 h('export:ics', async () => {
-  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor kalender'), defaultPath: path.join(app.getPath('documents'), T('Kalender Dani') + '.ics'), filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor kalender'), defaultPath: path.join(app.getPath('documents'), T('Kalender') + '.ics'), filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
   if (r.canceled || !r.filePath) return null;
   return io.exportIcs(r.filePath);
 });
@@ -539,7 +539,7 @@ app.whenReady().then(async () => {
   createTray();
   upd.initUpdater({
     broadcast, getSetting: db.getSetting,
-    onReady: (v) => { buildTrayMenu(); notify({ title: T('Pembaruan siap'), body: T('Dani SuperApp {v} sudah diunduh. Pasang dari Pengaturan → Umum atau menu tray.', { v }), payload: { nav: 'settings' } }); }
+    onReady: (v) => { buildTrayMenu(); notify({ title: T('Pembaruan siap'), body: T("D'Super App {v} sudah diunduh. Pasang dari Pengaturan → Umum atau menu tray.", { v }), payload: { nav: 'settings' } }); }
   });
   applyAutostart();
   applyShortcut();

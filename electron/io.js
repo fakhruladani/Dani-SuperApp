@@ -14,7 +14,7 @@ const catName = () => Object.fromEntries(db.list('fin_categories').map((c) => [c
 export async function exportFinanceXlsx(year, filePath) {
   ExcelJS ||= require('exceljs');
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Dani SuperApp';
+  wb.creator = "D'Super App";
   const names = catName();
   const money = '"Rp" #,##0;[Red]-"Rp" #,##0';
   const head = (ws, cols) => {
@@ -124,7 +124,7 @@ const icsDate = (s, allDay) => {
 };
 
 export function exportIcs(filePath) {
-  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Dani SuperApp//ID', 'CALSCALE:GREGORIAN', 'X-WR-TIMEZONE:Asia/Jakarta'];
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', "PRODID:-//D'Super App//ID", 'CALSCALE:GREGORIAN', 'X-WR-TIMEZONE:Asia/Jakarta'];
   for (const e of db.list('events')) {
     L.push('BEGIN:VEVENT', `UID:${e.id}@dani-superapp`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`);
     if (e.all_day) {

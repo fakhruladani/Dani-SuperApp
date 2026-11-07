@@ -1,7 +1,7 @@
 {
   "name": "dani-superapp",
-  "version": "0.9.0",
-  "description": "Dani SuperApp",
+  "version": "0.10.0",
+  "description": "D'Super App: personal workspace (calendar, notes, finance, market, tasks) for Windows",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5199 && cross-env VITE_DEV_SERVER_URL=http://localhost:5199 electron .\"",
@@ -65,7 +65,7 @@
   "build": {
     "appId": "id.dani.superapp",
     "productName": "Dani SuperApp",
-    "copyright": "Dani",
+    "copyright": "D'Super App",
     "directories": {
       "output": "release",
       "buildResources": "assets"
@@ -96,12 +96,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Dani SuperApp",
+      "shortcutName": "D'Super App",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
-      "artifactName": "Dani-SuperApp-Setup-${version}.exe"
+      "artifactName": "DSuperApp-Setup-${version}.exe",
+      "uninstallDisplayName": "D'Super App"
     },
     "electronLanguages": [
       "id",

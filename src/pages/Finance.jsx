@@ -6,6 +6,7 @@ import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
 import { rupiah, parseAmount, formatAmountInput } from '../lib/format.js';
 import { MONTH_ID, MONTH_SHORT, pad, toLocalDate } from '../../shared/recur.js';
 import { T } from '../lib/i18n.js';
+import { guessCategory } from '../../shared/categorize.js';
 import WealthSheet from '../components/WealthSheet.jsx';
 import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
 import { openMenu, textItems } from '../components/ContextMenu.jsx';
@@ -101,7 +102,14 @@ function Monthly({ year, month, setMonth, cats }) {
     const amount = nr.inn || nr.out;
     if (!amount) return;
     const kind = nr.inn ? 'in' : 'out';
-    const cat = nr.category_id && cats.find((c) => c.id === nr.category_id && c.kind === kind) ? nr.category_id : cats.find((c) => c.kind === kind && !c.archived)?.id;
+    let cat = nr.category_id && cats.find((c) => c.id === nr.category_id && c.kind === kind) ? nr.category_id : null;
+    if (!cat) { // "(otomatis)": same description as before, else keywords, else "Lainnya"
+      const desc = String(nr.description || '').trim();
+      const history = desc ? await DB.list('fin_tx', { where: { description: { like: desc } }, order: 'date desc', limit: 50 }) : [];
+      cat = guessCategory(desc, kind, cats, history)?.id;
+      const c = cats.find((x) => x.id === cat);
+      if (c) app.toast(T('Kategori otomatis: {c}', { c: c.name }));
+    }
     const day = Math.min(new Date(year, month, 0).getDate(), Math.max(1, Number(nr.day) || (isCur ? today.getDate() : 1)));
     await DB.save('fin_tx', { date: `${ym}-${pad(day)}`, description: nr.description, category_id: cat, kind, amount, note: '' });
     setNr({ day: nr.day, description: '', category_id: nr.category_id, inn: 0, out: 0 });

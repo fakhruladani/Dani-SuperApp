@@ -145,7 +145,7 @@ export default function Home() {
     <div className="page">
       <div className="row wrap" style={{ alignItems: 'flex-end', gap: 12 }}>
         <div className="col grow" style={{ gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>{greeting(now)}{T(", Dani")}</h1>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>{greeting(now)}</h1>
           <span className="mut">{T('{n} agenda hari ini', { n: todayEvents })} · {T('{n} tugas', { n: todayTasks.length })}{overdue ? ' ' + T('({n} terlambat)', { n: overdue }) : ''} · {T('{n} kebiasaan belum dicentang', { n: habits.data ? habits.data.filter((h) => !h.done).length : 0 })}</span>
         </div>
         <button className="btn" onClick={() => app.nav('notes', { newNote: Date.now() })}><Icon name="plus" size="sm" />{T("Catatan|add")}</button>

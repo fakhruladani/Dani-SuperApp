@@ -61,7 +61,7 @@ export function encrypt(buf, k = key) {
 }
 
 export function decrypt(buf, k = key) {
-  if (!buf.subarray(0, 4).equals(MAGIC)) throw new Error('Bukan file data Dani SuperApp');
+  if (!buf.subarray(0, 4).equals(MAGIC)) throw new Error("Bukan file data D'Super App");
   const iv = buf.subarray(4, 16), tag = buf.subarray(16, 32), data = buf.subarray(32);
   const d = crypto.createDecipheriv('aes-256-gcm', k, iv);
   d.setAuthTag(tag);

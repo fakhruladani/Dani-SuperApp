@@ -271,16 +271,16 @@ export default function Settings() {
             {[['focusMin', 25], ['shortMin', 5], ['longMin', 15]].map(([k, d]) => <input key={k} type="number" min={1} max={180} className="field num" aria-label={k} value={s[k] || d} onChange={(e) => app.setSetting(k, Math.max(1, Number(e.target.value) || d))} style={{ width: 80 }} />)}
           </Row>
           <Row title={T("Tes notifikasi")} desc={T(
-            "Pastikan Windows mengizinkan notifikasi dari Dani SuperApp (Pengaturan Windows → Sistem → Notifikasi) dan Focus Assist / Jangan Ganggu tidak aktif."
+            "Pastikan Windows mengizinkan notifikasi dari D'Super App (Pengaturan Windows → Sistem → Notifikasi) dan Focus Assist / Jangan Ganggu tidak aktif."
           )}>
-            <button className="btn" onClick={() => { try { new Notification('Tes notifikasi', { body: T("Notifikasi Dani SuperApp berfungsi.") }); } catch { app.toast({ text: T("Notifikasi tidak didukung"), error: true }); } }}><Icon name="bell" size="sm" />{T("Kirim tes")}</button>
+            <button className="btn" onClick={() => { try { new Notification('Tes notifikasi', { body: T("Notifikasi D'Super App berfungsi.") }); } catch { app.toast({ text: T("Notifikasi tidak didukung"), error: true }); } }}><Icon name="bell" size="sm" />{T("Kirim tes")}</button>
           </Row>
         </>}
         {tab === 'keamanan' && <Security />}
         {tab === 'backup' && <>
           <Backup />
           <Row title={T("Lokasi data")} desc={`${info.data?.dataDir || ''} · ${T('enkripsi kunci via Windows:')} ${info.data?.encrypted ? T('aktif') : T('tidak tersedia')}`} />
-          <Row title={T("Versi")} desc={`Dani SuperApp ${info.data?.version || ''}`} />
+          <Row title={T("Versi")} desc={`D'Super App ${info.data?.version || ''}`} />
         </>}
         {tab === 'berita' && <>
           <Row title={T("Interval pembaruan market & alert harga")}>

@@ -1,6 +1,6 @@
-# Dani SuperApp
+# D'Super App
 
-**Dani SuperApp adalah ruang kerja pribadi di desktop Windows.** Kalender dengan pengingat, catatan yang bisa dicoret pakai pena, buku keuangan bergaya spreadsheet, total kekayaan, market dan berita, cuaca, serta fokus dan tugas, semuanya dalam satu aplikasi. Data disimpan di laptop sendiri dan dienkripsi.
+**D'Super App adalah ruang kerja pribadi di desktop Windows.** Kalender dengan pengingat, catatan yang bisa dicoret pakai pena, buku keuangan bergaya spreadsheet, total kekayaan, market dan berita, cuaca, serta fokus dan tugas, semuanya dalam satu aplikasi. Data disimpan di laptop sendiri dan dienkripsi.
 
 Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Bahasa / Language). Mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows. Mode terang, gelap, atau ikuti sistem.
 
@@ -85,13 +85,13 @@ Sumber data online: Open-Meteo (cuaca), Open-Meteo Geocoding dan Nominatim (loka
 
 ## Instalasi
 
-1. Unduh `Dani-SuperApp-Setup-<versi>.exe` dari halaman [Releases](https://github.com/fakhruladani/Dani-SuperApp/releases), atau build sendiri (lihat bagian Pengembangan).
+1. Unduh `DSuperApp-Setup-<versi>.exe` dari halaman [Releases](https://github.com/fakhruladani/Dani-SuperApp/releases), atau build sendiri (lihat bagian Pengembangan).
 2. Jalankan installer. Installer belum ditandatangani, jadi Windows SmartScreen bisa menampilkan "Windows protected your PC". Klik **More info**, lalu **Run anyway**.
 3. Aplikasi otomatis berjalan saat Windows menyala dan langsung tersembunyi di tray (ikon "D" di pojok kanan bawah). Bisa dimatikan di Pengaturan.
 
 Agar notifikasi muncul:
 
-- Pengaturan Windows → Sistem → Notifikasi: izinkan **Dani SuperApp**.
+- Pengaturan Windows → Sistem → Notifikasi: izinkan **D'Super App**.
 - Matikan Focus Assist atau "Jangan Ganggu" bila ingin notifikasi tetap tampil.
 - Notifikasi hanya andal dari versi yang diinstal, bukan dari `npm run dev`.
 
@@ -99,7 +99,7 @@ Agar notifikasi muncul:
 
 Mulai v0.6.0 aplikasi memperbarui dirinya sendiri: setiap beberapa jam ia mengecek rilis terbaru di GitHub, mengunduhnya di latar belakang, lalu muncul tombol **Pasang & mulai ulang** di Pengaturan → Umum dan di menu tray. Bisa juga cek manual dari tombol **Cek sekarang**, atau matikan pengecekan otomatis.
 
-Cara manual tetap bisa: jalankan installer versi baru langsung, tanpa uninstall. Data tetap ada karena disimpan di `%APPDATA%\Dani SuperApp`, terpisah dari folder program. Setiap kali versi berganti, aplikasi membuat backup otomatis bernama `...-sebelum-v<versi>.dsabak`.
+Cara manual tetap bisa: jalankan installer versi baru langsung, tanpa uninstall. Data tetap ada karena disimpan di `%APPDATA%\Dani SuperApp`, terpisah dari folder program. Nama folder data, folder instalasi, dan file program tetap memakai nama lama (`Dani SuperApp`) supaya data pengguna lama tidak hilang. Setiap kali versi berganti, aplikasi membuat backup otomatis bernama `...-sebelum-v<versi>.dsabak`.
 
 ---
 

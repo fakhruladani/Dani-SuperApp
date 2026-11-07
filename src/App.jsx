@@ -135,7 +135,7 @@ export default function App() {
           <div className="brand">
             <div className="logo">D</div>
             <div className="col" style={{ gap: 0 }}>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>{T("Dani SuperApp")}</span>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>{T("D'Super App")}</span>
               <span className="mut" style={{ fontSize: 12 }}>{T("Ruang kerja pribadi")}</span>
             </div>
           </div>

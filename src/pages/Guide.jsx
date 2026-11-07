@@ -23,7 +23,7 @@ export default function Guide() {
     <div className="page" style={{ maxWidth: 1200 }}>
       <section className="card pad row wrap" style={{ gap: 16, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
         <div className="col grow" style={{ gap: 4, minWidth: 260 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{T("Panduan Dani SuperApp")}</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{T("Panduan D'Super App")}</h1>
           <span style={{ color: 'var(--accent-text)' }}>{T("Semua fitur, letaknya, dan cara memakainya. Buka kapan saja dengan F1.")}</span>
         </div>
         <button className="btn pri" onClick={() => app.startTour(0)}><Icon name="play" size="sm" />{T("Mulai tur singkat")}</button>
