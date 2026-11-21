@@ -17,7 +17,7 @@ const MAGIC = Buffer.from('DSA1');
 
 export const SCHEMA = {
   calendars: { id: 'text', name: 'text', color: 'text', visible: 'int', sort: 'int' },
-  events: { id: 'text', title: 'text', description: 'text', location: 'text', start: 'text', end: 'text', all_day: 'int', calendar_id: 'text', repeat: 'text', repeat_until: 'text', reminder_min: 'int' },
+  events: { id: 'text', title: 'text', description: 'text', location: 'text', start: 'text', end: 'text', all_day: 'int', calendar_id: 'text', repeat: 'text', repeat_until: 'text', reminder_min: 'int', color: 'text' }, // color: own color, empty = calendar's
   day_notes: { id: 'text', text: 'text' },
   reminder_log: { id: 'text', status: 'text', fired_at: 'text', snooze_until: 'text' },
   tasks: { id: 'text', title: 'text', notes: 'text', due_date: 'text', due_time: 'text', tag: 'text', priority: 'int', done: 'int', done_at: 'text', reminder_min: 'int', sort: 'int' },

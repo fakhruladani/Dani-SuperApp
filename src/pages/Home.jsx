@@ -95,7 +95,7 @@ export default function Home() {
     let hol = [];
     try { hol = (await api('holidays')).items; } catch { /* offline */ }
     const end = addDays(start, 7);
-    const occ = expandAll(evs, start, end).map((o) => ({ ...o, color: color[o.calendar_id] || 'c1' }));
+    const occ = expandAll(evs, start, end).map((o) => ({ ...o, color: o.color || color[o.calendar_id] || 'c1' }));
     const h = expandAll(hol.filter((x) => !x.observance).map((x) => ({ ...x, all_day: 1 })), start, end).map((o) => ({ ...o, holiday: true, color: 'c4' }));
     return [...occ, ...h].sort((a, b) => a.occStart - b.occStart).slice(0, 7);
   }, [today], ['events', 'calendars']);

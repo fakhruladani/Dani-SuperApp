@@ -21,10 +21,11 @@ export default function Tour({ index, setIndex, nav, onClose }) {
       const r = el.getBoundingClientRect();
       setRect((p) => (p && p.top === r.top && p.left === r.left && p.width === r.width && p.height === r.height ? p : { top: r.top, left: r.left, width: r.width, height: r.height }));
     };
-    setRect(null);
+    // keep the previous highlight until the new element exists, so it glides there instead of jumping via the centre
+    const raf = requestAnimationFrame(measure);
     const iv = setInterval(() => { n += 1; measure(); if (n > 25) clearInterval(iv); }, 120);
     window.addEventListener('resize', measure);
-    return () => { clearInterval(iv); window.removeEventListener('resize', measure); };
+    return () => { cancelAnimationFrame(raf); clearInterval(iv); window.removeEventListener('resize', measure); };
   }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

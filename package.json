@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "D'Super App: personal workspace (calendar, notes, finance, market, tasks) for Windows",
   "main": "electron/main.js",
   "scripts": {

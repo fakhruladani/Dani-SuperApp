@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, ComposedChart, Legend, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, ComposedChart, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
 import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Field } from '../components/ui.jsx';
 import { api, DB, useApp, useQuery, themeColors } from '../lib/api.js';
@@ -78,6 +78,68 @@ function TxRow({ tx, cats, onDelete }) {
   );
 }
 
+// Daily spending for the month (bars) and the running total against the month's budget (line).
+// Follows the sheet's category filter.
+function DailyChart({ year, month, tx, catF, cats, budgets }) {
+  const app = useApp();
+  const C = useMemo(() => themeColors(), [app.dark]); // eslint-disable-line react-hooks/exhaustive-deps
+  const days = new Date(year, month, 0).getDate();
+  const now = new Date();
+  const isCur = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const lastDay = isCur ? now.getDate() : days; // running total stops today in the current month
+  const out = tx.filter((t) => t.kind === 'out' && (!catF || t.category_id === catF));
+  const perDay = Array(days + 1).fill(0);
+  for (const t of out) perDay[Number(t.date.slice(8, 10))] += t.amount;
+  let cum = 0;
+  const data = Array.from({ length: days }, (_, i) => {
+    const d = i + 1;
+    cum += perDay[d];
+    return { d, out: perDay[d], cum: d <= lastDay ? cum : null };
+  });
+  const budget = catF ? (budgets.find((b) => b.category_id === catF)?.budget || 0) : budgets.reduce((s, b) => s + (b.budget || 0), 0);
+  const total = cum;
+  const activeDays = perDay.slice(1, lastDay + 1).length || 1;
+  const avg = total / activeDays;
+  const max = Math.max(...perDay);
+  const maxDay = perDay.indexOf(max);
+  const catName = catF ? cats.find((c) => c.id === catF)?.name : null;
+  const short = (v) => rupiah(v, { short: true }).replace('Rp ', '');
+  return (
+    <section className="card pad col" style={{ gap: 10 }}>
+      <div className="row wrap" style={{ gap: 12 }}>
+        <div className="col grow" style={{ gap: 0 }}>
+          <h2 className="h2">{T('Pengeluaran harian')}{catName ? ` · ${catName}` : ''}</h2>
+          <span className="mut" style={{ fontSize: 12 }}>{T('Batang = pengeluaran per tanggal · garis = total berjalan')}{budget ? ' · ' + T('garis putus = anggaran') : ''}</span>
+        </div>
+        <div className="col" style={{ gap: 0, alignItems: 'flex-end', fontSize: 12 }}>
+          <span className="mut">{T('Rata-rata per hari')}</span><strong className="num" style={{ fontSize: 15 }}>{rupiah(Math.round(avg))}</strong>
+        </div>
+        {max > 0 && <div className="col" style={{ gap: 0, alignItems: 'flex-end', fontSize: 12 }}>
+          <span className="mut">{T('Tertinggi · tgl {d}', { d: maxDay })}</span><strong className="num dn" style={{ fontSize: 15 }}>{rupiah(max)}</strong>
+        </div>}
+      </div>
+      {out.length === 0 ? <div className="empty" style={{ padding: '30px 0' }}>{T('Belum ada pengeluaran bulan ini.')}</div> : (
+        <div style={{ height: 220 }} data-chart="daily">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="d" stroke={C.muted} tickLine={false} axisLine={false} fontSize={11} interval={days > 20 ? 1 : 0} />
+              <YAxis yAxisId="day" stroke={C.muted} tickLine={false} axisLine={false} width={48} fontSize={11} tickFormatter={short} />
+              <YAxis yAxisId="cum" orientation="right" stroke={C.muted} tickLine={false} axisLine={false} width={52} fontSize={11} tickFormatter={short} domain={[0, (m) => Math.max(m, budget || 0)]} />
+              <Tooltip cursor={{ fill: C.surface2 }} contentStyle={{ background: C.surface, border: '1px solid ' + C.border, borderRadius: 10, color: C.text }}
+                labelFormatter={(d) => `${d} ${MONTH_ID[month - 1]} ${year}`}
+                formatter={(v, k) => [rupiah(v), k === 'out' ? T('Pengeluaran') : T('Total berjalan')]} />
+              <Bar yAxisId="day" dataKey="out" fill={C.neg} radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false} />
+              <Line yAxisId="cum" dataKey="cum" stroke={C.accent} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+              {budget > 0 && <ReferenceLine yAxisId="cum" y={budget} stroke={C.accent} strokeDasharray="5 4" strokeOpacity={0.7} />}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Monthly({ year, month, setMonth, cats }) {
   const app = useApp();
   const sideW = usePanelWidth('finSide', 320, 260, 520);
@@ -131,7 +193,8 @@ function Monthly({ year, month, setMonth, cats }) {
         <div className="card stat"><span className="lbl">{T("Sisa anggaran")}</span><span className={`v num ${cap && cap - spentBudgeted < 0 ? 'dn' : ''}`}>{cap ? rupiah(cap - spentBudgeted) : '—'}</span><span className="mut" style={{ fontSize: 12 }}>{cap ? T('dari {v} (kategori beranggaran)', { v: rupiah(cap) }) + (isCur ? ' · ' + T('{n} hari lagi', { n: daysLeft }) : '') : T("belum ada anggaran")}</span></div>
       </div>
       <div className="row" style={{ gap: 16, alignItems: 'stretch' }}>
-        <section className="card" style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden', alignSelf: 'flex-start' }}>
+        <div className="col" style={{ flex: '1 1 0', minWidth: 0, gap: 16, alignSelf: 'flex-start' }}>
+        <section className="card" style={{ overflow: 'hidden' }}>
           <div className="row wrap" style={{ padding: '12px 16px' }}>
             <h2 className="h2 grow">{T("Lembar")} {MONTH_ID[month - 1]} {year}</h2>
             <label className="sr" htmlFor="fq">{T("Cari")}</label>
@@ -160,6 +223,8 @@ function Monthly({ year, month, setMonth, cats }) {
             </table>
           </div>
         </section>
+        <DailyChart year={year} month={month} tx={tx.data || []} catF={catF} cats={cats} budgets={budgets.data || []} />
+        </div>
         <Resizer panel={sideW} side="right" label={T('Ubah lebar panel anggaran')} />
         <section className="card pad col" style={{ flex: 'none', width: sideW.width, gap: 12, alignSelf: 'flex-start' }}>
           <div className="row"><h2 className="h2 grow">{T("Anggaran")} {MONTH_SHORT[month - 1]}</h2><span className="mut" style={{ fontSize: 12 }}>{T("klik angka untuk ubah")}</span></div>

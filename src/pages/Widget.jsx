@@ -39,7 +39,7 @@ export default function Widget() {
         {(evs.data || []).length === 0 && <span className="mut" style={{ fontSize: 13 }}>{T("Tidak ada agenda.")}</span>}
         {(evs.data || []).map((o) => (
           <button key={o.key} className="mini-ev" style={{ padding: '7px 10px' }} onClick={() => api('win:show', { nav: 'cal', date: toLocalDate(o.occStart) })}>
-            <span className="num mut" style={{ fontSize: 12, width: 44 }}>{toLocalDate(o.occStart) === today ? (o.all_day ? T("Hari ini") : fmtTime(o.occStart)) : T("Besok")}</span>
+            <span className="num mut" style={{ fontSize: 12, minWidth: 44, flex: 'none', whiteSpace: 'nowrap' }}>{toLocalDate(o.occStart) === today ? (o.all_day ? T("Hari ini") : fmtTime(o.occStart)) : T("Besok")}</span>
             <span className="ellipsis grow" style={{ fontWeight: 600, fontSize: 13 }}>{o.title}</span>
           </button>
         ))}

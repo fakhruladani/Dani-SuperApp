@@ -30,7 +30,7 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
       all_day: !!initial.all_day, date: toLocalDate(s), time: initial.all_day ? '09:00' : toLocalDateTime(s).slice(11),
       endDate: toLocalDate(e), endTime: initial.all_day ? '10:00' : toLocalDateTime(e).slice(11),
       calendar_id: initial.calendar_id || calendars[0]?.id, repeat: initial.repeat || 'none', repeat_until: initial.repeat_until || '',
-      reminder_min: initial.reminder_min ?? defaultReminder
+      reminder_min: initial.reminder_min ?? defaultReminder, color: initial.color || ''
     };
   });
   const set = (k) => (e) => setF({ ...f, [k]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e });
@@ -40,7 +40,7 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
     let start = f.all_day ? f.date : `${f.date}T${f.time}`;
     let end = f.all_day ? (f.endDate < f.date ? f.date : f.endDate) : `${f.endDate}T${f.endTime}`;
     if (!f.all_day && parseLocal(end) <= parseLocal(start)) end = toLocalDateTime(new Date(parseLocal(start).getTime() + 3600000));
-    await DB.save('events', { id: initial.id, title: f.title.trim(), description: f.description, location: f.location, start, end, all_day: f.all_day ? 1 : 0, calendar_id: f.calendar_id, repeat: f.repeat, repeat_until: f.repeat !== 'none' && f.repeat_until ? f.repeat_until : null, reminder_min: Number(f.reminder_min) });
+    await DB.save('events', { id: initial.id, title: f.title.trim(), description: f.description, location: f.location, start, end, all_day: f.all_day ? 1 : 0, calendar_id: f.calendar_id, color: f.color || null, repeat: f.repeat, repeat_until: f.repeat !== 'none' && f.repeat_until ? f.repeat_until : null, reminder_min: Number(f.reminder_min) });
     app.toast(isNew ? T('Acara disimpan') : T('Acara diperbarui'));
     onClose(true);
   };
@@ -77,6 +77,14 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
         </Field>
         {f.repeat !== 'none' && <Field label={T("Berakhir pada (opsional)")}><input type="date" className="field" value={f.repeat_until} min={f.date} onChange={set('repeat_until')} /></Field>}
       </div>
+      <Field label={T("Warna acara")}>
+        <div className="row wrap" style={{ gap: 6 }}>
+          <button type="button" className={`chip ${!f.color ? 'on' : ''}`} onClick={() => setF({ ...f, color: '' })}>
+            <span className={`dot k-${calendars.find((c) => c.id === f.calendar_id)?.color || 'c1'}`} />{T("Ikut kalender")}
+          </button>
+          <ColorPick value={f.color} onChange={(c) => setF({ ...f, color: c })} />
+        </div>
+      </Field>
       <Field label={T("Lokasi")}><input className="field" value={f.location} onChange={set('location')} placeholder="opsional" /></Field>
       <Field label={T("Deskripsi")}><textarea className="field" rows={3} value={f.description} onChange={set('description')} placeholder={T("Catatan untuk acara ini")} /></Field>
       {f.repeat !== 'none' && !isNew && <span className="mut" style={{ fontSize: 12 }}>{T("Perubahan berlaku untuk semua pengulangan acara ini.")}</span>}
@@ -138,7 +146,7 @@ export default function Calendar() {
     if (!range) return [];
     const visible = (events.data || []).filter((e) => (calMap[e.calendar_id]?.visible ?? 1) !== 0);
     const occ = expandAll(visible, range.start, range.end).map((o) => {
-      const c = calMap[o.calendar_id]?.color || 'c1';
+      const c = o.color || calMap[o.calendar_id]?.color || 'c1';
       return {
         id: o.key, title: o.title, start: o.occStart, end: o.occEnd, allDay: !!o.all_day,
         classNames: ['ev-k', `k-${c}`], editable: !o.repeat || o.repeat === 'none',
@@ -157,7 +165,7 @@ export default function Calendar() {
   const selDate = parseLocal(sel);
   const dayEvents = useMemo(() => {
     const s = parseLocal(sel);
-    return expandAll(events.data || [], s, addDays(s, 1)).map((o) => ({ ...o, color: calMap[o.calendar_id]?.color || 'c1' }));
+    return expandAll(events.data || [], s, addDays(s, 1)).map((o) => ({ ...o, color: o.color || calMap[o.calendar_id]?.color || 'c1' }));
   }, [sel, events.data, calMap]);
   const dayTasks = (tasks.data || []).filter((t) => t.due_date === sel);
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import NoteEditor from '../components/NoteEditor.jsx';
 import { Modal, Field } from '../components/ui.jsx';
@@ -8,6 +8,76 @@ import { T } from '../lib/i18n.js';
 import Resizer, { usePanelWidth } from '../components/Resizer.jsx';
 import { openMenu } from '../components/ContextMenu.jsx';
 import { noteItems } from '../lib/menus.js';
+
+// One row: All, Pinned, as many of the most used tags as fit (the selected one first), and a
+// "+N" button that opens every tag with a search box. The row never wraps, however many tags exist.
+function TagFilter({ tags, tag, setTag }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [fit, setFit] = useState(tags.length);
+  const ref = useRef();
+  const rowRef = useRef();
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener('mousedown', close);
+    window.addEventListener('keydown', esc, true);
+    return () => { document.removeEventListener('mousedown', close); window.removeEventListener('keydown', esc, true); };
+  }, [open]);
+  const sel = tag && tag !== '__pin' ? tag : null;
+  const order = sel ? [sel, ...tags.map((x) => x.t).filter((t) => t !== sel)] : tags.map((x) => x.t);
+  const candidates = order.slice(0, 12);
+  // count how many chips fit in the row; re-measured when the panel is resized
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) return undefined;
+    const measure = () => {
+      const max = row.getBoundingClientRect().right;
+      let n = 0;
+      for (const el of row.children) { if (el.getBoundingClientRect().right <= max + 0.5) n++; else break; }
+      setFit(n);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(row);
+    return () => ro.disconnect();
+  }, [candidates.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rest = tags.length - Math.min(fit, candidates.length);
+  const found = tags.filter((x) => x.t.toLowerCase().includes(q.trim().toLowerCase().replace(/^#/, '')));
+  const pick = (t) => { setTag(t); setOpen(false); setQ(''); };
+  return (
+    <div ref={ref} className="row" style={{ gap: 6, position: 'relative', flexWrap: 'nowrap', minWidth: 0 }}>
+      <button className={`chip ${!tag ? 'on' : ''}`} style={{ flex: 'none' }} onClick={() => setTag('')}>{T("Semua")}</button>
+      <button className={`chip ${tag === '__pin' ? 'on' : ''}`} style={{ flex: 'none' }} onClick={() => setTag('__pin')}>{T("Disematkan")}</button>
+      <div ref={rowRef} className="row grow" style={{ gap: 6, flexWrap: 'nowrap', overflow: 'hidden', minWidth: 0 }}>
+        {candidates.map((t, i) => (
+          <button key={t} className={`chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)} title={'#' + t}
+            style={{ flex: 'none', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', visibility: i < fit ? 'visible' : 'hidden' }}>#{t}</button>
+        ))}
+      </div>
+      {tags.length > 0 && (
+        <button className={`chip ${open ? 'on' : ''}`} aria-haspopup="listbox" aria-expanded={open} title={T('Semua tag')} onClick={() => setOpen(!open)} style={{ flex: 'none' }}>
+          <Icon name="plus" size="sm" style={{ width: 12, height: 12 }} />{rest > 0 ? rest : ''}
+        </button>
+      )}
+      {open && (
+        <div className="card tag-pop">
+          <input className="field" autoFocus placeholder={T('Cari tag…')} value={q} onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && found[0]) pick(found[0].t); }} style={{ minHeight: 34 }} />
+          <div className="col" role="listbox" aria-label={T('Semua tag')} style={{ gap: 2, maxHeight: 260, overflow: 'auto' }}>
+            {found.length === 0 && <span className="mut" style={{ fontSize: 13, padding: 6 }}>{T('Tidak ada tag yang cocok.')}</span>}
+            {found.map((x) => (
+              <button key={x.t} role="option" aria-selected={tag === x.t} className={`tag-opt ${tag === x.t ? 'on' : ''}`} onClick={() => pick(x.t)}>
+                <span className="grow ellipsis">#{x.t}</span><span className="mut num">{x.c}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Notes() {
   const app = useApp();
@@ -31,7 +101,12 @@ export default function Notes() {
   useEffect(() => { if (app.params.newNote) create(); if (app.params.noteId) setSelId(app.params.noteId); }, [app.params._t]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!selId && notes.data?.length) setSelId(notes.data[0].id); }, [notes.data, selId]);
 
-  const tags = useMemo(() => [...new Set((notes.data || []).map((n) => n.tag).filter(Boolean))].sort(), [notes.data]);
+  // tags sorted by how many notes use them (most used first)
+  const tags = useMemo(() => {
+    const n = new Map();
+    for (const x of notes.data || []) if (x.tag) n.set(x.tag, (n.get(x.tag) || 0) + 1);
+    return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t, c]) => ({ t, c }));
+  }, [notes.data]);
   const list = (notes.data || []).filter((n) => (!tag || n.tag === tag || (tag === '__pin' && n.pinned)) && (!q || `${n.title} ${n.plain}`.toLowerCase().includes(q.toLowerCase())));
   const sel = (notes.data || []).find((n) => n.id === selId);
   const onSave = useCallback((row) => DB.save('notes', row), []);
@@ -52,11 +127,7 @@ export default function Notes() {
             <button className="btn pri" aria-label={T("Catatan baru")} title={T("Catatan baru")} onClick={() => create()} style={{ padding: '0 10px' }}><Icon name="plus" /></button>
           </div>
           <button className="btn sm" onClick={() => setTplOpen(true)}><Icon name="note" size="sm" />{T("Baru dari template")}</button>
-          <div className="row wrap" style={{ gap: 6 }}>
-            <button className={`chip ${!tag ? 'on' : ''}`} onClick={() => setTag('')}>{T("Semua")}</button>
-            <button className={`chip ${tag === '__pin' ? 'on' : ''}`} onClick={() => setTag('__pin')}>{T("Disematkan")}</button>
-            {tags.map((t) => <button key={t} className={`chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)}>#{t}</button>)}
-          </div>
+          <TagFilter tags={tags} tag={tag} setTag={setTag} />
           <div className="col" style={{ gap: 2, overflow: 'auto', flex: 1, margin: '0 -4px', padding: '0 4px' }}>
             {list.length === 0 && <div className="empty">{notes.data?.length ? T("Tidak ada yang cocok.") : T("Belum ada catatan. Klik + untuk membuat.")}</div>}
             {list.map((n) => (

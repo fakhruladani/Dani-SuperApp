@@ -302,8 +302,8 @@ select.field { padding-right: 28px; }
 .guide-keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px 20px; }
 .tour { position: fixed; inset: 0; z-index: 90; }
 .tour-dim { position: fixed; inset: 0; background: rgba(8, 10, 14, .55); }
-.tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(8, 10, 14, .55); pointer-events: none; }
-.tour-card { position: fixed; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-lg); z-index: 91; }
+.tour-hole { position: fixed; border-radius: 14px; transition: top .28s ease, left .28s ease, width .28s ease, height .28s ease; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(8, 10, 14, .55); pointer-events: none; }
+.tour-card { position: fixed; padding: 16px; transition: top .28s ease, left .28s ease; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-lg); z-index: 91; }
 @media (max-width: 1100px) { .guide-nav, .guide-resizer { display: none; } .guide-row { grid-template-columns: 1fr; gap: 2px; } }
 
 /* ---------- Proyek ---------- */
@@ -388,3 +388,9 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .qb-slashbtn { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font: 800 17px/1 var(--mono, monospace); cursor: pointer; }
 .qb-slashbtn.on, .qb-slashbtn:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .icb.pri { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- filter tag catatan ---------- */
+.tag-pop { position: absolute; top: 34px; left: 0; right: 0; z-index: 30; padding: 8px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-lg); }
+.tag-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.tag-opt:hover, .tag-opt.on { background: var(--surface2); }
+.tag-opt.on { color: var(--accent-text); font-weight: 700; }
