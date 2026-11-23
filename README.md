@@ -2,7 +2,7 @@
 
 **D'Super App adalah ruang kerja pribadi untuk Windows dan Android.** Kalender dengan pengingat, catatan yang bisa dicoret pakai pena, buku keuangan bergaya spreadsheet, total kekayaan, market dan berita, cuaca, serta fokus dan tugas, semuanya dalam satu aplikasi. Data disimpan di perangkat sendiri dan dienkripsi. HP dan laptop menyamakan datanya langsung lewat Wi-Fi yang sama, tanpa cloud.
 
-Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Bahasa / Language). Mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti Windows. Mode terang, gelap, atau ikuti sistem.
+Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Bahasa / Language). Mata uang Rupiah (`Rp1.250.000`), zona waktu mengikuti perangkat. Mode terang, gelap, atau ikuti sistem.
 
 ![Beranda](docs/screenshots/beranda.png)
 
@@ -12,7 +12,7 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 |---|---|
 | **Beranda** | Sapaan, jam real-time, cuaca dan lokasi (per jam dan 6 hari), agenda 7 hari, ringkasan hari ini, tugas, kebiasaan, keuangan bulan ini, pasar, berita terbaru, catatan terbaru. |
 | **Kalender** | Tampilan Hari, Minggu, Bulan, dan Agenda seperti Google Calendar. Tampilan Bulan bisa digulir ke atas dan ke bawah, judul bulan di atas ikut berubah. Garis "sekarang" bergerak mengikuti jam sistem, hari ini berganti otomatis saat tengah malam dan setelah laptop bangun dari sleep. Acara berulang (harian, mingguan, bulanan, tahunan), warna per kalender, drag and drop, deskripsi per tanggal, libur nasional Indonesia, impor dan ekspor `.ics`. |
-| **Pengingat** | Notifikasi Windows dari "saat dimulai" sampai "1 minggu sebelum". Pengingat yang lewat saat laptop mati muncul begitu laptop menyala (maksimal 3 hari ke belakang). Tombol Tunda 10 menit, Lihat, dan Selesai. |
+| **Pengingat** | Notifikasi Windows dari "saat dimulai" sampai "1 minggu sebelum". Pengingat yang lewat saat laptop mati muncul begitu laptop menyala (maksimal 3 hari ke belakang). Di Android, pengingat 14 hari ke depan dijadwalkan sebagai notifikasi sistem, jadi tetap muncul walau aplikasi ditutup. Tombol Tunda 10 menit, Lihat, dan Selesai. |
 | **Catatan** | Banyak catatan dengan tag, sematkan, pencarian, dan template. Font, ukuran, judul, tebal, miring, garis bawah, coret, warna teks, stabilo, checklist, perataan, tautan. **Mode pena** untuk mencoret bebas (mendukung tekanan pen tablet), stabilo bebas, penghapus. Zoom 50% sampai 200%. Simpan otomatis. **Gambar**: tempel screenshot (Ctrl+V), seret file, atau tombol gambar; dikecilkan otomatis dan ikut terenkripsi. **Ekspor** ke PDF (dengan gambar dan coretan pena), Word .docx (dengan gambar), teks .txt (tulisan saja), atau Markdown (gambar di folder terpisah). Kolom tag menyarankan tag yang sudah ada saat mengetik. **Jendela mengambang**: catatan bisa dilepas jadi sticky note di desktop, dengan 7 pilihan warna, opsi selalu di atas, dan tetap tersinkron dengan aplikasi. |
 | **Proyek** | Tugas dikelompokkan per tag (misalnya `#kerja`) dengan progres, jumlah tugas terlambat, tenggat proyek, dan hitung mundur H-n. Cukup beri tag pada tugas, proyek muncul sendiri. Nama, warna, catatan, dan arsip bisa diatur. |
 | **Keuangan** | Tab bulanan Jan sampai Des seperti workbook Excel, ganti tahun, isi langsung di sel. Kategori masuk dan keluar, anggaran default per kategori plus anggaran khusus per bulan. |
@@ -91,6 +91,8 @@ Sumber data online: Open-Meteo (cuaca), Open-Meteo Geocoding dan Nominatim (loka
 
 ## Instalasi
 
+### Windows
+
 1. Unduh `DSuperApp-Setup-<versi>.exe` dari halaman [Releases](https://github.com/fakhruladani/Dani-SuperApp/releases), atau build sendiri (lihat bagian Pengembangan).
 2. Jalankan installer. Installer belum ditandatangani, jadi Windows SmartScreen bisa menampilkan "Windows protected your PC". Klik **More info**, lalu **Run anyway**.
 3. Aplikasi otomatis berjalan saat Windows menyala dan langsung tersembunyi di tray (ikon "D" di pojok kanan bawah). Bisa dimatikan di Pengaturan.
@@ -110,7 +112,7 @@ Agar notifikasi muncul:
 
 Versi baru untuk HP: Pengaturan → Umum → Cek sekarang, lalu **Unduh APK** dan pasang di atas versi lama. Data tetap ada.
 
-### Update aplikasi
+### Update aplikasi (Windows)
 
 Mulai v0.6.0 aplikasi memperbarui dirinya sendiri: setiap beberapa jam ia mengecek rilis terbaru di GitHub, mengunduhnya di latar belakang, lalu muncul tombol **Pasang & mulai ulang** di Pengaturan → Umum dan di menu tray. Bisa juga cek manual dari tombol **Cek sekarang**, atau matikan pengecekan otomatis.
 
@@ -127,6 +129,7 @@ Cara manual tetap bisa: jalankan installer versi baru langsung, tanpa uninstall.
 | [Node.js](https://nodejs.org) | 22 LTS (minimal 20) | `node -v` |
 | npm | ikut Node.js | `npm -v` |
 | [Git](https://git-scm.com) | apa saja | `git --version` |
+| JDK + Android SDK (hanya untuk build APK) | JDK 21, SDK platform 36 | `java -version` |
 
 ### Ambil kode dan jalankan
 
@@ -151,7 +154,7 @@ npm run dev
 ### Merilis versi baru
 
 1. Naikkan `version` di `package.json`, commit.
-2. Buat dan push tag yang sama, misalnya `git tag v0.6.1 && git push origin main --tags`.
+2. Buat dan push tag yang sama, misalnya `git tag v1.0.1 && git push origin main --tags`.
 3. Workflow `.github/workflows/release.yml` membangun installer di Windows lalu menerbitkannya ke GitHub Releases beserta `latest.yml`. Aplikasi yang terpasang akan menemukannya sendiri.
 4. Job kedua membangun APK Android yang ditandatangani dan menempelkannya ke rilis yang sama. Butuh empat secret repository: `ANDROID_KEYSTORE_B64` (file keystore dalam base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Tanpa secret itu job dilewati. Keystore tidak boleh diganti: Android hanya mau memasang update yang ditandatangani dengan kunci yang sama.
 
@@ -170,7 +173,7 @@ android/    proyek Android (Capacitor); ikon dibuat dari assets/icon.png oleh bu
 test/       unit test (node:test)
 docs/       screenshots
 assets/     ikon aplikasi dan tray
-.github/    workflow rilis (build installer di Windows, terbitkan ke GitHub Releases)
+.github/    workflow rilis (build installer Windows dan APK Android, terbitkan ke GitHub Releases)
 ```
 
 ## Keamanan & privasi data
@@ -190,7 +193,7 @@ assets/     ikon aplikasi dan tray
 | Hal | Keterangan |
 |---|---|
 | Data market | Endpoint publik Yahoo Finance tidak resmi dan tertunda sekitar 10 sampai 15 menit. Bisa berubah sewaktu-waktu. Semua akses ada di `electron/services.js`. |
-| Lokasi | Mencoba lokasi Windows, lalu perkiraan dari IP yang bisa meleset ke kota lain. Mencari kecamatan secara manual paling akurat. |
+| Lokasi | Sebelum lokasi dipilih, cuaca memakai perkiraan dari alamat IP yang bisa meleset ke kota lain. Tombol Deteksi mencoba lokasi perangkat. Mencari kecamatan secara manual paling akurat. |
 | Libur nasional | Dari kalender publik Google. Tanggal cuti bersama bisa tentatif. |
 | Ukuran | Installer sekitar 130 MB dan aplikasi memakai RAM ratusan MB saat jendela terbuka (Electron). |
 | Tanda tangan | Installer belum ditandatangani, jadi muncul peringatan SmartScreen saat instal manual. Update otomatis tidak memeriksa tanda tangan. |
