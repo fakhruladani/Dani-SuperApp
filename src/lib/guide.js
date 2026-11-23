@@ -56,11 +56,11 @@ const GUIDE_ID = [
       ['Format teks', 'Font, ukuran, judul, tebal (Ctrl+B), miring (Ctrl+I), garis bawah (Ctrl+U), coret, warna teks, stabilo, daftar, checklist, perataan, tautan.'],
       ['Coret pakai pena', 'Pilih ikon pena di toolbar, lalu gambar bebas. Ada juga stabilo bebas dan penghapus. Ctrl+Z membatalkan coretan.'],
       ['Zoom', 'Tombol kaca pembesar di kanan toolbar, atau Ctrl + / Ctrl - / Ctrl 0.'],
-      ['Tag & sematkan', 'Klik "+ tambah tag" di atas editor. Sematkan catatan penting dari bagian bawah editor.'],
+      ['Tag & sematkan', 'Klik "+ tambah tag" di atas editor. Saat mengetik, tag yang sudah ada muncul sebagai saran: pilih dengan panah + Enter atau klik. Sematkan catatan penting dari bagian bawah editor.'],
       ['Jendela mengambang', 'Tombol "Jendela mengambang" di bawah editor menjadikan catatan sticky note di desktop. Di sticky: pilih warna lewat ···, tombol pin untuk selalu di atas, + untuk sticky baru.'],
       ['Simpan template', 'Buka "Baru dari template", lalu simpan catatan yang terbuka sebagai template.'],
       ['Gambar', 'Tempel screenshot dengan Ctrl+V, seret file gambar ke catatan, atau tombol gambar di toolbar. Gambar dikecilkan otomatis dan ikut terenkripsi.'],
-      ['Ekspor PDF / Markdown', 'Tombol Ekspor di bawah editor. PDF menyertakan gambar dan coretan pena. Markdown menyimpan gambar di folder sebelahnya, tanpa coretan pena.']
+      ['Ekspor PDF / Word / teks', 'Tombol Ekspor di bawah editor atau klik kanan catatan. PDF menyertakan gambar dan coretan pena. Word (.docx) menyertakan gambar, tanpa coretan pena. Teks (.txt) hanya berisi tulisan. Markdown menyimpan gambar di folder sebelahnya.']
     ],
     open: { page: 'notes' }
   },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import { Modal, Seg, Field, ColorPick, Switch, Empty } from '../components/ui.jsx';
 import TaskModal from '../components/TaskModal.jsx';
+import TagInput from '../components/TagInput.jsx';
 import { api, DB, useApp, useNow, useQuery } from '../lib/api.js';
 import { toLocalDate, addDays, parseLocal, parseQuickTask, fmtDateLong, DOW_ID } from '../../shared/recur.js';
 import { T } from '../lib/i18n.js';
@@ -85,7 +86,7 @@ function ProjectModal({ initial, onClose }) {
     </>}>
       <Field label={T('Nama proyek')}><input className="field" value={f.name} placeholder={T('mis. Tugas Akhir')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label={T('Tag tugas')} hint={T('Tugas bertag ini masuk ke proyek.')}><input className="field" value={f.tag} placeholder="TA" onChange={(e) => setF({ ...f, tag: cleanTag(e.target.value) })} /></Field>
+        <Field label={T('Tag tugas')} hint={T('Tugas bertag ini masuk ke proyek.')}><TagInput table="tasks" value={f.tag} placeholder="TA" onChange={(tag) => setF((x) => ({ ...x, tag }))} /></Field>
         <Field label={T('Tenggat proyek')}><input type="date" className="field" value={f.deadline || ''} onChange={(e) => setF({ ...f, deadline: e.target.value })} /></Field>
       </div>
       <Field label={T('Warna')}><ColorPick value={f.color} onChange={(color) => setF({ ...f, color })} /></Field>

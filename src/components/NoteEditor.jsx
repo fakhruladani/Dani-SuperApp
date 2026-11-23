@@ -19,6 +19,7 @@ import Icon from './Icon.jsx';
 import { api } from '../lib/api.js';
 import { T } from '../lib/i18n.js';
 import { imageFiles, insertImageFiles } from '../lib/images.js';
+import { exportNote } from '../lib/noteExport.js';
 import { openMenu, textItems } from './ContextMenu.jsx';
 
 const FontSize = Extension.create({
@@ -191,6 +192,8 @@ function ExportMenu({ busy, run }) {
       {open && (
         <span className="card menu-pop" role="menu" style={{ bottom: 36, right: 0 }}>
           {item('pdf', 'PDF', T('Dengan gambar dan coretan pena'))}
+          {item('docx', 'Word (.docx)', T('Dengan gambar, tanpa coretan pena'))}
+          {item('txt', T('Teks (.txt)'), T('Hanya teks, tanpa gambar'))}
           {item('md', 'Markdown (.md)', T('Gambar disimpan di folder terpisah, tanpa coretan pena'))}
         </span>
       )}
@@ -429,7 +432,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
         <span>{T('{n} kata', { n: words })}</span>
         <span>{T('{n} coretan', { n: strokes.length })}</span>
         <span className="grow" />
-        <ExportMenu busy={exporting} run={async (k) => { setExporting(k); try { await flush(); await api(k === 'pdf' ? 'note:exportPdf' : 'note:exportMd', note.id); } catch (err) { onError?.(err); } finally { setExporting(''); } }} />
+        <ExportMenu busy={exporting} run={async (k) => { setExporting(k); try { await flush(); await exportNote(k, note.id); } catch (err) { onError?.(err); } finally { setExporting(''); } }} />
         <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title={T("Buka catatan ini sebagai jendela mengambang (sticky note)")}><Icon name="widget" size="sm" />{T("Jendela mengambang")}</button>
         <button className={`icb sm ${note.pinned ? 'on' : ''}`} aria-pressed={!!note.pinned} aria-label={note.pinned ? T("Lepas sematan") : T("Sematkan")} title={note.pinned ? T("Lepas sematan") : T("Sematkan")} onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" /></button>
         <button className="icb sm danger" aria-label={T("Hapus catatan")} title={T("Hapus catatan")} onClick={onDelete}><Icon name="trash" size="sm" /></button>

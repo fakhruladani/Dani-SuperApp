@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "D'Super App: personal workspace (calendar, notes, finance, market, tasks) for Windows",
   "main": "electron/main.js",
   "scripts": {
@@ -50,6 +50,7 @@
     "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
     "date-fns": "^4.4.0",
+    "docx": "^9.16.0",
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
     "lightweight-charts": "^5.2.1",

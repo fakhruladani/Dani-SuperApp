@@ -12,7 +12,7 @@ import * as state from './state.js';
 import * as upd from './updater.js';
 import { stickyColor } from '../shared/sticky.js';
 import { t as T, setLang, lang } from '../shared/i18n.js';
-import { toMarkdown, imageIds } from '../shared/md.js';
+import { toMarkdown, imageIds, toText } from '../shared/md.js';
 
 // Images in notes are served from the encrypted database: <img src="dsa-img://img/<id>">
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsa-img', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
@@ -416,6 +416,8 @@ h('file:readText', async () => {
 });
 
 h('img:put', (noteId, mime, bytes) => db.imagePut(String(noteId || ''), String(mime), bytes));
+// bytes of one note image, for the Word export (fetch() of dsa-img:// from the page is a cross-origin request)
+h('img:get', (id) => { const im = db.imageGet(String(id || '')); return im ? { mime: im.mime, data: im.data } : null; });
 const fileSafe = (s) => (String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || T('Tanpa judul'));
 const extOf = (mime) => ({ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif' }[mime] || 'img');
 h('note:exportMd', async (id) => {
@@ -437,6 +439,27 @@ h('note:exportMd', async (id) => {
   });
   const md = doc ? toMarkdown(doc, { title: note.title || '', imageSrc: (src) => { const m = /^dsa-img:\/\/img\/([\w-]+)/.exec(src); return m ? names[m[1]] || '' : src; } }) : `# ${note.title || ''}\n\n${note.plain || ''}\n`;
   fs.writeFileSync(r.filePath, md, 'utf8');
+  shell.showItemInFolder(r.filePath);
+  return r.filePath;
+});
+h('note:exportTxt', async (id) => {
+  const note = db.get('notes', String(id));
+  if (!note) return null;
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor catatan ke teks'), defaultPath: path.join(app.getPath('documents'), fileSafe(note.title) + '.txt'), filters: [{ name: T('Teks'), extensions: ['txt'] }] });
+  if (r.canceled || !r.filePath) return null;
+  let doc = null; try { doc = JSON.parse(note.content || 'null'); } catch { /* plain */ }
+  const txt = doc ? toText(doc, { title: note.title || '' }) : `${note.title || ''}\r\n\r\n${(note.plain || '').replace(/\r?\n/g, '\r\n')}\r\n`;
+  fs.writeFileSync(r.filePath, '\uFEFF' + txt, 'utf8'); // BOM: Notepad and Word open it as UTF-8
+  shell.showItemInFolder(r.filePath);
+  return r.filePath;
+});
+// the .docx is built in the renderer (it converts the WebP images to PNG there); main only picks the path and writes it
+h('note:saveDocx', async (id, bytes) => {
+  const note = db.get('notes', String(id));
+  if (!note || !(bytes instanceof Uint8Array) || bytes[0] !== 0x50 || bytes[1] !== 0x4b) return null; // must be a zip
+  const r = await dialog.showSaveDialog(mainWin, { title: T('Ekspor catatan ke Word'), defaultPath: path.join(app.getPath('documents'), fileSafe(note.title) + '.docx'), filters: [{ name: 'Word', extensions: ['docx'] }] });
+  if (r.canceled || !r.filePath) return null;
+  fs.writeFileSync(r.filePath, bytes);
   shell.showItemInFolder(r.filePath);
   return r.filePath;
 });

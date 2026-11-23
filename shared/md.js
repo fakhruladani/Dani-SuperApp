@@ -92,3 +92,32 @@ export function imageIds(doc) {
   if (doc) walk(doc);
   return ids;
 }
+
+// ---------- plain text (.txt): text only, images and pen strokes are left out ----------
+const plainInline = (nodes = []) => nodes.map((n) => (n.type === 'hardBreak' ? '\n' : n.type === 'text' ? n.text : '')).join('');
+
+function plainBlock(n, indent = '') {
+  const c = n.content || [];
+  switch (n.type) {
+    case 'paragraph': case 'heading': return indent + plainInline(c).replace(/\n/g, '\n' + indent);
+    case 'image': return null;
+    case 'horizontalRule': return indent + '----------';
+    case 'codeBlock': return c.map((x) => x.text || '').join('').split('\n').map((l) => indent + l).join('\n');
+    case 'blockquote': return plainBlocks(c, indent + '    ');
+    case 'bulletList': return c.map((li) => plainItem(li, indent, '• ')).join('\n');
+    case 'orderedList': { const s = n.attrs?.start || 1; return c.map((li, i) => plainItem(li, indent, `${s + i}. `)).join('\n'); }
+    case 'taskList': return c.map((li) => plainItem(li, indent, li.attrs?.checked ? '[x] ' : '[ ] ')).join('\n');
+    default: return c.length ? plainBlocks(c, indent) : '';
+  }
+}
+function plainItem(li, indent, marker) {
+  const parts = (li.content || []).map((ch, i) => (i === 0 && ch.type === 'paragraph' ? indent + marker + plainInline(ch.content) : plainBlock(ch, indent + '   '))).filter((x) => x != null);
+  return parts.length ? parts.join('\n') : indent + marker.trimEnd();
+}
+function plainBlocks(nodes, indent) { return nodes.map((n) => plainBlock(n, indent)).filter((x) => x != null).join('\n\n'); }
+
+/** doc: TipTap JSON. Windows line endings so Notepad shows the breaks everywhere. */
+export function toText(doc, { title = '' } = {}) {
+  const body = plainBlocks(doc?.content || [], '').replace(/\n{3,}/g, '\n\n').trim();
+  return ((title ? title + '\n\n' : '') + body + '\n').replace(/\r?\n/g, '\r\n');
+}

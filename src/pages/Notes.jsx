@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import TagInput from '../components/TagInput.jsx';
 import Icon from '../components/Icon.jsx';
 import NoteEditor from '../components/NoteEditor.jsx';
 import { Modal, Field } from '../components/ui.jsx';
@@ -145,7 +146,7 @@ export default function Notes() {
             <div className="row" style={{ gap: 6 }}>
               <span className="mut" style={{ fontSize: 13 }}>{T("Tag:")}</span>
               {tagEdit != null ? (
-                <input className="field" autoFocus value={tagEdit} onChange={(e) => setTagEdit(e.target.value.replace(/\s/g, ''))} onBlur={() => { DB.save('notes', { id: sel.id, tag: tagEdit }); setTagEdit(null); }} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} style={{ width: 180, minHeight: 32 }} aria-label={T("Tag catatan")} />
+                <TagInput autoFocus value={tagEdit} onChange={setTagEdit} options={tags} commitOnPick onCommit={(v) => { if (v !== (sel.tag || '')) DB.save('notes', { id: sel.id, tag: v }); setTagEdit(null); }} onCancel={() => setTagEdit(null)} style={{ width: 180, minHeight: 32 }} placeholder={T('Ketik atau pilih tag')} aria-label={T("Tag catatan")} />
               ) : (
                 <button className="chip" onClick={() => setTagEdit(sel.tag || '')}>{sel.tag ? '#' + sel.tag : T("+ tambah tag")}</button>
               )}

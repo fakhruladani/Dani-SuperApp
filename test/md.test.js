@@ -34,3 +34,18 @@ test('markdown: nested lists, task lists, quotes, code, images', () => {
 test('markdown: empty doc', () => {
   assert.equal(toMarkdown({ type: 'doc', content: [] }), '\n');
 });
+
+import { toText } from '../shared/md.js';
+
+test('plain text: lists and tasks keep their markers, images are dropped', () => {
+  const li = (...c) => ({ type: 'listItem', content: c });
+  const doc = { type: 'doc', content: [
+    { type: 'heading', attrs: { level: 2 }, content: [t('Masukan')] },
+    p(t('Perjelas '), t('skenario', 'bold'), t('.')),
+    { type: 'image', attrs: { src: 'dsa-img://img/abc' } },
+    { type: 'bulletList', content: [li(p(t('satu')), { type: 'bulletList', content: [li(p(t('anak')))] })] },
+    { type: 'orderedList', content: [li(p(t('a'))), li(p(t('b')))] },
+    { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: true }, content: [p(t('revisi'))] }, { type: 'taskItem', attrs: { checked: false }, content: [p(t('kirim'))] }] }
+  ] };
+  assert.equal(toText(doc, { title: 'Bimbingan' }), 'Bimbingan\r\n\r\nMasukan\r\n\r\nPerjelas skenario.\r\n\r\n• satu\r\n   • anak\r\n\r\n1. a\r\n2. b\r\n\r\n[x] revisi\r\n[ ] kirim\r\n');
+});

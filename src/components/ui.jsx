@@ -6,7 +6,7 @@ import { T } from '../lib/i18n.js';
 export function Modal({ title, onClose, children, footer, width = 560, className = '' }) {
   const ref = useRef();
   useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); } };
+    const k = (e) => { if (e.key === 'Escape' && !e.target.closest?.('[data-esc-own]')) { e.stopPropagation(); onClose?.(); } }; // data-esc-own: an open dropdown inside handles Esc itself
     window.addEventListener('keydown', k, true);
     const first = ref.current?.querySelector('input, textarea, select, button.pri');
     first?.focus();

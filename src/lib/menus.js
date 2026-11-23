@@ -2,6 +2,7 @@
 import { api, DB } from './api.js';
 import { toLocalDate, addDays } from '../../shared/recur.js';
 import { T } from './i18n.js';
+import { exportNote } from './noteExport.js';
 
 const today = () => toLocalDate(new Date());
 const plusDays = (n) => toLocalDate(addDays(new Date(), n));
@@ -44,15 +45,17 @@ export function eventItems(app, ev, { onEdit, onOpenDay, date } = {}) {
 
 /** Note in the list: open, pin, float, duplicate, export, delete. */
 export function noteItems(app, n, { onOpen, onDeleted } = {}) {
-  const run = (ch) => api(ch, n.id).catch((err) => app.toast({ text: String(err?.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''), error: true }));
+  const run = (kind) => exportNote(kind, n.id).catch((err) => app.toast({ text: String(err?.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''), error: true }));
   return [
     onOpen && { label: T('Buka'), icon: 'note', run: () => onOpen(n) },
     { label: n.pinned ? T('Lepas sematan') : T('Sematkan'), icon: 'pinned', run: () => DB.save('notes', { id: n.id, pinned: n.pinned ? 0 : 1 }) },
     { label: T('Jendela mengambang'), icon: 'widget', run: () => api('sticky:open', n.id) },
     { label: T('Duplikat'), icon: 'duplicate', run: async () => { const c = await DB.save('notes', { title: (n.title || T('Tanpa judul')) + ' ' + T('(salinan)'), content: n.content, plain: n.plain, ink: n.ink, tag: n.tag, pinned: 0 }); onOpen?.(c); } },
     '-',
-    { label: T('Ekspor ke PDF…'), icon: 'download', run: () => run('note:exportPdf') },
-    { label: T('Ekspor ke Markdown…'), icon: 'download', run: () => run('note:exportMd') },
+    { label: T('Ekspor ke PDF…'), icon: 'download', run: () => run('pdf') },
+    { label: T('Ekspor ke Word…'), icon: 'download', run: () => run('docx') },
+    { label: T('Ekspor ke teks (.txt)…'), icon: 'download', run: () => run('txt') },
+    { label: T('Ekspor ke Markdown…'), icon: 'download', run: () => run('md') },
     '-',
     { label: T('Hapus catatan'), icon: 'trash', danger: true, run: async () => { if (await app.confirm(T('Hapus catatan “{t}”?', { t: n.title || T('Tanpa judul') }), { danger: true, ok: T('Hapus') })) { await DB.remove('notes', n.id); onDeleted?.(n); } } }
   ];
