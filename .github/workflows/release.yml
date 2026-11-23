@@ -16,21 +16,36 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      # a tag pushed again for the same version (e.g. to add the APK) does not rebuild the installer
+      - name: Installer already published?
+        id: pub
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if gh release view "$GITHUB_REF_NAME" --json assets -q '.assets[].name' 2>/dev/null | grep -qx "DSuperApp-Setup-$V.exe"; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice::DSuperApp-Setup-$V.exe is already on the release, not rebuilt"; fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
+        if: steps.pub.outputs.skip != '1'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npx vite build
+      - if: steps.pub.outputs.skip != '1'
+        run: npm ci
+      - if: steps.pub.outputs.skip != '1'
+        run: npm test
+      - if: steps.pub.outputs.skip != '1'
+        run: npx vite build
       # create the release first: electron-builder uploads files in parallel and, when no release exists
       # yet, can create two releases for the same tag (v0.8.0 happened), which breaks the download URLs
       - name: Create release
+        if: steps.pub.outputs.skip != '1'
         shell: bash
         run: gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "${GITHUB_REF_NAME#v}" --notes "Dani SuperApp ${GITHUB_REF_NAME#v}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and publish installer
+        if: steps.pub.outputs.skip != '1'
         run: npx electron-builder --win nsis --x64 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +59,16 @@ jobs:
         id: key
         shell: bash
         run: |
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "::warning::No ANDROID_KEYSTORE_B64 secret: APK not built. Add the 4 ANDROID_* secrets and re-run this job."; fi
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "::warning::No ANDROID_KEYSTORE_B64 secret: APK not built here. Add the 4 ANDROID_* secrets to build it in CI."; fi
+      # without the signing secrets: attach the APK that was built and signed locally and committed to apk/
+      - name: Attach committed APK
+        if: ${{ !steps.key.outputs.ok }}
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if [ -f "apk/DSuperApp-$V.apk" ]; then gh release upload "$GITHUB_REF_NAME" "apk/DSuperApp-$V.apk" --clobber; else echo "::warning::apk/DSuperApp-$V.apk not in the repository either"; fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         if: steps.key.outputs.ok
         with:

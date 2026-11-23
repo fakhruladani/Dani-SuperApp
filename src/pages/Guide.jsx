@@ -10,12 +10,14 @@ export default function Guide() {
   const navW = usePanelWidth('guideNav', 250, 200, 420);
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
-  const sections = useMemo(() => GUIDE.map((s) => {
+  // Android: the phone/sync section first, desktop-only sections left out
+  const base = useMemo(() => (app.android ? [...GUIDE.filter((s) => s.id === 'android'), ...GUIDE.filter((s) => s.id !== 'android' && s.id !== 'clipboard')] : GUIDE), [app.android]);
+  const sections = useMemo(() => base.map((s) => {
     if (!query) return s;
     const hitSection = `${s.title} ${s.where} ${s.intro}`.toLowerCase().includes(query);
     const items = s.items.filter(([t, d]) => hitSection || `${t} ${d}`.toLowerCase().includes(query));
     return items.length ? { ...s, items } : null;
-  }).filter(Boolean), [query]);
+  }).filter(Boolean), [query, base]);
   const jump = (id) => document.getElementById('guide-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const tourIndex = (page) => Math.max(0, TOUR.findIndex((t) => t.page === page));
 
@@ -26,7 +28,7 @@ export default function Guide() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{T("Panduan D'Super App")}</h1>
           <span style={{ color: 'var(--accent-text)' }}>{T("Semua fitur, letaknya, dan cara memakainya. Buka kapan saja dengan F1.")}</span>
         </div>
-        <button className="btn pri" onClick={() => app.startTour(0)}><Icon name="play" size="sm" />{T("Mulai tur singkat")}</button>
+        {!app.mobile && <button className="btn pri" onClick={() => app.startTour(0)}><Icon name="play" size="sm" />{T("Mulai tur singkat")}</button>}
       </section>
 
       <div className="row" style={{ gap: 16, alignItems: 'flex-start' }}>
@@ -50,7 +52,7 @@ export default function Guide() {
                   <h2 className="h2">{s.title}</h2>
                   <span className="mut" style={{ fontSize: 13 }}>{T("Letak:")} {s.where}</span>
                 </div>
-                {TOUR.some((t) => t.page === s.open.page) && s.id !== 'mulai' && <button className="btn sm" onClick={() => app.startTour(tourIndex(s.open.page))}><Icon name="play" size="sm" />{T("Tunjukkan")}</button>}
+                {!app.mobile && TOUR.some((t) => t.page === s.open.page) && s.id !== 'mulai' && <button className="btn sm" onClick={() => app.startTour(tourIndex(s.open.page))}><Icon name="play" size="sm" />{T("Tunjukkan")}</button>}
                 <button className="btn sm pri" onClick={() => app.nav(s.open.page, s.open.params || {})}><Icon name="external" size="sm" />{T("Buka")}</button>
               </div>
               <p style={{ margin: 0, lineHeight: 1.6 }}>{s.intro}</p>
@@ -61,7 +63,7 @@ export default function Guide() {
               </dl>
             </section>
           ))}
-          {!query && (
+          {!query && !app.mobile && (
             <section id="guide-pintasan" className="card pad col" style={{ gap: 12, scrollMarginTop: 16 }}>
               <div className="row"><span className="guide-ic"><Icon name="bolt" /></span><h2 className="h2 grow">{T("Pintasan keyboard")}</h2></div>
               <div className="guide-keys">

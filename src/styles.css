@@ -454,3 +454,26 @@ html.mobile .ws-side { width: 100% !important; align-self: stretch !important; }
 html.mobile .home-head > .col { flex-basis: 100%; }
 html.mobile .home-head h1 { font-size: 24px !important; }
 html.mobile .home-head > .btn { flex: 1 1 auto; padding: 0 10px; }
+
+/* phone: side-by-side panels (main + resizable side panel) stack vertically */
+html.mobile .row:has(> .resizer) { flex-direction: column; align-items: stretch !important; }
+html.mobile .row:has(> .resizer) > :not(.resizer) { width: 100% !important; flex: none !important; align-self: stretch !important; min-width: 0; }
+/* cards laid out in wrapping rows take the full width instead of a desktop min width */
+html.mobile .page .row.wrap > .card, html.mobile .page .row.wrap > section { flex: 1 1 100% !important; min-width: 0; }
+/* wide desktop grid columns collapse to one column */
+html.mobile [style*="minmax(380px"], html.mobile [style*="minmax(300px"], html.mobile .grid-auto { grid-template-columns: minmax(0, 1fr) !important; }
+/* fixed-width inputs next to buttons may shrink */
+html.mobile .row > .field, html.mobile .row > input, html.mobile .row > select { min-width: 0; flex-shrink: 1; }
+html.mobile .card.pad { padding: 14px; }
+html.mobile .card .mut { overflow-wrap: anywhere; }
+html.mobile .card.pad .row.wrap > .row.wrap > * { min-width: 0; max-width: 100%; flex: 1 1 auto; }
+html.mobile .card.pad .row.wrap > .row.wrap .card[style*="position: absolute"] { max-width: calc(100vw - 60px); }
+html.mobile section.card .row.wrap > .col.grow { flex-basis: 170px; }
+html.mobile .card.pad .row.wrap > .row.wrap { min-width: 0; }
+html.mobile [data-tour="tickers"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+html.mobile .row > select.field { min-width: 108px; }
+html.mobile #fq { flex: 1 1 140px; width: auto !important; }
+html.mobile .news-thumb { width: 64px; height: 48px; }
+html.mobile .overlay:has(.palette) { align-items: flex-start; }
+html.mobile .modal.palette { border-radius: 0 0 20px 20px; padding-top: env(safe-area-inset-top); }
+html.mobile .palette .kbd { display: none; }

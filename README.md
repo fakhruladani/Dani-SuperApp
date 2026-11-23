@@ -105,12 +105,7 @@ Agar notifikasi muncul:
 
 ### Android
 
-1. Di HP, buka halaman [Releases](https://github.com/fakhruladani/Dani-SuperApp/releases) dan unduh `DSuperApp-<versi>.apk`.
-2. Buka file itu. Android meminta izin **Instal aplikasi tak dikenal** untuk browser: izinkan, lalu Instal. Play Protect bisa memberi peringatan karena aplikasi tidak dari Play Store; pilih tetap instal.
-3. Izinkan notifikasi saat diminta. Agar pengingat tepat waktu, matikan optimasi baterai untuk D'Super App (Pengaturan Android → Aplikasi → D'Super App → Baterai → Tidak dibatasi).
-4. Hubungkan dengan laptop: di laptop buka Pengaturan → **Sinkron HP** → Tampilkan kode QR. Di HP buka Pengaturan → **Sinkron** → Scan QR laptop. Sinkron pertama mengganti isi awal HP dengan data laptop.
-
-Versi baru untuk HP: Pengaturan → Umum → Cek sekarang, lalu **Unduh APK** dan pasang di atas versi lama. Data tetap ada.
+Unduh `DSuperApp-<versi>.apk` dari [Releases terbaru](https://github.com/fakhruladani/Dani-SuperApp/releases/latest). Cara pasang, izin, dan sinkron ada di bagian [Aplikasi Android (APK)](#aplikasi-android-apk).
 
 ### Update aplikasi (Windows)
 
@@ -119,6 +114,67 @@ Mulai v0.6.0 aplikasi memperbarui dirinya sendiri: setiap beberapa jam ia mengec
 Cara manual tetap bisa: jalankan installer versi baru langsung, tanpa uninstall. Data tetap ada karena disimpan di `%APPDATA%\Dani SuperApp`, terpisah dari folder program. Nama folder data, folder instalasi, dan file program tetap memakai nama lama (`Dani SuperApp`) supaya data pengguna lama tidak hilang. Setiap kali versi berganti, aplikasi membuat backup otomatis bernama `...-sebelum-v<versi>.dsabak`.
 
 ---
+
+## Aplikasi Android (APK)
+
+Versi Android memakai tampilan dan logika data yang sama dengan versi desktop (dibungkus [Capacitor](https://capacitorjs.com)), dengan tata letak khusus layar HP. Datanya disimpan di HP sendiri dan disamakan dengan laptop lewat Wi-Fi, bukan lewat cloud.
+
+| | |
+|---|---|
+| Unduh | [`DSuperApp-1.0.1.apk`](https://github.com/fakhruladani/Dani-SuperApp/releases/latest) di halaman Releases, atau dari folder [`apk/`](apk/) di repo ini |
+| Syarat | Android 7.0 (API 24) atau lebih baru. Ukuran sekitar 6 MB. |
+| Tanda tangan | Sertifikat SHA-256 `DC:9B:E8:83:8C:77:E8:01:78:2B:A5:5F:C6:1B:39:FB:B6:15:8F:64:30:DB:C8:DD:7C:A4:FE:CF:F7:1B:AE:24`. Android hanya mau memasang update yang ditandatangani dengan sertifikat yang sama. |
+| Penyimpanan | Database SQLite terenkripsi AES-256-GCM di penyimpanan pribadi aplikasi. Kuncinya dibuat di HP dan tidak bisa diekspor. |
+| Internet | Hanya untuk cuaca, market, berita, libur nasional, dan cek update. Sinkron dengan laptop tidak lewat internet. |
+
+### Pasang
+
+1. Buka halaman Releases di HP, unduh file `.apk`.
+2. Buka file itu. Android meminta izin **Instal aplikasi tak dikenal** untuk browser atau aplikasi file: izinkan, lalu **Instal**. Play Protect bisa memberi peringatan karena aplikasi tidak berasal dari Play Store; pilih tetap instal.
+3. Saat pertama dibuka, izinkan notifikasi.
+4. Agar pengingat tepat waktu: Pengaturan Android → Aplikasi → D'Super App → Baterai → **Tidak dibatasi**. Beberapa merek (Xiaomi, Oppo, Vivo, Samsung) juga punya pengaturan "mulai otomatis" atau "aplikasi tidur" yang perlu dimatikan untuk aplikasi ini.
+
+### Izin yang diminta
+
+| Izin | Dipakai untuk |
+|---|---|
+| Notifikasi | Pengingat acara dan tugas, ringkasan pagi |
+| Alarm & pengingat | Supaya pengingat muncul tepat di menitnya, juga saat aplikasi ditutup |
+| Mulai setelah HP menyala | Menjadwalkan ulang pengingat setelah HP dinyalakan ulang |
+| Kamera | Hanya saat scan kode QR laptop untuk sinkron |
+| Internet | Cuaca, market, berita, libur nasional, cek update, dan sinkron di jaringan lokal |
+
+### Sinkron dengan laptop
+
+1. HP dan laptop tersambung ke Wi-Fi yang sama, atau laptop memakai hotspot HP.
+2. Di laptop: Pengaturan → **Sinkron HP** → **Tampilkan kode QR**. Bila Windows menanyakan izin jaringan, pilih Izinkan.
+3. Di HP: Pengaturan → **Sinkron** → **Scan QR laptop**. Bila kamera tidak bisa, pakai **Salin kode** di laptop lalu **Tempel kode** di HP.
+4. Sinkron pertama mengganti isi awal HP dengan data laptop. Setelah itu HP menyamakan data saat aplikasi dibuka, tiap menit selama terbuka, beberapa detik setelah ada perubahan, dan saat **Sinkron sekarang** ditekan.
+
+Untuk item yang diubah di HP dan laptop sebelum sempat sinkron, perubahan paling akhir yang dipakai. Tema, lokasi cuaca, PIN, dan status pengingat tetap per perangkat. Memutus HP di laptop (Pengaturan → Sinkron HP → Putuskan) langsung mencabut aksesnya.
+
+### Tampilan di HP
+
+- Menu di bawah: Beranda, Kalender, Catatan, Keuangan. **Lainnya** berisi Market & Berita, Fokus & Tugas, Proyek, Panduan, dan Pengaturan.
+- Tombol kembali Android menutup jendela yang terbuka dulu, lalu kembali ke Beranda.
+- Kalender menampilkan satu bulan; geser kiri atau kanan untuk ganti bulan.
+- Catatan: daftar dulu, ketuk untuk membuka editor. Mode pena bisa dipakai dengan jari atau stylus; coretan dari laptop tetap di posisinya.
+- Panel yang di laptop berdampingan (anggaran, alert harga, ringkasan Total Wealth) di HP tersusun ke bawah.
+- Ekspor catatan (Word, teks), keuangan (Excel, CSV), dan kalender (.ics) lewat menu bagikan Android: simpan ke File atau Drive, atau kirim lewat aplikasi lain.
+
+### Update
+
+Pengaturan → Umum → **Cek sekarang**. Bila ada versi baru, tombol **Unduh APK** membuka file di halaman Releases; pasang di atas versi lama. Data tetap ada.
+
+### Beda dengan versi desktop
+
+| Hanya di desktop | Keterangan |
+|---|---|
+| Ekspor catatan ke PDF dan Markdown | Di HP tersedia Word dan teks |
+| Sticky note, widget mini, catatan cepat global, ikon tray, riwayat clipboard | Fitur jendela Windows |
+| Backup otomatis harian | Cadangan data HP adalah laptop yang tersinkron |
+| Alert harga di latar belakang | Di HP alert harga hanya dicek selama aplikasi terbuka |
+| Ringkasan pagi lengkap | Di HP berisi jumlah agenda dan tugas, tanpa cuaca dan anggaran |
 
 ## Pengembangan
 
@@ -156,7 +212,7 @@ npm run dev
 1. Naikkan `version` di `package.json`, commit.
 2. Buat dan push tag yang sama, misalnya `git tag v1.0.1 && git push origin main --tags`.
 3. Workflow `.github/workflows/release.yml` membangun installer di Windows lalu menerbitkannya ke GitHub Releases beserta `latest.yml`. Aplikasi yang terpasang akan menemukannya sendiri.
-4. Job kedua membangun APK Android yang ditandatangani dan menempelkannya ke rilis yang sama. Butuh empat secret repository: `ANDROID_KEYSTORE_B64` (file keystore dalam base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Tanpa secret itu job dilewati. Keystore tidak boleh diganti: Android hanya mau memasang update yang ditandatangani dengan kunci yang sama.
+4. Job kedua membangun APK Android yang ditandatangani dan menempelkannya ke rilis yang sama. Butuh empat secret repository: `ANDROID_KEYSTORE_B64` (file keystore dalam base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Tanpa secret itu, job menempelkan `apk/DSuperApp-<versi>.apk` dari repo (bila ada) ke rilis. Keystore tidak boleh diganti: Android hanya mau memasang update yang ditandatangani dengan kunci yang sama.
 
 ## Struktur proyek
 
@@ -170,6 +226,7 @@ shared/     dbcore.js (logika database dan metadata sinkron), sync.js (protokol 
 src/        UI React: App.jsx, pages/*, components/*, lib/*
 src/android backend versi Android di dalam WebView: database, notifikasi terjadwal, HTTP native, file, klien sinkron
 android/    proyek Android (Capacitor); ikon dibuat dari assets/icon.png oleh build-res/android-res.py
+apk/        APK yang sudah ditandatangani untuk tiap versi
 test/       unit test (node:test)
 docs/       screenshots
 assets/     ikon aplikasi dan tray
