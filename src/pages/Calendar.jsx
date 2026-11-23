@@ -106,7 +106,10 @@ export default function Calendar() {
   const now = useNow(30000);
   const calRef = useRef();
   const wrapRef = useRef();
-  const [view, setView] = useState(() => (!app.settings.calView || app.settings.calView === 'dayGridMonth' ? SCROLL_VIEW : app.settings.calView));
+  // phone: the plain one-month grid (~40 cells). The scrolling view renders 25 months (~10k DOM
+  // nodes), which took several seconds to open on a phone.
+  const MONTH_VIEW = app.mobile ? 'dayGridMonth' : SCROLL_VIEW;
+  const [view, setView] = useState(() => { const v = app.settings.calView; return !v || isMonthView(v) ? MONTH_VIEW : v; });
   const focusMonth = useRef(monthKey(parseLocal(app.params.date || toLocalDate(new Date()))));
   const scrollTarget = useRef(focusMonth.current); // month to bring into view after the next render
   const [range, setRange] = useState(null);
@@ -198,6 +201,15 @@ export default function Calendar() {
   const goToday = () => { const t = toLocalDate(new Date()); setSel(t); if (isScroll) goMonth(monthKey(new Date())); else apiCal().today(); };
   const goPrev = () => (isScroll ? goMonth(shiftMonth(focusMonth.current, -1)) : apiCal().prev());
   const goNext = () => (isScroll ? goMonth(shiftMonth(focusMonth.current, 1)) : apiCal().next());
+  // phone: swipe left/right on the grid to change month/week/day
+  const swipe = useRef(null);
+  const swipeStart = (e) => { if (!app.mobile || isScroll) return; const t = e.touches[0]; swipe.current = { x: t.clientX, y: t.clientY, t: Date.now() }; };
+  const swipeEnd = (e) => {
+    const s0 = swipe.current; swipe.current = null;
+    if (!s0) return;
+    const t = e.changedTouches[0], dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - s0.t < 600) (dx < 0 ? goNext : goPrev)();
+  };
   const changeView = (v) => {
     setView(v);
     app.setSetting('calView', v);
@@ -280,9 +292,9 @@ export default function Calendar() {
             <button className="icb" aria-label={T("Sebelumnya")} title={isScroll ? T("Bulan sebelumnya") : T("Sebelumnya")} onClick={goPrev}><Icon name="left" /></button>
             <button className="icb" aria-label={T("Berikutnya")} title={isScroll ? T("Bulan berikutnya") : T("Berikutnya")} onClick={goNext}><Icon name="right" /></button>
             <span className="grow ellipsis" title={title} style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', minWidth: 120 }}>{title}</span>
-            <Seg label={T("Tampilan")} value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: T("Hari") }, { value: 'timeGridWeek', label: T("Minggu") }, { value: SCROLL_VIEW, label: T("Bulan") }, { value: 'listMonth', label: T("Agenda") }]} />
+            <Seg label={T("Tampilan")} value={view} onChange={changeView} options={[{ value: 'timeGridDay', label: T("Hari") }, { value: 'timeGridWeek', label: T("Minggu") }, { value: MONTH_VIEW, label: T("Bulan") }, { value: 'listMonth', label: T("Agenda") }]} />
           </div>
-          <div ref={wrapRef} className="cal-wrap" onContextMenu={dayMenu}>
+          <div ref={wrapRef} className="cal-wrap" onContextMenu={dayMenu} onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
           <FullCalendar
             ref={calRef}
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}

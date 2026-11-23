@@ -531,6 +531,7 @@ app.whenReady().then(async () => {
   createTray();
   upd.initUpdater({
     broadcast, getSetting: db.getSetting,
+    beforeInstall: () => { quitting = true; syncSrv.stop(); try { state.save(); } catch { /* ignore */ } db.saveNow(); },
     onReady: (v) => { buildTrayMenu(); notify({ title: T('Pembaruan siap'), body: T("D'Super App {v} sudah diunduh. Pasang dari Pengaturan → Umum atau menu tray.", { v }), payload: { nav: 'settings' } }); }
   });
   applyAutostart();

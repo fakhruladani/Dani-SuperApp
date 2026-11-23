@@ -48,6 +48,8 @@ export async function check() {
 /** Quits and runs the downloaded installer silently, then restarts the app. Data in %APPDATA% is untouched. */
 export function install() {
   if (st.state !== 'ready') return false;
+  // save everything first: the installer closes any process of the app that is still running
+  try { deps?.beforeInstall?.(); } catch (e) { console.error('[update]', e); }
   setImmediate(() => autoUpdater.quitAndInstall(true, true));
   return true;
 }

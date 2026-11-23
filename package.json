@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "D'Super App: personal workspace (calendar, notes, finance, market, tasks) for Windows",
   "main": "electron/main.js",
   "scripts": {
@@ -117,7 +117,8 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "artifactName": "DSuperApp-Setup-${version}.exe",
-      "uninstallDisplayName": "D'Super App"
+      "uninstallDisplayName": "D'Super App",
+      "include": "build-res/installer.nsh"
     },
     "electronLanguages": [
       "id",
