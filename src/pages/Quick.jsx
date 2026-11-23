@@ -69,7 +69,7 @@ export default function Quick() {
         <textarea ref={ref} className="field" rows={7} value={text} onChange={(e) => setText(e.target.value)} placeholder={T("Baris pertama jadi judul… (Ctrl+Enter untuk simpan)")} onKeyDown={(e) => e.key === 'Enter' && e.ctrlKey && submit()} aria-label={T("Isi catatan")} />
       ) : (
         <input ref={ref} className="field" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} aria-label={T("Teks")}
-          placeholder={mode === 'task' ? T("mis. kirim revisi ke dosen besok 10.00 #TA") : mode === 'rem' ? T("Judul pengingat") : T("Keterangan, mis. makan siang")} style={{ fontSize: 16, minHeight: 46 }} />
+          placeholder={mode === 'task' ? T("mis. telepon klien besok 10.00 #kerja") : mode === 'rem' ? T("Judul pengingat") : T("Keterangan, mis. makan siang")} style={{ fontSize: 16, minHeight: 46 }} />
       )}
       {mode === 'rem' && (
         <div className="row"><input type="date" className="field" aria-label={T("Tanggal")} value={date} onChange={(e) => setDate(e.target.value)} /><input type="time" className="field" aria-label={T("Jam")} value={time} onChange={(e) => setTime(e.target.value)} /></div>

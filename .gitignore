@@ -3,3 +3,7 @@ dist/
 release/
 *.log
 installer/
+dist-android/
+android-signing/
+*.jks
+*.keystore

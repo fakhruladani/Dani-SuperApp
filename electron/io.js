@@ -60,7 +60,7 @@ export async function exportFinanceXlsx(year, filePath) {
     m.columns.forEach((c, i) => { if (sn.cells[c.key].carried) xr.getCell('a' + i).font = { italic: true, color: { argb: 'FF8A94A6' } }; });
     xr.getCell('t').font = { bold: true };
   });
-  await wb.xlsx.writeFile(filePath);
+  fs.writeFileSync(filePath, new Uint8Array(await wb.xlsx.writeBuffer()));
   return filePath;
 }
 

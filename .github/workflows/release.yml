@@ -1,5 +1,7 @@
 # Push a tag like v0.6.0 -> build the Windows installer on GitHub and publish it as a release.
 # The app's auto-updater (electron-updater) reads latest.yml from the newest release.
+# Since 1.0 the same release also gets the Android APK (signed with the key in the repository secrets
+# ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD).
 name: Release
 
 on:
@@ -30,5 +32,48 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and publish installer
         run: npx electron-builder --win nsis --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  android:
+    needs: windows # the release exists by then
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Signing key present?
+        id: key
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "::warning::No ANDROID_KEYSTORE_B64 secret: APK not built. Add the 4 ANDROID_* secrets and re-run this job."; fi
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.ok
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        if: steps.key.outputs.ok
+        with:
+          distribution: temurin
+          java-version: 21
+      - if: steps.key.outputs.ok
+        run: npm ci
+      - if: steps.key.outputs.ok
+        run: npm run build:android
+      - name: Build signed APK
+        if: steps.key.outputs.ok
+        shell: bash
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          DSA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          DSA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          DSA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/dsa.jks"
+          export DSA_KEYSTORE="$RUNNER_TEMP/dsa.jks"
+          cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Attach APK to the release
+        if: steps.key.outputs.ok
+        shell: bash
+        run: gh release upload "$GITHUB_REF_NAME" android/app/build/outputs/apk/release/DSuperApp-*.apk --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -90,17 +90,28 @@ export default function Notes() {
   const [zoom, setZoomState] = useState(app.settings.noteZoom || 100);
   const [tplOpen, setTplOpen] = useState(false);
   const [tagEdit, setTagEdit] = useState(null);
+  // phone: list and editor take turns on the screen
+  const mobile = app.mobile;
+  const [mOpen, setMOpen] = useState(!!app.params.noteId);
+  useEffect(() => {
+    if (!mobile) return undefined;
+    window.__dsaPageBack = () => { if (!mOpen) return false; setMOpen(false); return true; };
+    return () => { window.__dsaPageBack = null; };
+  }, [mobile, mOpen]);
   const listW = usePanelWidth('notesList', 290, 220, 520);
   const setZoom = (z) => { setZoomState(z); app.setSetting('noteZoom', z); };
 
   const create = useCallback(async (tpl) => {
     const n = await DB.save('notes', { title: tpl ? tpl.name : '', content: tpl ? tpl.content : '', plain: '', ink: '[]', tag: tag || '', pinned: 0 });
     setSelId(n.id);
+    setMOpen(true);
     setTplOpen(false);
   }, [tag]);
 
-  useEffect(() => { if (app.params.newNote) create(); if (app.params.noteId) setSelId(app.params.noteId); }, [app.params._t]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!selId && notes.data?.length) setSelId(notes.data[0].id); }, [notes.data, selId]);
+  useEffect(() => { if (app.params.newNote) create(); if (app.params.noteId) { setSelId(app.params.noteId); setMOpen(true); } }, [app.params._t]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!mobile && !selId && notes.data?.length) setSelId(notes.data[0].id); }, [notes.data, selId, mobile]);
+  const showList = !mobile || !mOpen;
+  const showEditor = !mobile || mOpen;
 
   // tags sorted by how many notes use them (most used first)
   const tags = useMemo(() => {
@@ -116,12 +127,13 @@ export default function Notes() {
     if (!(await app.confirm(T('Hapus catatan “{t}”?', { t: sel.title || T('Tanpa judul') }), { danger: true, ok: T("Hapus") }))) return;
     await DB.remove('notes', sel.id);
     setSelId(null);
+    setMOpen(false);
   };
 
   return (
     <div className="page full" style={{ paddingBottom: 24 }}>
       <div className="notes-layout">
-        <aside className="card notes-list" style={{ width: listW.width }}>
+        {showList && <aside className="card notes-list" style={{ width: mobile ? '100%' : listW.width }}>
           <div className="row">
             <label className="sr" htmlFor="n-q">{T("Cari catatan")}</label>
             <input id="n-q" className="field" placeholder={T("Cari catatan…")} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -132,18 +144,19 @@ export default function Notes() {
           <div className="col" style={{ gap: 2, overflow: 'auto', flex: 1, margin: '0 -4px', padding: '0 4px' }}>
             {list.length === 0 && <div className="empty">{notes.data?.length ? T("Tidak ada yang cocok.") : T("Belum ada catatan. Klik + untuk membuat.")}</div>}
             {list.map((n) => (
-              <button key={n.id} className={`note-item ${n.id === selId ? 'on' : ''}`} onClick={() => setSelId(n.id)} onContextMenu={(e) => openMenu(e, noteItems(app, n, { onOpen: (x) => setSelId(x.id), onDeleted: (x) => { if (x.id === selId) setSelId(null); } }))}>
+              <button key={n.id} className={`note-item ${n.id === selId && !mobile ? 'on' : ''}`} onClick={() => { setSelId(n.id); setMOpen(true); }} onContextMenu={(e) => openMenu(e, noteItems(app, n, { onOpen: (x) => { setSelId(x.id); setMOpen(true); }, onDeleted: (x) => { if (x.id === selId) setSelId(null); } }))}>
                 <span className="row" style={{ fontWeight: 700, gap: 6 }}>{n.pinned ? <Icon name="pinned" size="sm" /> : null}<span className="ellipsis grow">{n.title || T("Tanpa judul")}</span>{n.sticky ? <span title={T("Sedang terbuka sebagai jendela mengambang")} style={{ display: 'inline-flex' }}><Icon name="widget" size="sm" className="mut" /></span> : null}</span>
                 <span className="mut ellipsis" style={{ fontSize: 12 }}>{(n.plain || '').slice(0, 80) || (n.ink && n.ink !== '[]' ? T("Coretan pena") : T("Kosong"))}</span>
                 <span className="mut" style={{ fontSize: 11 }}>{timeAgo(new Date(n.updated_at).getTime())}{n.tag ? ` · #${n.tag}` : ''}</span>
               </button>
             ))}
           </div>
-        </aside>
-        <Resizer panel={listW} label={T('Ubah lebar daftar catatan')} />
-        {sel ? (
+        </aside>}
+        {!mobile && <Resizer panel={listW} label={T('Ubah lebar daftar catatan')} />}
+        {!showEditor ? null : sel ? (
           <div className="col grow" style={{ minWidth: 0, gap: 8 }}>
             <div className="row" style={{ gap: 6 }}>
+              {mobile && <button className="icb" aria-label={T('Kembali ke daftar')} onClick={() => setMOpen(false)}><Icon name="left" /></button>}
               <span className="mut" style={{ fontSize: 13 }}>{T("Tag:")}</span>
               {tagEdit != null ? (
                 <TagInput autoFocus value={tagEdit} onChange={setTagEdit} options={tags} commitOnPick onCommit={(v) => { if (v !== (sel.tag || '')) DB.save('notes', { id: sel.id, tag: v }); setTagEdit(null); }} onCancel={() => setTagEdit(null)} style={{ width: 180, minHeight: 32 }} placeholder={T('Ketik atau pilih tag')} aria-label={T("Tag catatan")} />

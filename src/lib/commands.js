@@ -36,7 +36,7 @@ export const COMMANDS = [
   {
     id: 'tugas', icon: 'check', label: T('Tugas'), desc: T('Tambah tugas dengan tenggat dan prioritas'),
     steps: [
-      { key: 'title', type: 'text', ask: () => T('Tugas apa?'), placeholder: () => T('mis. Revisi bab 3') },
+      { key: 'title', type: 'text', ask: () => T('Tugas apa?'), placeholder: () => T('mis. Kirim laporan') },
       { key: 'due_date', type: 'choice', ask: () => T('Tenggatnya kapan?'), options: () => dateChoices([{ label: T('Tanpa tenggat'), value: '' }]) },
       { key: 'due_time', type: 'choice', when: (c) => !!c.due_date, ask: () => T('Jam berapa?'), options: () => [{ label: T('Tanpa jam'), value: '' }, { label: '09.00', value: '09:00' }, { label: '13.00', value: '13:00' }, { label: '17.00', value: '17:00' }, { label: '20.00', value: '20:00' }, { label: T('Pilih jam…'), value: '__time' }] },
       { key: 'priority', type: 'choice', ask: () => T('Prioritasnya?'), options: () => [{ label: T('Rendah'), value: 0 }, { label: T('Sedang'), value: 1 }, { label: T('Tinggi'), value: 2 }] },

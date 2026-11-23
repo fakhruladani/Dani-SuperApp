@@ -5,6 +5,7 @@ export default defineConfig({
   root: 'src',
   base: './',
   plugins: [react()],
+  define: { __ANDROID__: 'false' },
   build: { outDir: '../dist', emptyOutDir: true, target: 'chrome130', chunkSizeWarningLimit: 2500 },
   server: { port: 5199, strictPort: true, fs: { allow: ['..'] } }
 });

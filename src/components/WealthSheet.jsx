@@ -292,7 +292,7 @@ export default function WealthSheet() {
   const categories = [...new Set(m.columns.map((c) => c.category).filter(Boolean))];
 
   return (
-    <div className="row" style={{ gap: 16, alignItems: 'stretch' }}>
+    <div className="row ws-layout" style={{ gap: 16, alignItems: 'stretch' }}>
       <div className="col" style={{ flex: '1 1 0', minWidth: 0, gap: 16 }}>
         <TrendChart m={m} C={C} />
         <section className="card" style={{ overflow: 'hidden' }}>
@@ -348,7 +348,7 @@ export default function WealthSheet() {
         </section>
       </div>
       <Resizer panel={sideW} side="right" label={T('Ubah lebar panel ringkasan')} />
-      <aside className="col" style={{ flex: 'none', width: sideW.width, gap: 16, alignSelf: 'flex-start' }}>
+      <aside className="col ws-side" style={{ flex: 'none', width: sideW.width, gap: 16, alignSelf: 'flex-start' }}>
         <section className="card pad col" style={{ gap: 6, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
           <span className="lbl" style={{ color: 'var(--accent-text)' }}>{T('Total kekayaan bersih')}</span>
           <span className={`num ${lastS?.total < 0 ? 'dn' : ''}`} style={{ fontSize: 30, fontWeight: 800 }}>{rupiah(lastS?.total || 0)}</span>

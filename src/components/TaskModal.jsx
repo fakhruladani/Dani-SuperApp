@@ -31,7 +31,7 @@ export default function TaskModal({ task, onClose }) {
         <Field label={T("Prioritas")}><select className="field" value={f.priority} onChange={set('priority')}>{PRIO.map((p, i) => <option key={p} value={i}>{p}</option>)}</select></Field>
         <Field label={T("Pengingat")}><select className="field" value={f.reminder_min} onChange={set('reminder_min')} disabled={!f.due_date}>{TREM.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
       </div>
-      <Field label={T("Tag")}><TagInput table="tasks" value={f.tag || ''} onChange={(tag) => setF((x) => ({ ...x, tag }))} placeholder={T("mis. TA")} /></Field>
+      <Field label={T("Tag")}><TagInput table="tasks" value={f.tag || ''} onChange={(tag) => setF((x) => ({ ...x, tag }))} placeholder={T("mis. kerja")} /></Field>
       <Field label={T("Catatan")}><textarea className="field" rows={3} value={f.notes || ''} onChange={set('notes')} /></Field>
     </Modal>
   );

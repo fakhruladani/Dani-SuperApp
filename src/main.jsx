@@ -11,8 +11,17 @@ import { api, on } from './lib/api.js';
 
 const route = location.hash.replace(/^#/, '');
 const applyTheme = (t) => document.documentElement.classList.toggle('dark', !!t?.dark);
-if (!route.startsWith('/print/')) { api('theme:get').then(applyTheme); on('theme:changed', applyTheme); }
 
-const Root = route === '/quick' ? Quick : route === '/widget' ? Widget : route.startsWith('/sticky/') ? Sticky : route.startsWith('/print/') ? Print : App;
-// every window gets the right-click menu host, except the hidden PDF print window
-createRoot(document.getElementById('root')).render(route.startsWith('/print/') ? <Root /> : <><Root /><ContextMenuHost /></>);
+async function boot() {
+  // Android: no Electron preload, the backend runs in this page (left out of the desktop build)
+  if (__ANDROID__ && !window.dsa) await (await import('./android/bridge.js')).install();
+  if (window.dsa?.platform === 'android') document.documentElement.classList.add('android');
+  if (!route.startsWith('/print/')) { api('theme:get').then(applyTheme); on('theme:changed', applyTheme); }
+  const Root = route === '/quick' ? Quick : route === '/widget' ? Widget : route.startsWith('/sticky/') ? Sticky : route.startsWith('/print/') ? Print : App;
+  // every window gets the right-click menu host, except the hidden PDF print window
+  createRoot(document.getElementById('root')).render(route.startsWith('/print/') ? <Root /> : <><Root /><ContextMenuHost /></>);
+}
+boot().catch((e) => {
+  console.error(e);
+  document.getElementById('root').textContent = "D'Super App gagal dibuka: " + (e?.message || e);
+});

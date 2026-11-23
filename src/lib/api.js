@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState, useCallback, createContext, useContext } from 'react';
 
-const bridge = window.dsa;
-export const api = (name, ...args) => bridge.invoke(name, ...args);
-export const on = (event, cb) => bridge.on(event, cb);
+// window.dsa: the Electron preload on desktop, src/android/bridge.js in the Android app
+export const api = (name, ...args) => window.dsa.invoke(name, ...args);
+export const on = (event, cb) => window.dsa.on(event, cb);
+export const platform = () => window.dsa?.platform || 'desktop';
+export const isAndroid = () => platform() === 'android';
+
+/** Phone layout: the Android app, or a narrow window. */
+const MOBILE_Q = '(max-width: 760px)';
+export function useMobile() {
+  const [m, setM] = useState(() => isAndroid() || matchMedia(MOBILE_Q).matches);
+  useEffect(() => {
+    if (isAndroid()) return undefined;
+    const q = matchMedia(MOBILE_Q);
+    const f = () => setM(q.matches);
+    q.addEventListener('change', f);
+    return () => q.removeEventListener('change', f);
+  }, []);
+  return m;
+}
 
 export const DB = {
   list: (t, o) => api('db:list', t, o),

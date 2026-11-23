@@ -4,6 +4,7 @@ import { Switch, Seg, Field, Modal, Spinner } from '../components/ui.jsx';
 import { api, on, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 import { T, lang } from '../lib/i18n.js';
+import SyncPanel from '../components/SyncPanel.jsx';
 
 function Row({ title, desc, children }) {
   return (
@@ -31,7 +32,7 @@ function Updates() {
   return (
     <Row title={T('Pembaruan aplikasi')} desc={`${T('Versi')} ${st.current} · ${text}`}>
       {st.state === 'ready' ? (
-        <button className="btn pri" onClick={() => api('update:install')}><Icon name="refresh" size="sm" />{T('Pasang & mulai ulang')}</button>
+        <button className="btn pri" onClick={() => api('update:install')}><Icon name={app.android ? 'download' : 'refresh'} size="sm" />{app.android ? T('Unduh APK {v}', { v: st.version }) : T('Pasang & mulai ulang')}</button>
       ) : (
         <button className="btn" disabled={['dev', 'checking', 'downloading'].includes(st.state)} onClick={() => api('update:check').then(setSt)}>
           <Icon name="refresh" size="sm" className={st.state === 'checking' || st.state === 'downloading' ? 'spin' : ''} />{T('Cek sekarang')}
@@ -72,7 +73,7 @@ function Location() {
     setBusy('');
   };
   return (
-    <Row title={T("Lokasi untuk cuaca")} desc={`${T('Sekarang:')} ${loc.name || '—'}${loc.manual === false ? ' ' + T('(terdeteksi otomatis)') : ''}`}>
+    <Row title={T("Lokasi untuk cuaca")} desc={`${T('Sekarang:')} ${loc.name || T('perkiraan dari alamat IP')}${loc.manual === false ? ' ' + T('(terdeteksi otomatis)') : ''}`}>
       <div className="col" style={{ gap: 6, position: 'relative' }}>
         <div className="row">
           <label className="sr" htmlFor="loc-q">{T("Cari kota/kecamatan")}</label>
@@ -107,7 +108,7 @@ function Security() {
   };
   return (
     <>
-      <Row title={T("Kunci aplikasi dengan PIN")} desc={app.pinSet ? T(
+      <Row title={T("Kunci aplikasi dengan PIN")} desc={app.pinSet && app.android ? T("PIN aktif. Aplikasi terkunci saat dibuka dan setelah tidak aktif.") : app.pinSet ? T(
         "PIN aktif. Aplikasi terkunci saat dibuka, saat Windows dikunci, dan setelah tidak aktif."
       ) : T("Belum ada PIN.")}>
         {app.pinSet ? <><button className="btn" onClick={() => setModal('set')}>{T("Ganti PIN")}</button><button className="btn danger" onClick={() => setModal('remove')}>{T("Hapus PIN")}</button></> : <button className="btn pri" onClick={() => setModal('set')}><Icon name="lock" size="sm" />{T("Pasang PIN")}</button>}
@@ -119,11 +120,15 @@ function Security() {
           </select>
         </Row>
       )}
+      {app.android ? (
+        <Row title={T("Enkripsi data")} desc={T("Data di HP ini dienkripsi AES-256 dengan kunci yang dibuat dan disimpan di HP ini, di penyimpanan pribadi aplikasi. Cadangannya adalah laptop yang tersinkron.")} />
+      ) : (
       <Row title={T("Kunci pemulihan")} desc={T(
         "Data dienkripsi AES-256 dan kuncinya dilindungi akun Windows (DPAPI). Simpan kunci pemulihan ini di tempat aman untuk memulihkan backup di laptop/akun Windows lain."
       )}>
         <button className="btn" onClick={() => { setKey(''); setModal('key'); }}><Icon name="key" size="sm" />{T("Tampilkan kunci")}</button>
       </Row>
+      )}
       {modal && (
         <Modal title={modal === 'key' ? T("Kunci pemulihan") : modal === 'remove' ? T("Hapus PIN") : T("Atur PIN")} width={440} onClose={() => { setModal(null); setKey(''); setErr(''); }} footer={modal !== 'key' ? <button className="btn pri" onClick={savePin}>{T("Simpan")}</button> : !key ? <button className="btn pri" onClick={showKey}>{T("Tampilkan")}</button> : null}>
           {(app.pinSet) && !key && <Field label={T("PIN sekarang")}><input className="field" type="password" inputMode="numeric" value={f.old} onChange={(e) => setF({ ...f, old: e.target.value })} /></Field>}
@@ -230,20 +235,23 @@ export default function Settings() {
   const app = useApp();
   const s = app.settings;
   const info = useQuery(() => api('app:info'), []);
-  const [tab, setTab] = useState('umum');
+  const [tab, setTab] = useState(app.params.tab === 'sync' ? 'sync' : 'umum');
   return (
     <div className="page" style={{ maxWidth: 980 }}>
-      <Seg label={T("Bagian pengaturan")} value={tab} onChange={setTab} options={[{ value: 'umum', label: T("Umum") }, { value: 'notif', label: T("Pengingat & fokus") }, { value: 'keamanan', label: T("Keamanan") }, { value: 'backup', label: T("Backup & data") }, { value: 'berita', label: T("Berita & market") }]} />
+      <Seg label={T("Bagian pengaturan")} value={tab} onChange={setTab} options={[{ value: 'umum', label: T("Umum") }, { value: 'sync', label: app.android ? T("Sinkron") : T("Sinkron HP") }, { value: 'notif', label: T("Pengingat & fokus") }, { value: 'keamanan', label: T("Keamanan") }, ...(app.android ? [] : [{ value: 'backup', label: T("Backup & data") }]), { value: 'berita', label: T("Berita & market") }]} />
       <section className="card pad">
         {tab === 'umum' && <>
           <Updates />
           <Row title="Bahasa / Language" desc={T("Semua jendela dimuat ulang saat bahasa diganti.")}><Seg label="Bahasa / Language" value={lang()} onChange={(v) => app.setSetting('lang', v)} options={[{ value: 'id', label: 'Indonesia' }, { value: 'en', label: 'English' }]} /></Row>
-          <Row title={T("Tema")} desc={T("Ikuti Windows, atau paksa terang/gelap.")}><Seg label={T("Tema")} value={s.theme || 'system'} onChange={(v) => app.setSetting('theme', v)} options={[{ value: 'system', label: T("Ikuti sistem") }, { value: 'light', label: T("Terang") }, { value: 'dark', label: T("Gelap") }]} /></Row>
+          <Row title={T("Tema")} desc={app.android ? T("Ikuti HP, atau paksa terang/gelap.") : T("Ikuti Windows, atau paksa terang/gelap.")}><Seg label={T("Tema")} value={s.theme || 'system'} onChange={(v) => app.setSetting('theme', v)} options={[{ value: 'system', label: T("Ikuti sistem") }, { value: 'light', label: T("Terang") }, { value: 'dark', label: T("Gelap") }]} /></Row>
+          {!app.android && <>
           <Row title={T("Jalankan saat Windows menyala")} desc={T("Aplikasi mulai tersembunyi di tray, pengingat langsung aktif.")}><Switch on={s.autostart !== false} onChange={(v) => app.setSetting('autostart', v)} label={T("Auto-start")} /></Row>
           <Row title={T("Tutup ke tray")} desc={T(
             "Tombol × menyembunyikan jendela; aplikasi tetap berjalan untuk pengingat. Keluar penuh lewat ikon tray."
           )}><Switch on={s.closeToTray !== false} onChange={(v) => app.setSetting('closeToTray', v)} label={T("Tutup ke tray")} /></Row>
+          </>}
           <Location />
+          {!app.android && <>
           <Row title={T("Pintasan catatan cepat")} desc={T(
             "Membuka jendela kecil dari mana saja untuk mencatat tugas/catatan/transaksi."
           )}>
@@ -254,14 +262,17 @@ export default function Settings() {
           <Row title={T("Pintasan keyboard")} desc={T(
             "Ctrl+K cari & perintah · Ctrl+1–8 pindah menu · Ctrl+, pengaturan · Ctrl+L kunci · di catatan: Ctrl+B/I/U, Ctrl+Shift+S coret, Ctrl+± zoom"
           )} />
+          </>}
+          {app.android && <Row title={T("Versi")} desc={`D'Super App ${info.data?.version || ''} · Android`} />}
         </>}
+        {tab === 'sync' && <SyncPanel />}
         {tab === 'notif' && <>
           <Row title={T("Pengingat default acara baru")}>
             <select className="field" aria-label={T("Pengingat default")} value={s.reminderDefault ?? 30} onChange={(e) => app.setSetting('reminderDefault', Number(e.target.value))} style={{ width: 200 }}>
               {[[-1, 'Tanpa pengingat'], [0, 'Saat dimulai'], [10, '10 menit sebelum'], [15, '15 menit sebelum'], [30, '30 menit sebelum'], [60, '1 jam sebelum']].map(([v, l]) => <option key={v} value={v}>{T(l)}</option>)}
             </select>
           </Row>
-          <Row title={T("Ringkasan pagi")} desc={T(
+          <Row title={T("Ringkasan pagi")} desc={app.android ? T("Notifikasi berisi jumlah agenda dan tugas hari itu, pada jam yang dipilih.") : T(
             "Notifikasi berisi agenda, tugas, cuaca, dan sisa anggaran. Muncul sekali sehari saat laptop aktif (sampai jam 12.00)."
           )}>
             <Switch on={s.briefEnabled !== false} onChange={(v) => app.setSetting('briefEnabled', v)} label={T("Ringkasan pagi")} />
@@ -270,10 +281,10 @@ export default function Settings() {
           <Row title={T("Durasi Pomodoro (menit)")} desc={T("Fokus · istirahat pendek · istirahat panjang (setiap 4 sesi)")}>
             {[['focusMin', 25], ['shortMin', 5], ['longMin', 15]].map(([k, d]) => <input key={k} type="number" min={1} max={180} className="field num" aria-label={k} value={s[k] || d} onChange={(e) => app.setSetting(k, Math.max(1, Number(e.target.value) || d))} style={{ width: 80 }} />)}
           </Row>
-          <Row title={T("Tes notifikasi")} desc={T(
+          <Row title={T("Tes notifikasi")} desc={app.android ? T("Izinkan notifikasi untuk D'Super App di pengaturan Android. Agar pengingat tepat waktu, matikan juga optimasi baterai untuk aplikasi ini.") : T(
             "Pastikan Windows mengizinkan notifikasi dari D'Super App (Pengaturan Windows → Sistem → Notifikasi) dan Focus Assist / Jangan Ganggu tidak aktif."
           )}>
-            <button className="btn" onClick={() => { try { new Notification('Tes notifikasi', { body: T("Notifikasi D'Super App berfungsi.") }); } catch { app.toast({ text: T("Notifikasi tidak didukung"), error: true }); } }}><Icon name="bell" size="sm" />{T("Kirim tes")}</button>
+            <button className="btn" onClick={() => { if (app.android) { api('notify:test').catch((e) => app.toast({ text: String(e?.message || e), error: true })); return; } try { new Notification('Tes notifikasi', { body: T("Notifikasi D'Super App berfungsi.") }); } catch { app.toast({ text: T("Notifikasi tidak didukung"), error: true }); } }}><Icon name="bell" size="sm" />{T("Kirim tes")}</button>
           </Row>
         </>}
         {tab === 'keamanan' && <Security />}

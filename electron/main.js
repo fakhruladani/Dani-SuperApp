@@ -13,6 +13,8 @@ import * as upd from './updater.js';
 import { stickyColor } from '../shared/sticky.js';
 import { t as T, setLang, lang } from '../shared/i18n.js';
 import { toMarkdown, imageIds, toText } from '../shared/md.js';
+import { registerCommon } from './common.js';
+import * as syncSrv from './syncServer.js';
 
 // Images in notes are served from the encrypted database: <img src="dsa-img://img/<id>">
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsa-img', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
@@ -286,51 +288,21 @@ function trusted(e) {
 const handlers = {};
 const h = (name, fn) => { handlers[name] = fn; };
 
-const PRIVATE_TABLES = new Set(['note_images']); // binary data: only through img:* and the dsa-img protocol
-const pub = (t) => { if (PRIVATE_TABLES.has(t)) throw new Error('Tabel tidak dikenal: ' + t); return t; };
-h('db:list', (t, opts) => db.list(pub(t), opts || {}));
-h('db:get', (t, id) => db.get(pub(t), id));
-h('db:upsert', (t, row) => { if (t === 'settings') throw new Error('Gunakan settings:set'); return db.upsert(pub(t), row); });
-h('db:remove', (t, id) => { if (t === 'notes') stickyWins.get(id)?.destroy(); return db.remove(pub(t), id); });
-h('db:removeWhere', (t, where) => db.removeWhere(pub(t), where));
-h('settings:all', () => db.allSettings());
-h('settings:set', (k, v) => {
-  if (k === 'pinHash') throw new Error('Gunakan pin:set');
-  db.setSetting(k, v);
-  if (k === 'autostart') applyAutostart();
-  if (k === 'theme') applyTheme();
-  if (k === 'clipboardEnabled') setupClipboard();
-  if (k === 'quickShortcut') applyShortcut();
-  if (k === 'location') svc.clearCache('weather');
-  if (k === 'feeds') svc.clearCache('news');
-  if (k === 'lang' && v !== lang()) {
-    setLang(v);
-    buildTrayMenu();
-    // reload after this IPC reply is delivered
-    setTimeout(() => { for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) load(w, w.__hash || ''); }, 50);
+registerCommon(h, {
+  beforeRemove: (t, id) => { if (t === 'notes') stickyWins.get(id)?.destroy(); },
+  onSetting: (k, v) => {
+    if (k === 'autostart') applyAutostart();
+    if (k === 'theme') applyTheme();
+    if (k === 'clipboardEnabled') setupClipboard();
+    if (k === 'quickShortcut') applyShortcut();
+    if (k === 'lang' && v !== lang()) {
+      setLang(v);
+      buildTrayMenu();
+      // reload after this IPC reply is delivered
+      setTimeout(() => { for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) load(w, w.__hash || ''); }, 50);
+    }
   }
-  return true;
 });
-h('fin:recap', (y) => db.finRecap(Number(y)));
-h('fin:budgets', (y, m) => db.finBudgets(Number(y), Number(m)));
-h('search', (q) => db.search(String(q || '')));
-h('weather', (force) => svc.weather(!!force));
-h('place:search', (q) => svc.searchPlace(String(q)));
-h('place:reverse', (lat, lon) => svc.reverseGeocode(Number(lat), Number(lon)));
-h('place:ip', () => svc.ipLocation());
-h('market:quotes', (syms) => svc.quotes((syms || []).slice(0, 40).map(String)));
-h('market:chart', (s, r) => svc.chart(String(s), String(r || '1mo')));
-h('market:search', (q) => svc.searchSymbol(String(q)));
-h('market:checkAlerts', () => sched.checkAlerts());
-h('news:list', (cat, force) => svc.news(cat === 'id' ? 'id' : 'fin', !!force));
-h('news:feeds', () => svc.feeds());
-h('news:defaultFeeds', () => svc.DEFAULT_FEEDS);
-h('holidays', () => svc.holidays(lang()));
-h('brief', () => sched.buildBrief());
-h('reminder:snooze', (id, m) => sched.snooze(String(id), Number(m) || 10));
-h('reminder:dismiss', (id) => sched.dismiss(String(id)));
-h('reminder:pending', () => sched.pending());
-h('focus:set', (until) => sched.setFocus(Number(until) || 0));
 h('backup:now', () => backupNow());
 h('backup:list', () => listBackups());
 h('backup:openDir', () => shell.openPath(backupDir()));
@@ -393,17 +365,17 @@ h('import:ics', async (calendarId) => {
 const EDIT_CMDS = new Set(['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll']);
 h('edit:cmd', (e, cmd) => { if (EDIT_CMDS.has(cmd)) e.sender[cmd](); });
 h('edit:copyImageAt', (e, x, y) => e.sender.copyImageAt(Number(x) | 0, Number(y) | 0));
+// ---------------- phone sync (local network) ----------------
+h('sync:status', () => syncSrv.status());
+h('sync:setEnabled', async (on) => { db.setSetting('syncEnabled', !!on); if (on) await syncSrv.start(); else syncSrv.stop(); return syncSrv.status(); });
+h('sync:pairStart', () => syncSrv.pairStart());
+h('sync:pairStop', () => syncSrv.pairStop());
+h('sync:unpair', (id) => { db.peerRemove(String(id)); broadcast('sync:event', { type: 'unpaired' }); return syncSrv.status(); });
 h('update:status', () => upd.status());
 h('update:check', () => upd.check());
 h('update:install', () => upd.install());
 
 // ---------------- Total Wealth sheet ----------------
-h('wealth:import', (cells) => db.wealthImport(Array.isArray(cells) ? cells : []));
-h('wealth:snapshot', (date) => db.wealthSnapshot(String(date)));
-h('wealth:moveDate', (from, to) => db.wealthMoveDate(String(from), String(to)));
-h('wealth:deleteDate', (date) => db.wealthDeleteDate(String(date)));
-h('wealth:renameCol', (from, to) => db.wealthRenameCol(from || {}, to || {}));
-h('wealth:deleteCol', (col) => db.wealthDeleteCol(col || {}));
 h('clipboard:read', () => clipboard.readText());
 h('file:readText', async () => {
   const r = await dialog.showOpenDialog(mainWin, { title: T('Impor dari spreadsheet'), filters: [{ name: 'CSV / TSV', extensions: ['csv', 'tsv', 'txt'] }], properties: ['openFile'] });
@@ -415,9 +387,6 @@ h('file:readText', async () => {
   return buf.toString('utf8');
 });
 
-h('img:put', (noteId, mime, bytes) => db.imagePut(String(noteId || ''), String(mime), bytes));
-// bytes of one note image, for the Word export (fetch() of dsa-img:// from the page is a cross-origin request)
-h('img:get', (id) => { const im = db.imageGet(String(id || '')); return im ? { mime: im.mime, data: im.data } : null; });
 const fileSafe = (s) => (String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || T('Tanpa judul'));
 const extOf = (mime) => ({ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif' }[mime] || 'img');
 h('note:exportMd', async (id) => {
@@ -533,7 +502,7 @@ function registerIpc() {
 // ---------------- lifecycle ----------------
 app.on('second-instance', () => showMain());
 app.on('before-quit', () => { quitting = true; });
-app.on('will-quit', () => { globalShortcut.unregisterAll(); sched.stop(); try { state.save(); } catch { /* ignore */ } db.closeDb(); });
+app.on('will-quit', () => { globalShortcut.unregisterAll(); sched.stop(); syncSrv.stop(); try { state.save(); } catch { /* ignore */ } db.closeDb(); });
 app.on('window-all-closed', () => { /* stay in tray */ });
 
 app.whenReady().then(async () => {
@@ -570,6 +539,8 @@ app.whenReady().then(async () => {
   if (db.getSetting('widget.open', false)) toggleWidget();
   for (const n of db.list('notes', { where: { sticky: 1 } })) openSticky(n.id); // reopen floating notes like Windows Sticky Notes
   nativeTheme.on('updated', () => { const c = themeColors(); try { mainWin?.setTitleBarOverlay({ color: c.surface, symbolColor: c.text, height: 44 }); } catch { /* */ } broadcast('theme:changed', { dark: effectiveDark(), setting: db.getSetting('theme', 'system') }); });
+  syncSrv.init({ onEvent: (ev) => broadcast('sync:event', ev) });
+  if (db.getSetting('syncEnabled', false)) syncSrv.start();
   sched.start({ notify, send: broadcast, backup: backupNow });
   const wake = () => { sched.wake(); broadcast('power:resume', Date.now()); };
   powerMonitor.on('resume', wake);

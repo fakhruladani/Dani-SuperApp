@@ -14,9 +14,19 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import { Plugin } from '@tiptap/pm/state';
+// The document keeps dsa-img://img/<id>; a platform may show it through another URL (Android: blob:).
+const NoteImage = Image.extend({
+  addAttributes() {
+    const parent = this.parent?.() || {};
+    return {
+      ...parent,
+      src: { ...parent.src, default: null, parseHTML: (el) => window.dsa?.imageSrc?.(el.getAttribute('src')) ?? el.getAttribute('src'), renderHTML: (a) => ({ src: window.dsa?.imageUrl?.(a.src) ?? a.src }) }
+    };
+  }
+});
 import { getStroke } from 'perfect-freehand';
 import Icon from './Icon.jsx';
-import { api } from '../lib/api.js';
+import { api, useMobile, isAndroid } from '../lib/api.js';
 import { T } from '../lib/i18n.js';
 import { imageFiles, insertImageFiles } from '../lib/images.js';
 import { exportNote } from '../lib/noteExport.js';
@@ -141,7 +151,7 @@ export function noteExtensions(placeholder, { noteId = null, onError = null } = 
     Highlight.configure({ multicolor: true }), TaskList, TaskItem.configure({ nested: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }), Link.configure({ openOnClick: false, autolink: true }),
     Placeholder.configure({ placeholder }),
-    Image.configure({ inline: false, allowBase64: false, HTMLAttributes: { class: 'note-img' } }),
+    NoteImage.configure({ inline: false, allowBase64: false, HTMLAttributes: { class: 'note-img' } }),
     ImageInput.configure({ noteId, onError })
   ];
 }
@@ -191,10 +201,10 @@ function ExportMenu({ busy, run }) {
       </button>
       {open && (
         <span className="card menu-pop" role="menu" style={{ bottom: 36, right: 0 }}>
-          {item('pdf', 'PDF', T('Dengan gambar dan coretan pena'))}
+          {!isAndroid() && item('pdf', 'PDF', T('Dengan gambar dan coretan pena'))}
           {item('docx', 'Word (.docx)', T('Dengan gambar, tanpa coretan pena'))}
           {item('txt', T('Teks (.txt)'), T('Hanya teks, tanpa gambar'))}
-          {item('md', 'Markdown (.md)', T('Gambar disimpan di folder terpisah, tanpa coretan pena'))}
+          {!isAndroid() && item('md', 'Markdown (.md)', T('Gambar disimpan di folder terpisah, tanpa coretan pena'))}
         </span>
       )}
     </span>
@@ -214,6 +224,18 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
   const [linkUrl, setLinkUrl] = useState(null);
   const pageRef = useRef();
   const fileRef = useRef();
+  // phone: the page is as wide as the screen (text reflows, no zoom); pen strokes keep the desktop
+  // page's coordinates (PAGE_W wide) and are scaled to fit, so they stay where they were drawn
+  const mobile = useMobile();
+  const scrollRef = useRef();
+  const [pw, setPw] = useState(0);
+  useLayoutEffect(() => {
+    if (!mobile || !scrollRef.current) return undefined;
+    const el = scrollRef.current;
+    const ro = new ResizeObserver(() => setPw(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mobile]);
   const [exporting, setExporting] = useState('');
   const saveT = useRef();
   const latest = useRef({});
@@ -290,6 +312,8 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
     </button>
   );
   const scale = zoom / 100;
+  const k = mobile && pw ? pw / PAGE_W : 1; // ink units -> px on a phone
+  const pageHpx = Math.max(contentH, (inkBottom + 300) * k, 640);
 
   // right-click on the page: pen tools in pen mode, image actions on a picture, text + formatting otherwise
   const pageMenu = (ev) => {
@@ -344,6 +368,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
         <B label={T("Urungkan (Ctrl+Z)")} icon="undo" run={() => (tool === 'type' ? e.chain().focus().undo().run() : undoInk())} />
         <B label={T("Ulangi (Ctrl+Y)")} icon="redo" run={() => e.chain().focus().redo().run()} />
         <span className="sep" />
+        {!mobile && <>
         <label className="sr" htmlFor="ne-font">{T("Font")}</label>
         <select id="ne-font" className="field" value={ts.fontFamily || ''} onChange={(ev) => (ev.target.value ? e.chain().focus().setFontFamily(ev.target.value).run() : e.chain().focus().unsetFontFamily().run())} style={{ maxWidth: 150 }}>
           <option value="">{T("Font bawaan")}</option>
@@ -354,6 +379,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
           <option value="">{T("Ukuran")}</option>
           {SIZES.map((s) => <option key={s} value={s}>{parseInt(s, 10)}</option>)}
         </select>
+        </>}
         <label className="sr" htmlFor="ne-block">{T("Gaya paragraf")}</label>
         <select id="ne-block" className="field" value={e.isActive('heading', { level: 1 }) ? 'h1' : e.isActive('heading', { level: 2 }) ? 'h2' : e.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
           onChange={(ev) => { const v = ev.target.value; if (v === 'p') e.chain().focus().setParagraph().run(); else e.chain().focus().toggleHeading({ level: Number(v[1]) }).run(); }}>
@@ -364,7 +390,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
         <B label={T("Miring (Ctrl+I)")} text="I" style={{ fontStyle: 'italic', fontFamily: 'Lora, serif' }} on={e.isActive('italic')} run={() => e.chain().focus().toggleItalic().run()} />
         <B label={T("Garis bawah (Ctrl+U)")} text="U" style={{ textDecoration: 'underline' }} on={e.isActive('underline')} run={() => e.chain().focus().toggleUnderline().run()} />
         <B label={T("Coret / strikethrough (Ctrl+Shift+S)")} text="S" style={{ textDecoration: 'line-through' }} on={e.isActive('strike')} run={() => e.chain().focus().toggleStrike().run()} />
-        <B label={T("Kode")} text="</>" style={{ fontFamily: 'JetBrains Mono', fontSize: 11 }} on={e.isActive('code')} run={() => e.chain().focus().toggleCode().run()} />
+        {!mobile && <B label={T("Kode")} text="</>" style={{ fontFamily: 'JetBrains Mono', fontSize: 11 }} on={e.isActive('code')} run={() => e.chain().focus().toggleCode().run()} />}
         <span className="sep" />
         <ColorMenu label={T("Warna teks")} colors={TEXT_COLORS} current={ts.color} onPick={(c) => (c ? e.chain().focus().setColor(c).run() : e.chain().focus().unsetColor().run())}>
           <span style={{ fontWeight: 800, fontSize: 14, lineHeight: 1, borderBottom: `3px solid ${ts.color || 'currentColor'}`, padding: '0 2px' }}>A</span>
@@ -376,11 +402,13 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
         <B label={T("Daftar berpoin")} icon="list" on={e.isActive('bulletList')} run={() => e.chain().focus().toggleBulletList().run()} />
         <B label={T("Daftar bernomor")} icon="olist" on={e.isActive('orderedList')} run={() => e.chain().focus().toggleOrderedList().run()} />
         <B label={T("Checklist")} icon="checklist" on={e.isActive('taskList')} run={() => e.chain().focus().toggleTaskList().run()} />
+        {!mobile && <>
         <B label={T("Kutipan")} icon="quote" on={e.isActive('blockquote')} run={() => e.chain().focus().toggleBlockquote().run()} />
         <B label={T("Rata kiri")} icon="alignL" on={e.isActive({ textAlign: 'left' })} run={() => e.chain().focus().setTextAlign('left').run()} />
         <B label={T("Rata tengah")} icon="alignC" on={e.isActive({ textAlign: 'center' })} run={() => e.chain().focus().setTextAlign('center').run()} />
         <B label={T("Rata kanan")} icon="alignR" on={e.isActive({ textAlign: 'right' })} run={() => e.chain().focus().setTextAlign('right').run()} />
         <B label={T("Garis pemisah")} text="—" run={() => e.chain().focus().setHorizontalRule().run()} />
+        </>}
         <B label={T("Sisipkan gambar (atau tempel Ctrl+V)")} icon="image" run={() => fileRef.current?.click()} />
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden onChange={(ev) => { const files = imageFiles(ev.target.files); ev.target.value = ''; if (files.length) insertImageFiles(e, note.id, files).catch((err) => onError?.(err)); }} />
         <B label={T("Tautan")} icon="link" on={e.isActive('link') || linkUrl != null} run={() => { if (e.isActive('link')) e.chain().focus().unsetLink().run(); else setLinkUrl('https://'); }} />
@@ -391,7 +419,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
               onKeyDown={(ev) => { if (ev.key === 'Enter') { if (/^https?:\/\//.test(linkUrl)) e.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run(); setLinkUrl(null); } if (ev.key === 'Escape') setLinkUrl(null); }} />
           </span>
         )}
-        <B label={T("Hapus format")} icon="erase" run={() => e.chain().focus().unsetAllMarks().clearNodes().run()} />
+        {!mobile && <B label={T("Hapus format")} icon="erase" run={() => e.chain().focus().unsetAllMarks().clearNodes().run()} />}
         <span className="sep" />
         <span className="row" style={{ gap: 0 }} role="group" aria-label={T("Mode")}>
           <B label={T("Mode ketik")} icon="type" on={tool === 'type'} run={() => setTool('type')} />
@@ -409,13 +437,23 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
           </span>
         )}
         {strokes.length > 0 && <button className="btn sm ghost" onClick={() => setStrokes([])}>{T("Hapus semua coretan")}</button>}
-        <span className="row" style={{ marginLeft: 'auto', gap: 0 }}>
+        {!mobile && <span className="row" style={{ marginLeft: 'auto', gap: 0 }}>
           <B label={T("Perkecil (Ctrl+-)")} icon="zoomOut" run={() => setZoom(Math.max(50, zoom - 10))} />
           <button className="btn sm ghost num" onClick={() => setZoom(100)} title={T("Reset zoom (Ctrl+0)")} style={{ minWidth: 56 }}>{zoom}%</button>
           <B label={T("Perbesar (Ctrl++)")} icon="zoomIn" run={() => setZoom(Math.min(200, zoom + 10))} />
-        </span>
+        </span>}
       </div>
-      <div className="paper-scroll">
+      <div className="paper-scroll" ref={scrollRef}>
+        {mobile ? (
+          <div className="paper paper-m" onContextMenu={pageMenu} style={{ minHeight: pageHpx }}>
+            <div ref={pageRef}>
+              <label className="sr" htmlFor="ne-title">{T("Judul catatan")}</label>
+              <input id="ne-title" className="title-input" placeholder={T("Judul catatan")} value={title} onChange={(ev) => { setTitle(ev.target.value); queue({ title: ev.target.value }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); e.commands.focus('start'); } }} />
+              <EditorContent editor={e} />
+            </div>
+            {pw > 0 && <InkLayer tool={tool} color={penColor} size={penSize} strokes={strokes} setStrokes={setStrokes} height={pageHpx / k} />}
+          </div>
+        ) : (
         <div style={{ width: PAGE_W * scale, height: pageH * scale, margin: '24px auto', position: 'relative' }}>
           <div className="paper" onContextMenu={pageMenu} style={{ width: PAGE_W, minHeight: pageH, margin: 0, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', left: 0, top: 0 }}>
             <div ref={pageRef}>
@@ -426,6 +464,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
             <InkLayer tool={tool} color={penColor} size={penSize} strokes={strokes} setStrokes={setStrokes} height={pageH} />
           </div>
         </div>
+        )}
       </div>
       <div className="row wrap mut" style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 12, gap: 14 }}>
         <span>{savedAt ? T('Tersimpan otomatis') + ' · ' + savedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : T("Tersimpan otomatis")}</span>
@@ -433,7 +472,7 @@ export default function NoteEditor({ note, onSave, onDelete, onPin, onFloat, onE
         <span>{T('{n} coretan', { n: strokes.length })}</span>
         <span className="grow" />
         <ExportMenu busy={exporting} run={async (k) => { setExporting(k); try { await flush(); await exportNote(k, note.id); } catch (err) { onError?.(err); } finally { setExporting(''); } }} />
-        <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title={T("Buka catatan ini sebagai jendela mengambang (sticky note)")}><Icon name="widget" size="sm" />{T("Jendela mengambang")}</button>
+        {!isAndroid() && <button data-tour="float" className="btn sm ghost" onClick={() => { flush(); onFloat(); }} title={T("Buka catatan ini sebagai jendela mengambang (sticky note)")}><Icon name="widget" size="sm" />{mobile ? null : T("Jendela mengambang")}</button>}
         <button className={`icb sm ${note.pinned ? 'on' : ''}`} aria-pressed={!!note.pinned} aria-label={note.pinned ? T("Lepas sematan") : T("Sematkan")} title={note.pinned ? T("Lepas sematan") : T("Sematkan")} onClick={() => onPin(!note.pinned)}><Icon name="pinned" size="sm" /></button>
         <button className="icb sm danger" aria-label={T("Hapus catatan")} title={T("Hapus catatan")} onClick={onDelete}><Icon name="trash" size="sm" /></button>
       </div>

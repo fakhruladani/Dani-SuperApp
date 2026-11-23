@@ -61,7 +61,7 @@ test('db: open, CRUD, encryption, recap, budgets, search', async () => {
   assert.deepEqual(rec.years, [2025, 2026]);
   const b = db.finBudgets(2026, 10).find((x) => x.name === 'Makan');
   assert.equal(b.spent, 2000000);
-  assert.equal(b.budget, 1800000);
+  assert.equal(b.budget, 0); // new installs start without assumed budgets
   db.upsert('fin_budgets', { year: 2026, month: 10, category_id: makan.id, amount: 2500000 });
   assert.equal(db.finBudgets(2026, 10).find((x) => x.name === 'Makan').budget, 2500000);
   assert.equal(db.list('fin_tx', { where: { date: { prefix: '2026-10' } } }).length, 2);

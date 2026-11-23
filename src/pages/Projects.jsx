@@ -84,9 +84,9 @@ function ProjectModal({ initial, onClose }) {
       <button className="btn" onClick={() => onClose()}>{T('Batal')}</button>
       <button className="btn pri" onClick={save}>{T('Simpan')}</button>
     </>}>
-      <Field label={T('Nama proyek')}><input className="field" value={f.name} placeholder={T('mis. Tugas Akhir')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+      <Field label={T('Nama proyek')}><input className="field" value={f.name} placeholder={T('mis. Renovasi rumah')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label={T('Tag tugas')} hint={T('Tugas bertag ini masuk ke proyek.')}><TagInput table="tasks" value={f.tag} placeholder="TA" onChange={(tag) => setF((x) => ({ ...x, tag }))} /></Field>
+        <Field label={T('Tag tugas')} hint={T('Tugas bertag ini masuk ke proyek.')}><TagInput table="tasks" value={f.tag} placeholder="kerja" onChange={(tag) => setF((x) => ({ ...x, tag }))} /></Field>
         <Field label={T('Tenggat proyek')}><input type="date" className="field" value={f.deadline || ''} onChange={(e) => setF({ ...f, deadline: e.target.value })} /></Field>
       </div>
       <Field label={T('Warna')}><ColorPick value={f.color} onChange={(color) => setF({ ...f, color })} /></Field>
@@ -155,12 +155,12 @@ export default function Projects() {
     <div className="page" data-tour="projects">
       <div className="row wrap" style={{ gap: 12 }}>
         <Seg label={T('Filter proyek')} value={view} onChange={setView} options={[{ value: 'active', label: `${T('Aktif')} (${groups.filter((g) => !g.archived).length})` }, { value: 'archived', label: `${T('Arsip')} (${groups.filter((g) => g.archived).length})` }]} />
-        <span className="mut grow" style={{ fontSize: 13 }}>{T('Tugas dikelompokkan per tag. Tulis #tag saat membuat tugas, misalnya “revisi bab 3 besok #TA”.')}</span>
+        <span className="mut grow" style={{ fontSize: 13 }}>{T('Tugas dikelompokkan per tag. Tulis #tag saat membuat tugas, misalnya “kirim laporan besok #kerja”.')}</span>
         <button className="btn pri" onClick={() => setEdit({})}><Icon name="plus" size="sm" />{T('Proyek baru')}</button>
       </div>
 
       {loading ? <div className="skeleton" style={{ height: 240 }} /> : shown.length === 0 ? (
-        <div className="card pad"><Empty icon="project">{view === 'archived' ? T('Belum ada proyek diarsipkan.') : T('Belum ada proyek. Beri tag pada tugas (mis. #TA) atau klik “Proyek baru”.')}</Empty></div>
+        <div className="card pad"><Empty icon="project">{view === 'archived' ? T('Belum ada proyek diarsipkan.') : T('Belum ada proyek. Beri tag pada tugas (mis. #kerja) atau klik “Proyek baru”.')}</Empty></div>
       ) : (
         <div className="proj-layout">
           <div className="col" style={{ gap: 10, width: listW.width, flex: 'none', alignSelf: 'flex-start' }}>

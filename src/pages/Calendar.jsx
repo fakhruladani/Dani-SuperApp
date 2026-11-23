@@ -57,7 +57,7 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
         <button className="btn" onClick={() => onClose(false)}>{T("Batal")}</button>
         <button className="btn pri" onClick={save}>{T("Simpan")}</button>
       </>}>
-      <input className="field" aria-label={T("Judul")} placeholder={T("Judul, mis. Bimbingan TA")} value={f.title} onChange={set('title')} onKeyDown={(e) => e.key === 'Enter' && save()} style={{ fontSize: 18, fontWeight: 700 }} />
+      <input className="field" aria-label={T("Judul")} placeholder={T("Judul, mis. Rapat tim")} value={f.title} onChange={set('title')} onKeyDown={(e) => e.key === 'Enter' && save()} style={{ fontSize: 18, fontWeight: 700 }} />
       <div className="row"><Switch on={f.all_day} onChange={set('all_day')} label={T("Seharian")} /><span style={{ fontWeight: 600 }}>{T("Seharian")}</span></div>
       <div style={{ display: 'grid', gridTemplateColumns: f.all_day ? '1fr 1fr' : '1.3fr 1fr 1.3fr 1fr', gap: 10 }}>
         <Field label={T("Mulai")}><input type="date" className="field" value={f.date} onChange={(e) => { const d = e.target.value; setF({ ...f, date: d, endDate: f.endDate < d ? d : f.endDate }); }} /></Field>
@@ -66,7 +66,7 @@ export function EventModal({ initial, calendars, onClose, defaultReminder = 30 }
         {!f.all_day && <Field label={T("Jam")}><input type="time" className="field" value={f.endTime} onChange={set('endTime')} /></Field>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field label={T("Pengingat (notifikasi Windows)")}>
+        <Field label={app.android ? T("Pengingat (notifikasi)") : T("Pengingat (notifikasi Windows)")}>
           <select className="field" value={f.reminder_min} onChange={set('reminder_min')}>{REMINDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </Field>
         <Field label={T("Kalender")}>
@@ -372,7 +372,7 @@ export default function Calendar() {
               <select id="q-rem" className="field grow" value={quick.rem} onChange={(e) => setQuick({ ...quick, rem: e.target.value })}>{REMINDERS.slice(1, 8).map(([v, l]) => <option key={v} value={v}>{v === 0 ? T("Saat mulai") : v < 60 ? T('{n} mnt sblm', { n: v }) : T('{n} jam sblm', { n: v / 60 })}</option>)}</select>
             </div>
             <button className="btn pri" onClick={addQuick}><Icon name="bell" size="sm" />{T("Simpan pengingat")}</button>
-            <span className="mut" style={{ fontSize: 12 }}>{T(
+            <span className="mut" style={{ fontSize: 12 }}>{app.android ? T("Notifikasi muncul sesuai pengingat, juga saat aplikasi ditutup.") : T(
               "Notifikasi Windows muncul sesuai pengingat. Jika laptop mati/tidur saat jadwal, pengingat muncul begitu laptop menyala."
             )}</span>
           </div>

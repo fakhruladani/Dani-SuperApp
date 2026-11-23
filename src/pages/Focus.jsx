@@ -157,7 +157,7 @@ export default function Focus() {
           </div>
           <div className="row">
             <label className="sr" htmlFor="t-new">{T("Tugas baru")}</label>
-            <input id="t-new" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={T("Ketik tugas… mis. “revisi abstrak besok 09.00 #TA !tinggi”")} />
+            <input id="t-new" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={T("Ketik tugas… mis. “kirim laporan besok 09.00 #kerja !tinggi”")} />
             <button className="btn pri" onClick={add}><Icon name="plus" size="sm" />{T("Tambah")}</button>
           </div>
           {preview && (preview.due_date || preview.tag || preview.priority) ? (

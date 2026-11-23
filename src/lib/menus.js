@@ -1,5 +1,5 @@
 // Right-click menu builders shared by several pages (see components/ContextMenu.jsx).
-import { api, DB } from './api.js';
+import { api, DB, isAndroid } from './api.js';
 import { toLocalDate, addDays } from '../../shared/recur.js';
 import { T } from './i18n.js';
 import { exportNote } from './noteExport.js';
@@ -49,13 +49,13 @@ export function noteItems(app, n, { onOpen, onDeleted } = {}) {
   return [
     onOpen && { label: T('Buka'), icon: 'note', run: () => onOpen(n) },
     { label: n.pinned ? T('Lepas sematan') : T('Sematkan'), icon: 'pinned', run: () => DB.save('notes', { id: n.id, pinned: n.pinned ? 0 : 1 }) },
-    { label: T('Jendela mengambang'), icon: 'widget', run: () => api('sticky:open', n.id) },
+    !isAndroid() && { label: T('Jendela mengambang'), icon: 'widget', run: () => api('sticky:open', n.id) },
     { label: T('Duplikat'), icon: 'duplicate', run: async () => { const c = await DB.save('notes', { title: (n.title || T('Tanpa judul')) + ' ' + T('(salinan)'), content: n.content, plain: n.plain, ink: n.ink, tag: n.tag, pinned: 0 }); onOpen?.(c); } },
     '-',
-    { label: T('Ekspor ke PDF…'), icon: 'download', run: () => run('pdf') },
+    !isAndroid() && { label: T('Ekspor ke PDF…'), icon: 'download', run: () => run('pdf') },
     { label: T('Ekspor ke Word…'), icon: 'download', run: () => run('docx') },
     { label: T('Ekspor ke teks (.txt)…'), icon: 'download', run: () => run('txt') },
-    { label: T('Ekspor ke Markdown…'), icon: 'download', run: () => run('md') },
+    !isAndroid() && { label: T('Ekspor ke Markdown…'), icon: 'download', run: () => run('md') },
     '-',
     { label: T('Hapus catatan'), icon: 'trash', danger: true, run: async () => { if (await app.confirm(T('Hapus catatan “{t}”?', { t: n.title || T('Tanpa judul') }), { danger: true, ok: T('Hapus') })) { await DB.remove('notes', n.id); onDeleted?.(n); } } }
   ];

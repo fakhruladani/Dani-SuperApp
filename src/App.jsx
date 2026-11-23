@@ -3,7 +3,7 @@ import Icon from './components/Icon.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import LockScreen from './components/LockScreen.jsx';
 import { Modal } from './components/ui.jsx';
-import { api, on, AppCtx, useNow, DB, useQuery } from './lib/api.js';
+import { api, on, AppCtx, useNow, DB, useQuery, useMobile, isAndroid } from './lib/api.js';
 import { useFocusTimer, useFocusLeft, mmss } from './lib/focus.js';
 import { fmtDateLong, pad, toLocalDate, expandAll } from '../shared/recur.js';
 import Home from './pages/Home.jsx';
@@ -49,6 +49,10 @@ export default function App() {
   const now = useNow(60000); // minute resolution: the seconds clock lives in <Clock/> only
   const focus = useFocusTimer(settings);
   const lastActive = useRef(Date.now());
+  const mobile = useMobile();
+  const android = isAndroid();
+  const [more, setMore] = useState(false);
+  useEffect(() => { document.documentElement.classList.toggle('mobile', mobile); }, [mobile]);
 
   const loadSettings = useCallback(() => api('settings:all').then(setSettings), []);
   useEffect(() => {
@@ -62,6 +66,10 @@ export default function App() {
       on('db:changed', (t) => { if (t.includes('settings')) { loadSettings(); api('pin:status').then((s) => setPinSet(s.set)); } }),
       on('nav', (p) => { if (p?.nav) nav(p.nav, p); else if (p?.reminder) nav('cal', { date: p.date }); }),
       on('reminder:fire', (p) => pushToast({ kind: 'reminder', ...p })),
+      on('sync:event', (ev) => {
+        if (ev.type === 'synced' && !ev.quiet) pushToast(T('Sinkron selesai · {n} perubahan masuk', { n: ev.result?.received || 0 }));
+        if (ev.type === 'error' && !ev.quiet) pushToast({ text: ev.error === 'UNPAIRED' ? T('Laptop menolak: HP ini sudah diputus di laptop. Hubungkan ulang.') : T('Laptop tidak terjangkau. Pastikan satu Wi-Fi dan sinkron di laptop aktif.'), error: true });
+      }),
       on('power:lock', () => setLocked((l) => l || pinRef.current)),
       on('update:status', (u) => { if (u.state === 'ready' && updToast.current !== u.version) { updToast.current = u.version; pushToast(T('Pembaruan {v} siap. Pasang dari Pengaturan → Umum.', { v: u.version })); } })
     ];
@@ -118,10 +126,17 @@ export default function App() {
   }, [today], ['events', 'tasks']);
 
   const sidebarW = usePanelWidth('sidebar', 236, 190, 340, { settings, setSetting });
-  const ctx = useMemo(() => ({ settings, setSetting, dark, toggleTheme, nav, page, params, toast: pushToast, confirm, focus, pinSet, lock: () => setLocked(true), reloadSettings: loadSettings, startTour: (i = 0) => setTour(i) }), [settings, setSetting, dark, toggleTheme, nav, page, params, pushToast, confirm, focus, pinSet, loadSettings]);
+  const ctx = useMemo(() => ({ settings, setSetting, dark, toggleTheme, nav, page, params, toast: pushToast, confirm, focus, pinSet, lock: () => setLocked(true), reloadSettings: loadSettings, startTour: (i = 0) => setTour(i), mobile, android }), [settings, setSetting, dark, toggleTheme, nav, page, params, pushToast, confirm, focus, pinSet, loadSettings, mobile, android]);
+
+  // Android back button (src/android/bridge.js): a page may handle it first (e.g. note -> list), then back to Beranda
+  useEffect(() => {
+    window.__dsaBack = () => { if (window.__dsaPageBack?.()) return true; if (more) { setMore(false); return true; } if (page !== 'home') { nav('home'); return true; } return false; };
+    return () => { window.__dsaBack = null; };
+  }, [page, more, nav]);
 
   useEffect(() => {
-    if (settings && !settings.tourSeen && !locked && tour == null) { setTour(0); setSetting('tourSeen', true); }
+    // the tour points at the desktop sidebar; on a phone the bottom bar explains itself
+    if (settings && !settings.tourSeen && !locked && tour == null) { if (!mobile) setTour(0); setSetting('tourSeen', true); }
   }, [!!settings, settings?.tourSeen, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!settings) return <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}><div className="logo">D</div></div>;
@@ -130,8 +145,8 @@ export default function App() {
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className="shell">
-        <nav className="sidebar" aria-label={T("Menu utama")} style={{ width: sidebarW.width }}>
+      <div className={`shell ${mobile ? 'is-mobile' : ''}`}>
+        {!mobile && <><nav className="sidebar" aria-label={T("Menu utama")} style={{ width: sidebarW.width }}>
           <div className="brand">
             <div className="logo">D</div>
             <div className="col" style={{ gap: 0 }}>
@@ -161,20 +176,24 @@ export default function App() {
           </div>
         </nav>
 
-        <Resizer panel={sidebarW} className="edge" label={T('Ubah lebar menu')} />
+        <Resizer panel={sidebarW} className="edge" label={T('Ubah lebar menu')} /></>}
         <div className="main">
           <header className="topbar">
             <div className="title">
               <span style={{ fontWeight: 800, fontSize: 19 }}>{TITLES[page]}</span>
-              <Clock />
+              {!mobile && <Clock />}
             </div>
-            <button className="searchbox" onClick={() => setPalette(true)}>
-              <Icon name="search" size="sm" />
-              <span className="grow">{T("Cari apa saja…")}</span>
-              <span className="kbd">Ctrl K</span>
-            </button>
-            <button data-tour="quick" className="icb" title={T("Catatan cepat (Ctrl+Shift+Space)")} aria-label={T("Catatan cepat")} onClick={() => api('win:quick')}><Icon name="bolt" /></button>
-            <button className="icb" title={T("Widget mini")} aria-label={T("Widget mini")} onClick={() => api('win:widget')}><Icon name="widget" /></button>
+            {mobile ? (
+              <button className="icb" aria-label={T("Cari apa saja…")} onClick={() => setPalette(true)}><Icon name="search" /></button>
+            ) : (
+              <button className="searchbox" onClick={() => setPalette(true)}>
+                <Icon name="search" size="sm" />
+                <span className="grow">{T("Cari apa saja…")}</span>
+                <span className="kbd">Ctrl K</span>
+              </button>
+            )}
+            {!android && <button data-tour="quick" className="icb" title={T("Catatan cepat (Ctrl+Shift+Space)")} aria-label={T("Catatan cepat")} onClick={() => api('win:quick')}><Icon name="bolt" /></button>}
+            {!android && !mobile && <button className="icb" title={T("Widget mini")} aria-label={T("Widget mini")} onClick={() => api('win:widget')}><Icon name="widget" /></button>}
             <button className="icb" aria-label={T("Ganti tema")} onClick={toggleTheme}><Icon name={dark ? 'sun' : 'moon'} /></button>
           </header>
           <div className="content">
@@ -182,8 +201,10 @@ export default function App() {
               <Page key={page} />
             </Suspense>
           </div>
+          {mobile && <BottomNav page={page} nav={nav} badges={badges.data} more={more} setMore={setMore} />}
         </div>
       </div>
+      {mobile && more && <MoreSheet page={page} nav={(k) => { setMore(false); nav(k); }} onClose={() => setMore(false)} dark={dark} toggleTheme={toggleTheme} pinSet={pinSet} lock={() => { setMore(false); setLocked(true); }} focus={focus} android={android} />}
 
       {!locked && <QuickBot />}
       <div className="toasts" aria-live="polite">
@@ -245,5 +266,52 @@ function FocusMini({ focus, onClick }) {
         <span style={{ fontSize: 12 }}>{focus.phase === 'focus' ? T("Sesi fokus") : T("Istirahat")}{focus.running ? '' : T(" · dijeda")}</span>
       </span>
     </button>
+  );
+}
+
+// ---------- phone layout ----------
+const BOTTOM = ['home', 'cal', 'notes', 'fin'];
+function BottomNav({ page, nav, badges, more, setMore }) {
+  const inMore = !BOTTOM.includes(page);
+  return (
+    <nav className="bottom-nav" aria-label={T("Menu utama")}>
+      {BOTTOM.map((k) => { const n = NAV.find((x) => x.k === k); return (
+        <button key={k} className={`bn ${page === k && !more ? 'on' : ''}`} onClick={() => { setMore(false); nav(k); }}>
+          <span className="bn-ic"><Icon name={n.icon} />{badges?.[k] > 0 && <span className="bn-badge">{badges[k]}</span>}</span>
+          <span>{k === 'fin' ? T('Keuangan') : n.label}</span>
+        </button>
+      ); })}
+      <button className={`bn ${more || inMore ? 'on' : ''}`} aria-expanded={more} onClick={() => setMore(!more)}>
+        <span className="bn-ic"><Icon name="more" />{badges?.focus > 0 && <span className="bn-badge">{badges.focus}</span>}</span>
+        <span>{T('Lainnya|menu')}</span>
+      </button>
+    </nav>
+  );
+}
+
+function MoreSheet({ page, nav, onClose, dark, toggleTheme, pinSet, lock, focus, android }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose]);
+  const items = [...NAV.filter((n) => !BOTTOM.includes(n.k) && !(android && n.k === 'clip')), { k: 'guide', label: T('Panduan'), icon: 'book' }, { k: 'settings', label: T('Pengaturan'), icon: 'gear' }];
+  return (
+    <div className="sheet-dim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="card sheet" role="dialog" aria-label={T('Lainnya|menu')}>
+        {(focus.running || focus.left < focus.total) && <FocusMini focus={focus} onClick={() => nav('focus')} />}
+        <div className="sheet-grid">
+          {items.map((n) => (
+            <button key={n.k} className={`sheet-item ${page === n.k ? 'on' : ''}`} onClick={() => nav(n.k)}>
+              <Icon name={n.icon} /><span>{n.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="row">
+          <button className="btn grow" onClick={toggleTheme}><Icon name={dark ? 'sun' : 'moon'} size="sm" />{dark ? T("Terang") : T("Gelap")}</button>
+          {pinSet && <button className="btn" onClick={lock}><Icon name="lock" size="sm" />{T('Kunci')}</button>}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,10 @@
+{
+  "appId": "id.dani.superapp",
+  "appName": "D'Super App",
+  "webDir": "dist-android",
+  "server": { "androidScheme": "http", "cleartext": true },
+  "android": { "backgroundColor": "#F4F5F7" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_dsa", "iconColor": "#2459D6" }
+  }
+}

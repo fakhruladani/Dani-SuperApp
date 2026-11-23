@@ -16,22 +16,23 @@ export default function CommandPalette({ onClose }) {
     { title: T("Buka Kalender"), icon: 'cal', run: () => app.nav('cal') },
     { title: T("Buat acara / pengingat baru"), icon: 'bell', run: () => app.nav('cal', { newEvent: Date.now() }) },
     { title: T("Buat catatan baru"), icon: 'note', run: () => app.nav('notes', { newNote: Date.now() }) },
-    { title: T("Sticky note baru (jendela mengambang)"), icon: 'widget', run: () => api('sticky:new') },
+    { title: T("Sticky note baru (jendela mengambang)"), icon: 'widget', desktop: true, run: () => api('sticky:new') },
     { title: T("Tambah transaksi"), icon: 'wallet', run: () => app.nav('fin', { newTx: Date.now() }) },
     { title: T("Rekap keuangan tahunan"), icon: 'table', run: () => app.nav('fin', { tab: 'recap' }) },
     { title: T("Market & berita"), icon: 'chart', run: () => app.nav('market') },
     { title: T("Fokus & tugas"), icon: 'timer', run: () => app.nav('focus') },
     { title: T("Buka Proyek"), icon: 'project', run: () => app.nav('projects') },
-    { title: T("Riwayat clipboard"), icon: 'clip', run: () => app.nav('clip') },
+    { title: T("Riwayat clipboard"), icon: 'clip', desktop: true, run: () => app.nav('clip') },
     { title: T("Pengaturan"), icon: 'gear', run: () => app.nav('settings') },
     { title: T("Panduan fitur (F1)"), icon: 'book', run: () => app.nav('guide') },
-    { title: T("Mulai tur aplikasi"), icon: 'play', run: () => app.startTour(0) },
+    { title: T("Mulai tur aplikasi"), icon: 'play', desktop: true, run: () => app.startTour(0) },
+    { title: app.android ? T("Sinkron dengan laptop") : T("Sinkron dengan HP"), icon: 'refresh', run: () => app.nav('settings', { tab: 'sync' }) },
     { title: app.dark ? T('Ganti ke mode terang') : T('Ganti ke mode gelap'), icon: app.dark ? 'sun' : 'moon', run: () => app.toggleTheme() },
     { title: T("Mulai sesi fokus"), icon: 'play', run: () => { app.focus.start(); app.nav('focus'); } },
-    { title: T("Tampilkan widget mini"), icon: 'widget', run: () => api('win:widget') },
-    { title: T("Backup sekarang"), icon: 'download', run: async () => { await api('backup:now'); app.toast(T("Backup dibuat")); } },
+    { title: T("Tampilkan widget mini"), icon: 'widget', desktop: true, run: () => api('win:widget') },
+    { title: T("Backup sekarang"), icon: 'download', desktop: true, run: async () => { await api('backup:now'); app.toast(T("Backup dibuat")); } },
     ...(app.pinSet ? [{ title: T("Kunci aplikasi"), icon: 'lock', run: () => app.lock() }] : [])
-  ], [app]);
+  ].filter((c) => !(c.desktop && (app.android || app.mobile))), [app]);
 
   useEffect(() => {
     let alive = true;

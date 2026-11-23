@@ -1,5 +1,6 @@
 // Online data: weather, location, market quotes/charts, news (RSS), public holidays.
 // All requests run in the main process (no CORS, no remote code in the renderer).
+// The Android app runs this same file in its WebView with a native HTTP client (src/android/).
 import { XMLParser } from 'fast-xml-parser';
 import { createRequire } from 'node:module';
 import * as db from './db.js';
@@ -15,7 +16,8 @@ async function fetchRaw(url, { timeout = 15000, headers = {} } = {}) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeout);
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': UA, ...headers }, signal: ctl.signal, redirect: 'follow' });
+    // the Android app passes a native HTTP client (no CORS there); desktop uses Node's fetch
+    const r = await (globalThis.__dsaFetch || fetch)(url, { headers: { 'User-Agent': UA, ...headers }, signal: ctl.signal, redirect: 'follow' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r;
   } finally { clearTimeout(t); }
@@ -44,8 +46,16 @@ export function clearCache(prefix) { for (const k of mem.keys()) if (k.startsWit
 export { WMO } from '../shared/weather.js';
 import { WMO } from '../shared/weather.js';
 
-export function weather(force = false) {
-  const loc = db.getSetting('location') || { name: 'Sawangan, Depok', lat: -6.4006, lon: 106.7542 };
+// no location chosen yet (new install): approximate it from the IP address, else Jakarta
+async function currentLocation() {
+  const loc = db.getSetting('location');
+  if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) return loc;
+  try { return await cached('iploc', 6 * 3600000, ipLocation, { persist: true }); }
+  catch { return { name: 'Jakarta', lat: -6.1754, lon: 106.8272, approx: true }; }
+}
+
+export async function weather(force = false) {
+  const loc = await currentLocation();
   const key = `weather:${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}`;
   if (force) mem.delete(key);
   return cached(key, 15 * 60000, async () => {
@@ -176,10 +186,10 @@ const stripHtml = (s) => s.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').repl
 
 async function fetchFeed(f) {
   const r = await fetchRaw(f.url, { timeout: 12000 });
-  const buf = Buffer.from(await r.arrayBuffer());
-  const head = buf.subarray(0, 200).toString('latin1');
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const head = new TextDecoder('latin1').decode(buf.subarray(0, 200));
   const enc = (r.headers.get('content-type') || '').match(/charset=([\w-]+)/i)?.[1] || head.match(/encoding="([\w-]+)"/i)?.[1] || 'utf-8';
-  const body = iconv.encodingExists(enc) ? iconv.decode(buf, enc) : buf.toString('utf8');
+  const body = iconv.encodingExists(enc) ? iconv.decode(globalThis.Buffer ? Buffer.from(buf) : buf, enc) : new TextDecoder().decode(buf);
   const j = xml.parse(body);
   let items = j?.rss?.channel?.item || j?.feed?.entry || [];
   if (!Array.isArray(items)) items = [items];

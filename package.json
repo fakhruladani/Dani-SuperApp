@@ -1,6 +1,6 @@
 {
   "name": "dani-superapp",
-  "version": "0.12.0",
+  "version": "1.0.0",
   "description": "D'Super App: personal workspace (calendar, notes, finance, market, tasks) for Windows",
   "main": "electron/main.js",
   "scripts": {
@@ -8,7 +8,9 @@
     "build": "vite build",
     "start": "vite build && electron .",
     "test": "node --test test/*.test.js",
-    "dist": "vite build && electron-builder --win nsis --x64 --publish never"
+    "dist": "vite build && electron-builder --win nsis --x64 --publish never",
+    "build:android": "vite build -c vite.android.config.js && cap sync android",
+    "apk": "npm run build:android && cd android && ./gradlew assembleRelease"
   },
   "author": "A. Fakhrul Adani",
   "type": "module",
@@ -20,6 +22,16 @@
     "sql.js": "^1.15.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/device": "^8.0.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/status-bar": "^8.0.4",
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@fontsource/caveat": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
@@ -53,8 +65,10 @@
     "docx": "^9.16.0",
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
+    "jsqr": "^1.4.0",
     "lightweight-charts": "^5.2.1",
     "perfect-freehand": "^1.2.3",
+    "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-is": "^19.3.1",

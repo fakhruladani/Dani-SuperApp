@@ -143,7 +143,7 @@ export default function Home() {
 
   return (
     <div className="page">
-      <div className="row wrap" style={{ alignItems: 'flex-end', gap: 12 }}>
+      <div className="row wrap home-head" style={{ alignItems: 'flex-end', gap: 12 }}>
         <div className="col grow" style={{ gap: 4 }}>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>{greeting(now)}</h1>
           <span className="mut">{T('{n} agenda hari ini', { n: todayEvents })} · {T('{n} tugas', { n: todayTasks.length })}{overdue ? ' ' + T('({n} terlambat)', { n: overdue }) : ''} · {T('{n} kebiasaan belum dicentang', { n: habits.data ? habits.data.filter((h) => !h.done).length : 0 })}</span>
@@ -203,7 +203,7 @@ export default function Home() {
           <div className="row"><h2 className="h2 grow">{T("Tugas")}</h2><span className="chip">{todayTasks.length} {T("hari ini")}</span></div>
           <div className="row">
             <label className="sr" htmlFor="home-task">{T("Tugas baru")}</label>
-            <input id="home-task" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTask()} placeholder={T("mis. revisi bab 3 besok 09.00 #TA")} />
+            <input id="home-task" className="field" value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTask()} placeholder={T("mis. kirim laporan besok 09.00 #kerja")} />
             <button className="btn pri" aria-label={T("Tambah tugas")} onClick={addTask}><Icon name="plus" size="sm" /></button>
           </div>
           {todayTasks.length === 0 && <div className="empty">{T("Tidak ada tugas untuk hari ini.")}</div>}

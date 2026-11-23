@@ -66,7 +66,21 @@ function collectDue(fromMs, toMs) {
   return due;
 }
 
-function describe(d, late) {
+/**
+ * Reminders between fromMs and toMs, already worded, for scheduling them ahead as native
+ * notifications (Android). Skips ones dismissed or fired here before.
+ */
+export function upcoming(fromMs, toMs) {
+  return collectDue(fromMs, toMs)
+    .filter((d) => d.kind !== 'snooze' && d.at > fromMs && !db.get('reminder_log', logKey(d.kind, d.key)))
+    .sort((a, b) => a.at - b.at)
+    .map((d) => {
+      const msg = describe(d, false, true);
+      return { logId: logKey(d.kind, d.key), at: d.at, title: msg.title, body: msg.body, type: d.kind, id: d.item.id, date: msg.date };
+    });
+}
+
+function describe(d, late, absolute = false) {
   if (d.kind === 'task') {
     const t = d.item;
     return { title: (late ? T('Terlewat') + ' · ' : '') + T('Tugas:') + ' ' + t.title, body: `${T('Tenggat')} ${t.due_date}${t.due_time ? ' ' + t.due_time.replace(':', '.') : ''}${t.tag ? ' · #' + t.tag : ''}`, date: t.due_date };
@@ -75,7 +89,7 @@ function describe(d, late) {
   const when = o.all_day ? T('Seharian') : fmtTime(o.occStart);
   const mins = Math.round((o.occStart - Date.now()) / 60000);
   let rel = '';
-  if (!o.all_day) rel = mins > 1 ? ' · ' + (mins >= 60 ? T('{n} jam lagi', { n: Math.round(mins / 60) }) : T('{n} menit lagi', { n: mins })) : mins >= -1 ? ' · ' + T('sekarang') : '';
+  if (!o.all_day && !absolute) rel = mins > 1 ? ' · ' + (mins >= 60 ? T('{n} jam lagi', { n: Math.round(mins / 60) }) : T('{n} menit lagi', { n: mins })) : mins >= -1 ? ' · ' + T('sekarang') : '';
   return { title: (late ? T('Terlewat') + ' · ' : '') + o.title, body: `${fmtDateLong(o.occStart)} · ${when}${rel}${o.location ? ' · ' + o.location : ''}${o.description ? '\n' + o.description.slice(0, 120) : ''}`, date: toLocalDate(o.occStart) };
 }
 
@@ -129,7 +143,8 @@ function tick(isCatchUp) {
   if (!deps) return;
   const now = Date.now();
   try {
-    const due = collectDue(lastTick, now).sort((a, b) => a.at - b.at);
+    // Android schedules event/task reminders as native notifications in advance instead (src/android/reminders.js)
+    const due = deps.reminders === false ? [] : collectDue(lastTick, now).sort((a, b) => a.at - b.at);
     // avoid a flood after a long sleep: fire the latest 6, summarise the rest
     const extra = due.length > 6 ? due.splice(0, due.length - 6) : [];
     for (const d of extra) {
@@ -137,8 +152,8 @@ function tick(isCatchUp) {
     }
     if (extra.length) deps.notify({ title: T('{n} pengingat lain terlewat', { n: extra.length }), body: T('Buka kalender untuk melihat detailnya.'), kind: 'reminder', important: true, payload: { nav: 'cal' } });
     for (const d of due) fire(d, isCatchUp);
-    brief(now);
-    maybeBackup(now);
+    if (deps.brief !== false) brief(now);
+    if (deps.backup) maybeBackup(now);
   } catch (e) { console.error('[scheduler]', e); }
   lastTick = now;
   state.set('scheduler.lastCheck', new Date(now).toISOString());

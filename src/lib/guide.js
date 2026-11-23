@@ -27,7 +27,7 @@ const GUIDE_ID = [
       ['Cuaca & lokasi', 'Cuaca sekarang, per 3 jam, dan 6 hari ke depan. Ganti lokasi di Pengaturan → Umum → Lokasi untuk cuaca.'],
       ['Agenda 7 hari', 'Acara dan libur nasional seminggu ke depan. Klik untuk membuka tanggalnya di Kalender.'],
       ['Ringkasan hari ini', 'Jumlah agenda, tugas, cuaca, dan sisa anggaran. Centang kebiasaan harian langsung di sini.'],
-      ['Tugas', 'Ketik tugas dengan bahasa biasa, misalnya "revisi bab 3 besok 09.00 #TA".'],
+      ['Tugas', 'Ketik tugas dengan bahasa biasa, misalnya "kirim laporan besok 09.00 #kerja".'],
       ['Keuangan, pasar, berita, catatan', 'Ringkasan modul lain. Klik tombolnya untuk membuka detail.']
     ],
     open: { page: 'home' }
@@ -52,7 +52,7 @@ const GUIDE_ID = [
     id: 'catatan', icon: 'note', title: 'Catatan', where: 'Menu Catatan (Ctrl+3)',
     intro: 'Catatan dengan format lengkap dan coretan pena. Semua tersimpan otomatis.',
     items: [
-      ['Buat catatan', 'Tombol + di atas daftar, atau "Baru dari template" (Bimbingan TA, Rapat, Jurnal harian).'],
+      ['Buat catatan', 'Tombol + di atas daftar, atau "Baru dari template" (Bimbingan / konsultasi, Rapat, Jurnal harian).'],
       ['Format teks', 'Font, ukuran, judul, tebal (Ctrl+B), miring (Ctrl+I), garis bawah (Ctrl+U), coret, warna teks, stabilo, daftar, checklist, perataan, tautan.'],
       ['Coret pakai pena', 'Pilih ikon pena di toolbar, lalu gambar bebas. Ada juga stabilo bebas dan penghapus. Ctrl+Z membatalkan coretan.'],
       ['Zoom', 'Tombol kaca pembesar di kanan toolbar, atau Ctrl + / Ctrl - / Ctrl 0.'],
@@ -108,7 +108,7 @@ const GUIDE_ID = [
     id: 'proyek', icon: 'project', title: 'Proyek', where: 'Menu Proyek (Ctrl+7)',
     intro: 'Tugas dikelompokkan per tag, lengkap dengan progres, tenggat, dan hitung mundur.',
     items: [
-      ['Mulai proyek', 'Cukup beri tag saat menulis tugas, misalnya "revisi bab 3 besok #TA". Tag otomatis muncul sebagai proyek.'],
+      ['Mulai proyek', 'Cukup beri tag saat menulis tugas, misalnya "kirim laporan besok #kerja". Tag otomatis muncul sebagai proyek.'],
       ['Nama & tenggat', 'Tombol "Atur proyek" atau "Proyek baru" untuk memberi nama, tenggat, warna, dan catatan. Mengganti tag ikut memindahkan tugasnya.'],
       ['Hitung mundur', 'H-n menuju tenggat proyek. Kuning bila tinggal 7 hari atau kurang, merah bila hari H atau sudah lewat.'],
       ['Progres', 'Persentase tugas selesai dari semua tugas bertag itu, plus jumlah tugas yang terlambat.'],
@@ -116,6 +116,19 @@ const GUIDE_ID = [
       ['Arsip', 'Proyek yang sudah selesai bisa diarsipkan dari Edit proyek agar daftar tetap rapi.']
     ],
     open: { page: 'projects' }
+  },
+  {
+    id: 'android', icon: 'refresh', title: 'Aplikasi Android & sinkron', where: 'Pengaturan → Sinkron HP (laptop) dan Pengaturan → Sinkron (HP)',
+    intro: 'D\'Super App juga ada untuk Android (file .apk di halaman rilis GitHub). HP dan laptop menyamakan datanya langsung lewat Wi-Fi atau hotspot yang sama, terenkripsi, tanpa cloud.',
+    items: [
+      ['Pasang di HP', 'Unduh DSuperApp-versi.apk dari halaman rilis GitHub di HP, buka, lalu izinkan "Instal aplikasi tak dikenal" untuk browser bila diminta.'],
+      ['Hubungkan', 'Di laptop: Pengaturan → Sinkron HP → Tampilkan kode QR. Di HP: Pengaturan → Sinkron → Scan QR laptop. Sinkron pertama mengganti isi awal HP dengan data laptop.'],
+      ['Kapan sinkron', 'HP menyinkronkan saat aplikasi dibuka, tiap menit selama terbuka, dan beberapa detik setelah ada perubahan. Tombol "Sinkron sekarang" juga ada.'],
+      ['Bila diubah di dua tempat', 'Untuk satu item yang sama, perubahan paling akhir yang dipakai. Item yang dihapus di satu perangkat ikut terhapus di perangkat lain, kecuali diubah lagi sesudahnya.'],
+      ['Yang tidak ikut sinkron', 'Tema, lokasi cuaca, PIN, ukuran panel, riwayat clipboard, dan status pengingat tetap per perangkat.'],
+      ['Di HP', 'Menu ada di bawah layar; Market, Fokus & Tugas, Proyek, Panduan, dan Pengaturan ada di "Lainnya". Catatan bisa diekspor ke Word atau teks lewat menu bagikan. Pengingat tetap muncul walau aplikasi ditutup.']
+    ],
+    open: { page: 'settings' }
   },
   {
     id: 'clipboard', icon: 'clip', title: 'Riwayat clipboard', where: 'Menu Clipboard (Ctrl+8)',
@@ -162,7 +175,7 @@ const TOUR_ID = [
   { page: 'fin', sel: '[data-tour="fin-tabs"]', title: 'Keuangan', body: 'Bulanan, Rekap tahunan, Kategori & anggaran, dan Total Wealth. Tahun bisa diganti di kiri.' },
   { page: 'market', sel: '[data-tour="tickers"]', title: 'Market', body: 'Klik kartu untuk grafik dan alert harga. Tab Berita berisi berita finance dan Indonesia.' },
   { page: 'focus', sel: '[data-tour="pomodoro"]', title: 'Fokus', body: 'Pomodoro dengan mode jangan ganggu. Di sebelahnya: tugas, kebiasaan, dan statistik.' },
-  { page: 'projects', sel: '[data-tour="projects"]', title: 'Proyek', body: 'Tugas per tag (misalnya #TA) dengan progres dan hitung mundur tenggat.' },
+  { page: 'projects', sel: '[data-tour="projects"]', title: 'Proyek', body: 'Tugas per tag (misalnya #kerja) dengan progres dan hitung mundur tenggat.' },
   { page: 'guide', sel: '[data-tour="nav-guide"]', title: 'Panduan', body: 'Lupa letak fitur? Buka Panduan di sini atau tekan F1. Tur ini bisa diulang dari halaman Panduan.' }
 ];
 
