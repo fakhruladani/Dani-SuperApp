@@ -18,11 +18,12 @@ import { shareFile, pickFile } from './files.js';
 import { imageUrl, imageSrc } from './images.js';
 import * as reminders from './reminders.js';
 import * as sync from './syncClient.js';
+import * as gsheet from '../../electron/gsheet.js';
 import { toText } from '../../shared/md.js';
 import { t as T, setLang, lang } from '../../shared/i18n.js';
 import { b64 } from '../../shared/sync.js';
 
-const EVENTS = new Set(['db:changed', 'reminder:fire', 'nav', 'theme:changed', 'power:resume', 'power:lock', 'quick:shown', 'update:status', 'sync:event']);
+const EVENTS = new Set(['db:changed', 'reminder:fire', 'nav', 'theme:changed', 'power:resume', 'power:lock', 'quick:shown', 'update:status', 'sync:event', 'gsheet:event']);
 const listeners = new Map();
 function emit(event, data) { for (const cb of listeners.get(event) || []) { try { cb(data); } catch (e) { console.error(e); } } }
 
@@ -163,12 +164,13 @@ export async function install() {
   paintBars();
   sched.start({ notify: (n) => emit('reminder:fire', n.payload || {}), send: emit, reminders: false, brief: false, backup: null });
   sync.init({ deviceName: () => model, onEvent: (ev) => emit('sync:event', ev) });
+  gsheet.start({ onEvent: (ev) => emit('gsheet:event', ev) });
   reminders.init({ tap: (extra) => { const nav = extra.type === 'brief' ? { nav: 'home' } : { nav: extra.type === 'task' ? 'focus' : 'cal', date: extra.date }; pendingNav = nav; emit('nav', nav); } });
 
   addEventListener('pagehide', () => { db.saveNow(); state.save(); });
   if (Capacitor.isNativePlatform()) {
     CapApp.addListener('pause', () => { db.saveNow(); state.save(); });
-    CapApp.addListener('resume', () => { sched.wake(); emit('power:resume', Date.now()); sync.syncAll({ quiet: true }); reminders.replan(); });
+    CapApp.addListener('resume', () => { sched.wake(); emit('power:resume', Date.now()); sync.syncAll({ quiet: true }); reminders.replan(); gsheet.importNow({ quiet: true }); });
     CapApp.addListener('backButton', () => {
       // close the top-most popup first (they all listen for Esc), else go back to Beranda, else leave
       if (document.querySelector('.overlay, .ctx-menu, .menu-pop, .tag-pop, .qb, .sheet')) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return; }

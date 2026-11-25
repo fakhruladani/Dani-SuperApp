@@ -15,6 +15,7 @@ import { t as T, setLang, lang } from '../shared/i18n.js';
 import { toMarkdown, imageIds, toText } from '../shared/md.js';
 import { registerCommon } from './common.js';
 import * as syncSrv from './syncServer.js';
+import * as gsheet from './gsheet.js';
 
 // Images in notes are served from the encrypted database: <img src="dsa-img://img/<id>">
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsa-img', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
@@ -541,6 +542,7 @@ app.whenReady().then(async () => {
   for (const n of db.list('notes', { where: { sticky: 1 } })) openSticky(n.id); // reopen floating notes like Windows Sticky Notes
   nativeTheme.on('updated', () => { const c = themeColors(); try { mainWin?.setTitleBarOverlay({ color: c.surface, symbolColor: c.text, height: 44 }); } catch { /* */ } broadcast('theme:changed', { dark: effectiveDark(), setting: db.getSetting('theme', 'system') }); });
   syncSrv.init({ onEvent: (ev) => broadcast('sync:event', ev) });
+  gsheet.start({ onEvent: (ev) => broadcast('gsheet:event', ev) });
   if (db.getSetting('syncEnabled', false)) syncSrv.start();
   sched.start({ notify, send: broadcast, backup: backupNow });
   const wake = () => { sched.wake(); broadcast('power:resume', Date.now()); };

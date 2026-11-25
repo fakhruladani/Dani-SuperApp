@@ -4,6 +4,7 @@
 import * as db from './db.js';
 import * as svc from './services.js';
 import * as sched from './scheduler.js';
+import * as gsheet from './gsheet.js';
 import { lang } from '../shared/i18n.js';
 
 const PRIVATE_TABLES = new Set(['note_images']); // binary data: only through img:* and the image protocol
@@ -51,6 +52,10 @@ export function registerCommon(h, { beforeRemove = () => {}, onSetting = () => {
   h('wealth:deleteDate', (date) => db.wealthDeleteDate(String(date)));
   h('wealth:renameCol', (from, to) => db.wealthRenameCol(from || {}, to || {}));
   h('wealth:deleteCol', (col) => db.wealthDeleteCol(col || {}));
+  // Google Sheets import (errors carry a short code as their message, see GSheetPanel)
+  h('gsheet:status', () => gsheet.status());
+  h('gsheet:test', (url, key, since) => gsheet.test(String(url || '').trim(), String(key || '').trim(), String(since || '')));
+  h('gsheet:import', () => gsheet.importNow({}));
   // note images
   h('img:put', (noteId, mime, bytes) => db.imagePut(String(noteId || ''), String(mime), bytes));
   // bytes of one note image, for the Word export (fetch() of the image URL from the page is a cross-origin request)

@@ -66,6 +66,10 @@ export default function App() {
       on('db:changed', (t) => { if (t.includes('settings')) { loadSettings(); api('pin:status').then((s) => setPinSet(s.set)); } }),
       on('nav', (p) => { if (p?.nav) nav(p.nav, p); else if (p?.reminder) nav('cal', { date: p.date }); }),
       on('reminder:fire', (p) => pushToast({ kind: 'reminder', ...p })),
+      on('gsheet:event', (ev) => {
+        if (ev.added || ev.updated) pushToast(T('Google Sheets: {a} transaksi baru, {u} diperbarui', { a: ev.added, u: ev.updated }));
+        else if (ev.error && !ev.quiet) pushToast({ text: T('Impor Google Sheets gagal. Lihat Pengaturan → Google Sheets.'), error: true });
+      }),
       on('sync:event', (ev) => {
         if (ev.type === 'synced' && !ev.quiet) pushToast(T('Sinkron selesai · {n} perubahan masuk', { n: ev.result?.received || 0 }));
         if (ev.type === 'error' && !ev.quiet) pushToast({ text: ev.error === 'UNPAIRED' ? T('Laptop menolak: HP ini sudah diputus di laptop. Hubungkan ulang.') : T('Laptop tidak terjangkau. Pastikan satu Wi-Fi dan sinkron di laptop aktif.'), error: true });

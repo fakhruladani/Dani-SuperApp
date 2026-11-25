@@ -15,7 +15,7 @@ export const SCHEMA = {
   notes: { id: 'text', title: 'text', content: 'text', plain: 'text', ink: 'text', tag: 'text', pinned: 'int', page_h: 'int', sticky: 'int', sticky_color: 'text', sticky_top: 'int', sticky_bounds: 'text' },
   note_templates: { id: 'text', name: 'text', content: 'text' },
   fin_categories: { id: 'text', name: 'text', kind: 'text', budget: 'int', sort: 'int', archived: 'int' },
-  fin_tx: { id: 'text', date: 'text', description: 'text', category_id: 'text', kind: 'text', amount: 'int', note: 'text' },
+  fin_tx: { id: 'text', date: 'text', description: 'text', category_id: 'text', kind: 'text', amount: 'int', note: 'text', src: 'text' }, // src: 'gs:<hash>' = imported from Google Sheets
   fin_budgets: { id: 'text', year: 'int', month: 'int', category_id: 'text', amount: 'int' },
   wealth: { id: 'text', date: 'text', category: 'text', name: 'text', value: 'int', note: 'text' },
   habits: { id: 'text', name: 'text', color: 'text', sort: 'int', archived: 'int' },
@@ -396,7 +396,7 @@ export function pruneImages() {
 const LOCAL_TABLES = new Set(['reminder_log', 'clipboard']);
 export const SYNC_TABLES = Object.keys(SCHEMA).filter((t) => !LOCAL_TABLES.has(t));
 // Settings that are the user's data rather than this device's setup (theme, location, PIN, window layout stay per device).
-export const SYNC_SETTINGS = new Set(['wealthCols', 'reminderDefault', 'focusMin', 'shortMin', 'longMin', 'feeds', 'showHolidays', 'showObservances', 'showTasksInCalendar', 'briefTime', 'briefEnabled']);
+export const SYNC_SETTINGS = new Set(['gsheet', 'wealthCols', 'reminderDefault', 'focusMin', 'shortMin', 'longMin', 'feeds', 'showHolidays', 'showObservances', 'showTasksInCalendar', 'briefTime', 'briefEnabled']);
 // Columns that describe this device's windows, not the data: never synced, and changing only them is not an edit.
 export const LOCAL_COLS = { notes: ['sticky', 'sticky_top', 'sticky_bounds'] };
 // Tables a user actually fills in (used to tell a fresh install from one with data)
@@ -543,3 +543,7 @@ export function peerSave(p) {
 export function peerRemove(id) { run('DELETE FROM sync_peers WHERE id = ?', [String(id)]); scheduleSave(); }
 export const metaGet = (k) => all('SELECT v FROM sync_meta WHERE k = ?', [k])[0]?.v ?? null;
 export function metaSet(k, v) { run('INSERT OR REPLACE INTO sync_meta (k, v) VALUES (?, ?)', [k, v == null ? null : String(v)]); scheduleSave(); }
+/** True when this row was deleted here (or the deletion arrived by sync). */
+export const isDeleted = (tbl, id) => all('SELECT 1 FROM sync_deleted WHERE tbl = ? AND id = ?', [tbl, String(id)]).length > 0;
+/** After a batch of silent writes: save and tell the windows once. */
+export function touched(tables) { scheduleSave(); changeListener(tables); }

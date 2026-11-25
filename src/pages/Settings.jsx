@@ -5,6 +5,7 @@ import { api, on, useApp, useQuery } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 import { T, lang } from '../lib/i18n.js';
 import SyncPanel from '../components/SyncPanel.jsx';
+import GSheetPanel from '../components/GSheetPanel.jsx';
 
 function Row({ title, desc, children }) {
   return (
@@ -235,10 +236,10 @@ export default function Settings() {
   const app = useApp();
   const s = app.settings;
   const info = useQuery(() => api('app:info'), []);
-  const [tab, setTab] = useState(app.params.tab === 'sync' ? 'sync' : 'umum');
+  const [tab, setTab] = useState(['sync', 'gsheet'].includes(app.params.tab) ? app.params.tab : 'umum');
   return (
     <div className="page" style={{ maxWidth: 980 }}>
-      <Seg label={T("Bagian pengaturan")} value={tab} onChange={setTab} options={[{ value: 'umum', label: T("Umum") }, { value: 'sync', label: app.android ? T("Sinkron") : T("Sinkron HP") }, { value: 'notif', label: T("Pengingat & fokus") }, { value: 'keamanan', label: T("Keamanan") }, ...(app.android ? [] : [{ value: 'backup', label: T("Backup & data") }]), { value: 'berita', label: T("Berita & market") }]} />
+      <Seg label={T("Bagian pengaturan")} value={tab} onChange={setTab} options={[{ value: 'umum', label: T("Umum") }, { value: 'sync', label: app.android ? T("Sinkron") : T("Sinkron HP") }, { value: 'gsheet', label: 'Google Sheets' }, { value: 'notif', label: T("Pengingat & fokus") }, { value: 'keamanan', label: T("Keamanan") }, ...(app.android ? [] : [{ value: 'backup', label: T("Backup & data") }]), { value: 'berita', label: T("Berita & market") }]} />
       <section className="card pad">
         {tab === 'umum' && <>
           <Updates />
@@ -266,6 +267,7 @@ export default function Settings() {
           {app.android && <Row title={T("Versi")} desc={`D'Super App ${info.data?.version || ''} · Android`} />}
         </>}
         {tab === 'sync' && <SyncPanel />}
+        {tab === 'gsheet' && <GSheetPanel />}
         {tab === 'notif' && <>
           <Row title={T("Pengingat default acara baru")}>
             <select className="field" aria-label={T("Pengingat default")} value={s.reminderDefault ?? 30} onChange={(e) => app.setSetting('reminderDefault', Number(e.target.value))} style={{ width: 200 }}>

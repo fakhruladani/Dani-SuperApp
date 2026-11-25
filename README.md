@@ -27,6 +27,7 @@ Tersedia dalam Bahasa Indonesia dan English (ganti di Pengaturan → Umum → Ba
 | **Panel bisa digeser** | Lebar menu kiri, daftar catatan, panel kalender, anggaran, alert market, ringkasan Total Wealth, daftar proyek, dan daftar isi panduan bisa digeser kiri-kanan. Klik dua kali garisnya untuk ukuran awal. Ukuran diingat. |
 | **Update otomatis** | Aplikasi mengecek GitHub Releases, mengunduh versi baru di latar belakang, lalu menawarkan "Pasang & mulai ulang" dari Pengaturan atau menu tray. |
 | **Dua bahasa** | Indonesia dan English untuk seluruh tampilan, panduan, tur, notifikasi, menu tray, dan ekspor Excel. Data yang kamu tulis sendiri tidak ikut diterjemahkan. |
+| **Impor Google Sheets** | Transaksi yang ditulis ke Google Sheet (misalnya oleh asisten chat dari pesan "Jajan 10rb") masuk otomatis ke Keuangan saat aplikasi dibuka dan tiap 5 menit. Sheet tetap privat, dibaca lewat Apps Script berkunci. Tidak pernah dobel, editan di aplikasi tidak ditimpa. |
 | **Android** | Aplikasi yang sama untuk HP (APK di halaman Releases): menu di bawah layar, catatan dengan pena jari atau stylus, semua fitur keuangan, kalender, market, fokus, dan proyek. Pengingat dijadwalkan sebagai notifikasi Android, jadi tetap muncul walau aplikasi ditutup. Ekspor catatan ke Word atau teks lewat menu bagikan. |
 | **Sinkron HP dan laptop** | Hubungkan sekali dengan scan kode QR. Setelah itu HP menyamakan data dengan laptop saat dibuka, tiap menit selama terbuka, dan sesaat setelah ada perubahan, selama keduanya di Wi-Fi atau hotspot yang sama. Langsung antar perangkat, terenkripsi AES-256-GCM, tanpa server atau cloud. Gambar catatan ikut. |
 | **Lainnya** | Ctrl+K untuk cari dan perintah, catatan cepat dari mana saja (Ctrl+Shift+Space), widget mini selalu di atas, riwayat clipboard (opsional), ringkasan pagi, kunci PIN, backup otomatis harian. |
@@ -121,7 +122,7 @@ Versi Android memakai tampilan dan logika data yang sama dengan versi desktop (d
 
 | | |
 |---|---|
-| Unduh | [`DSuperApp-1.0.1.apk`](https://github.com/fakhruladani/Dani-SuperApp/releases/latest) di halaman Releases, atau dari folder [`apk/`](apk/) di repo ini |
+| Unduh | [`DSuperApp-<versi>.apk`](https://github.com/fakhruladani/Dani-SuperApp/releases/latest) di halaman Releases, atau dari folder [`apk/`](apk/) di repo ini |
 | Syarat | Android 7.0 (API 24) atau lebih baru. Ukuran sekitar 6 MB. |
 | Tanda tangan | Sertifikat SHA-256 `DC:9B:E8:83:8C:77:E8:01:78:2B:A5:5F:C6:1B:39:FB:B6:15:8F:64:30:DB:C8:DD:7C:A4:FE:CF:F7:1B:AE:24`. Android hanya mau memasang update yang ditandatangani dengan sertifikat yang sama. |
 | Penyimpanan | Database SQLite terenkripsi AES-256-GCM di penyimpanan pribadi aplikasi. Kuncinya dibuat di HP dan tidak bisa diekspor. |
@@ -176,6 +177,36 @@ Pengaturan → Umum → **Cek sekarang**. Bila ada versi baru, tombol **Unduh AP
 | Alert harga di latar belakang | Di HP alert harga hanya dicek selama aplikasi terbuka |
 | Ringkasan pagi lengkap | Di HP berisi jumlah agenda dan tugas, tanpa cuaca dan anggaran |
 
+## Impor dari Google Sheets
+
+Untuk mencatat pengeluaran lewat chat: asisten (misalnya Muse AI di WhatsApp) menulis tiap transaksi sebagai satu baris di Google Sheet, lalu D'Super App mengimpornya ke Keuangan. Bisa di laptop maupun HP; ID baris sama di keduanya, jadi tidak ada transaksi ganda.
+
+```
+"Jajan 10rb" di WhatsApp -> asisten menambah baris di Google Sheet (privat)
+-> D'Super App membaca lewat Apps Script + kunci -> transaksi di Keuangan -> sinkron ke HP/laptop
+```
+
+**Format sheet** (baris 1 = judul kolom; urutan bebas, nama kolom dikenali):
+
+| Waktu | Keterangan | Nominal | Jenis | Kategori | ID |
+|---|---|---|---|---|---|
+| 2026-11-25 20:45:12 | Jajan | 10000 | keluar | Makanan | (diisi Apps Script) |
+
+- Wajib: Waktu, Keterangan, Nominal. Nominal boleh `10000`, `10rb`, `10k`, `1,5jt`, atau `Rp10.000`.
+- Jenis kosong dianggap pengeluaran. Kategori dicocokkan dengan nama kategori di aplikasi; bila kosong atau tidak cocok, ditebak dari keterangan.
+- Kolom ID diisi otomatis oleh Apps Script dan tidak boleh diubah.
+
+**Pasang (sekali):**
+
+1. Buka sheet-nya, menu **Extensions → Apps Script**. Tempel kode dari [`build-res/gsheet-apps-script.gs`](build-res/gsheet-apps-script.gs) (atau tombol **Salin kode Apps Script** di aplikasi), Simpan.
+2. Pilih fungsi `setup`, klik **Run**, izinkan akses. Kunci rahasia muncul di Execution log.
+3. **Deploy → New deployment → Web app**. Execute as: *Me*. Who has access: *Anyone*. Salin Web app URL.
+4. Di aplikasi: **Pengaturan → Google Sheets**. Tempel URL dan kunci, atur **Impor mulai tanggal** (untuk melewati data uji coba), klik **Tes**, lalu **Simpan**.
+
+**Aturan impor:** baris yang sama tidak pernah masuk dua kali; transaksi yang diubah di aplikasi tidak ditimpa sheet; yang dihapus di aplikasi tidak muncul lagi; koreksi di sheet ikut masuk selama transaksinya belum diubah di aplikasi. Aplikasi hanya membaca, tidak pernah mengubah sheet. Transaksi hasil impor diberi tanda **Sheets** di tabel Keuangan. URL dan kunci ikut tersinkron ke HP.
+
+**Keamanan:** "Who has access: Anyone" hanya berarti URL boleh dipanggil. Tanpa kunci yang benar Apps Script menjawab `{"error":"forbidden"}`, jadi isi sheet tidak terbuka untuk umum. Kunci bisa diganti dengan fungsi `resetKey`. Perlu diingat, isi chat dengan asisten AI disimpan oleh penyedia asisten itu; jangan kirim nomor rekening atau kartu lewat chat.
+
 ## Pengembangan
 
 ### Prasyarat
@@ -219,8 +250,8 @@ npm run dev
 ```
 electron/   main.js (jendela, tray, IPC), common.js (handler yang sama untuk desktop dan Android), db.js (SQLite terenkripsi),
             scheduler.js (pengingat, ringkasan, alert, backup), services.js (cuaca, lokasi, market, RSS, libur),
-            io.js (Excel, CSV, ICS), syncServer.js (server sinkron HP), updater.js (update otomatis), preload.cjs
-shared/     dbcore.js (logika database dan metadata sinkron), sync.js (protokol sinkron, enkripsi, pairing QR),
+            io.js (Excel, CSV, ICS), syncServer.js (server sinkron HP), gsheet.js (impor Google Sheets), updater.js (update otomatis), preload.cjs
+shared/     dbcore.js (logika database dan metadata sinkron), sync.js (protokol sinkron, enkripsi, pairing QR), gsheet.js (baca sheet, aturan impor),
             recur.js (tanggal, pengulangan, parser tugas), wealth.js (perhitungan Total Wealth), weather.js,
             md.js (catatan ke Markdown dan teks), i18n.js + lang-en.js (terjemahan: teks Indonesia jadi kunci, kamus English)
 src/        UI React: App.jsx, pages/*, components/*, lib/*

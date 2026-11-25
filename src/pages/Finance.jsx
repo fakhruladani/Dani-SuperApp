@@ -55,7 +55,7 @@ function TxRow({ tx, cats, onDelete }) {
   const list = cats.filter((c) => c.kind === r.kind);
   const app = useApp();
   const menu = (e) => {
-    const { id, created_at, updated_at, ...copy } = tx;
+    const { id, created_at, updated_at, rev, src, ...copy } = tx; // a copy is not the imported row
     const el = e.target.closest('input, select');
     openMenu(e, [
       { label: T('Duplikat'), icon: 'duplicate', run: () => DB.save('fin_tx', copy) },
@@ -69,7 +69,7 @@ function TxRow({ tx, cats, onDelete }) {
   return (
     <tr onContextMenu={menu}>
       <td style={{ width: 70 }}><input className="cell num" aria-label={T("Tanggal")} value={r.date.slice(8)} onChange={(e) => setR({ ...r, date: r.date.slice(0, 8) + e.target.value.replace(/\D/g, '').slice(0, 2) })} onBlur={(e) => { const d = Math.min(31, Math.max(1, Number(e.target.value) || 1)); commit({ date: r.date.slice(0, 8) + pad(d) }); }} style={{ width: 44 }} /></td>
-      <td><input className="cell" aria-label={T("Keterangan")} value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} /></td>
+      <td style={{ position: 'relative' }}><input className="cell" aria-label={T("Keterangan")} value={r.description || ''} onChange={(e) => setR({ ...r, description: e.target.value })} onBlur={() => commit({ description: r.description })} style={{ minWidth: 160 }} />{String(tx.src || '').startsWith('gs:') && <span className="chip" title={T('Diimpor dari Google Sheets')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 10, padding: '1px 6px', pointerEvents: 'none' }}>Sheets</span>}</td>
       <td><select className="cell" aria-label={T("Kategori")} value={r.category_id || ''} onChange={(e) => commit({ category_id: e.target.value })}>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
       <td className="r"><AmountInput className="cell num up" aria-label={T("Masuk")} value={r.kind === 'in' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'in' || v !== r.amount)) { const cat = r.kind !== 'in' ? cats.find((c) => c.kind === 'in')?.id : r.category_id; commit({ kind: 'in', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
       <td className="r"><AmountInput className="cell num dn" aria-label={T("Keluar")} value={r.kind === 'out' ? r.amount : 0} onChange={(v, done) => { if (done && v && (r.kind !== 'out' || v !== r.amount)) { const cat = r.kind !== 'out' ? cats.find((c) => c.kind === 'out')?.id : r.category_id; commit({ kind: 'out', amount: v, category_id: cat }); } }} style={{ textAlign: 'right', width: 116 }} /></td>
