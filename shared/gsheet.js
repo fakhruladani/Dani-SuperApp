@@ -83,7 +83,14 @@ export function parseSheet(payload, { cats = [], history = [], since = '' } = {}
     return { items, skipped, error: 'COLUMNS', missing: ['time', 'description', 'amount'].filter((k) => col[k] == null) };
   }
   const active = cats.filter((c) => !c.archived);
-  const byName = (kind, name) => active.find((c) => c.kind === kind && normText(c.name) === normText(name));
+  // exact name first, then a close one ("Makanan" in the sheet, "Makan" in the app; "Transportasi" / "Transport")
+  const byName = (kind, name) => {
+    const n = normText(name);
+    if (!n) return null;
+    const mine = active.filter((c) => c.kind === kind);
+    return mine.find((c) => normText(c.name) === n)
+      || mine.find((c) => { const m = normText(c.name); return m.length >= 4 && n.length >= 4 && (n.startsWith(m) || m.startsWith(n)); }) || null;
+  };
   const seen = new Map(); // fallback ids: time + n-th row with that time
   (payload.rows || []).forEach((r, i) => {
     const rowNo = i + 2; // sheet row number (row 1 = header)
@@ -119,3 +126,57 @@ export function decide(item, local, deletedHere) {
   const untouched = rowHash(local) === imported; // the app copy still equals what was imported last time
   return untouched ? 'update' : 'keep';
 }
+
+/** What makes two transactions "the same purchase": day, description (normalized), amount, in/out. */
+export const txKey = (t) => [t.date, normText(t.description), Math.round(Number(t.amount) || 0), t.kind].join('|');
+
+/**
+ * The import plan for a parsed sheet. Besides decide(), a sheet row that is new to the app but matches a
+ * transaction already typed in the app (same txKey, not from the sheet, not linked yet) is linked to it
+ * instead of added, so history that exists in both places is not doubled. Only rows dated on or before
+ * linkUntil (the day the sheet was connected) are linked: after that, a row is a new purchase.
+ * local(id) -> fin_tx row | null, deleted(id) -> bool, existing: fin_tx rows (any order),
+ * linked: { sheetItemId: appTxId } from earlier imports.
+ * Returns [{ item, action: 'add'|'update'|'keep'|'link', linkTo? }].
+ */
+export function planImport(items, { local, deleted, existing = [], linked = {}, linkUntil = '' }) {
+  const used = new Set(Object.values(linked));
+  const pool = new Map();
+  for (const t of existing) {
+    if (String(t.src || '').startsWith('gs:') || used.has(t.id)) continue;
+    const k = txKey(t);
+    if (!pool.has(k)) pool.set(k, []);
+    pool.get(k).push(t.id);
+  }
+  return items.map((item) => {
+    if (linked[item.id]) return { item, action: 'keep' };
+    const action = decide(item, local(item.id), deleted(item.id));
+    if (action === 'add' && linkUntil && item.date <= linkUntil) {
+      const ids = pool.get(txKey(item));
+      if (ids?.length) return { item, action: 'link', linkTo: ids.shift() };
+    }
+    return { item, action };
+  });
+}
+
+/** Connection code shown by the Apps Script menu: "dsa-gs:" + base64url(JSON {u: web app URL, k: key}). */
+export function parseConnCode(code) {
+  const m = /dsa-gs:([A-Za-z0-9_\-+/=]+)/.exec(String(code || '').replace(/\s+/g, ''));
+  if (!m) return null;
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+    const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+    const j = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    if (typeof j.u !== 'string' || typeof j.k !== 'string' || !j.u || !j.k) return null;
+    return { url: j.u.trim(), key: j.k.trim() };
+  } catch { return null; }
+}
+
+export function makeConnCode(url, key) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ u: url, k: key }));
+  return 'dsa-gs:' + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** "Make a copy" link of the public template sheet (header + this script). Empty: the guide in the README. */
+export const TEMPLATE_URL = '';
+export const GUIDE_URL = 'https://github.com/fakhruladani/Dani-SuperApp#impor-dari-google-sheets';

@@ -27,6 +27,7 @@ export default function CommandPalette({ onClose }) {
     { title: T("Panduan fitur (F1)"), icon: 'book', run: () => app.nav('guide') },
     { title: T("Mulai tur aplikasi"), icon: 'play', desktop: true, run: () => app.startTour(0) },
     { title: app.android ? T("Sinkron dengan laptop") : T("Sinkron dengan HP"), icon: 'refresh', run: () => app.nav('settings', { tab: 'sync' }) },
+    { title: T("Sinkron Google Sheets"), icon: 'table', run: () => (app.settings.gsheet?.url ? api('gsheet:import') : app.nav('settings', { tab: 'gsheet' })) },
     { title: app.dark ? T('Ganti ke mode terang') : T('Ganti ke mode gelap'), icon: app.dark ? 'sun' : 'moon', run: () => app.toggleTheme() },
     { title: T("Mulai sesi fokus"), icon: 'play', run: () => { app.focus.start(); app.nav('focus'); } },
     { title: T("Tampilkan widget mini"), icon: 'widget', desktop: true, run: () => api('win:widget') },

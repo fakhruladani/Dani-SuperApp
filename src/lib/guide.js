@@ -69,6 +69,7 @@ const GUIDE_ID = [
     intro: 'Buku kas bergaya spreadsheet per bulan, dengan pilihan tahun di kiri atas.',
     items: [
       ['Isi transaksi', 'Ketik langsung di baris biru paling bawah tabel, lalu Enter. Atau tombol "Transaksi".'],
+      ['Google Sheets', 'Catat lewat sheet (misalnya oleh asisten chat) lalu tombol "Sinkron Sheets" di kanan atas mengambil transaksi baru. Hubungkan sheet-mu sendiri di Pengaturan → Google Sheets dengan satu kode koneksi; impor otomatis juga berjalan tiap 5 menit.'],
       ['Edit di sel', 'Klik sel tanggal, keterangan, kategori, atau nominal untuk mengubahnya. Ikon tempat sampah menghapus baris.'],
       ['Anggaran', 'Panel kanan menunjukkan pemakaian per kategori. Klik angkanya untuk anggaran khusus bulan itu. Anggaran default ada di tab "Kategori & anggaran".'],
       ['Sisa anggaran', 'Total anggaran dikurangi pengeluaran di kategori yang punya anggaran. Set anggaran 0 bila tidak ingin memakainya.'],

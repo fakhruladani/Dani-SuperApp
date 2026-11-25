@@ -69,6 +69,7 @@ export default function App() {
       on('gsheet:event', (ev) => {
         if (ev.added || ev.updated) pushToast(T('Google Sheets: {a} transaksi baru, {u} diperbarui', { a: ev.added, u: ev.updated }));
         else if (ev.error && !ev.quiet) pushToast({ text: T('Impor Google Sheets gagal. Lihat Pengaturan → Google Sheets.'), error: true });
+        else if (!ev.error && !ev.quiet) pushToast(ev.linked ? T('Google Sheets tersinkron · {n} baris cocok dengan transaksi yang sudah ada', { n: ev.linked }) : T('Google Sheets sudah tersinkron, tidak ada transaksi baru'));
       }),
       on('sync:event', (ev) => {
         if (ev.type === 'synced' && !ev.quiet) pushToast(T('Sinkron selesai · {n} perubahan masuk', { n: ev.result?.received || 0 }));

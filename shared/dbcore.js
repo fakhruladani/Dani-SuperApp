@@ -396,7 +396,7 @@ export function pruneImages() {
 const LOCAL_TABLES = new Set(['reminder_log', 'clipboard']);
 export const SYNC_TABLES = Object.keys(SCHEMA).filter((t) => !LOCAL_TABLES.has(t));
 // Settings that are the user's data rather than this device's setup (theme, location, PIN, window layout stay per device).
-export const SYNC_SETTINGS = new Set(['gsheet', 'wealthCols', 'reminderDefault', 'focusMin', 'shortMin', 'longMin', 'feeds', 'showHolidays', 'showObservances', 'showTasksInCalendar', 'briefTime', 'briefEnabled']);
+export const SYNC_SETTINGS = new Set(['gsheet', 'gsheetLinked', 'wealthCols', 'reminderDefault', 'focusMin', 'shortMin', 'longMin', 'feeds', 'showHolidays', 'showObservances', 'showTasksInCalendar', 'briefTime', 'briefEnabled']);
 // Columns that describe this device's windows, not the data: never synced, and changing only them is not an edit.
 export const LOCAL_COLS = { notes: ['sticky', 'sticky_top', 'sticky_bounds'] };
 // Tables a user actually fills in (used to tell a fresh install from one with data)

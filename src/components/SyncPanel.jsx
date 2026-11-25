@@ -129,8 +129,8 @@ function PhoneSync({ st, reload }) {
   );
 }
 
-/** Camera + jsQR. Resolves with the first dsa-sync: code it sees. */
-function QrScanner({ onResult, onClose }) {
+/** Camera + jsQR. Resolves with the first code that starts with prefix (the laptop's dsa-sync: code by default). */
+export function QrScanner({ onResult, onClose, prefix = 'dsa-sync:', title = null, hint = null }) {
   const video = useRef();
   const [err, setErr] = useState('');
   useEffect(() => {
@@ -145,7 +145,7 @@ function QrScanner({ onResult, onClose }) {
         canvas.width = w; canvas.height = h;
         ctx.drawImage(v, 0, 0, w, h);
         const code = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
-        if (code?.data?.startsWith('dsa-sync:')) { alive = false; onResult(code.data); return; }
+        if (code?.data?.startsWith(prefix)) { alive = false; onResult(code.data); return; }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -162,11 +162,11 @@ function QrScanner({ onResult, onClose }) {
     return () => { alive = false; cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <Modal title={T('Scan QR laptop')} width={460} onClose={onClose}>
+    <Modal title={title || T('Scan QR laptop')} width={460} onClose={onClose}>
       {err ? <span style={{ color: 'var(--neg)', fontSize: 13 }}>{err}</span> : (
         <div className="qr-cam"><video ref={video} playsInline muted /><span className="qr-frame" /></div>
       )}
-      <span className="mut" style={{ fontSize: 13 }}>{T('Arahkan kamera ke kode QR di layar laptop.')}</span>
+      <span className="mut" style={{ fontSize: 13 }}>{hint || T('Arahkan kamera ke kode QR di layar laptop.')}</span>
     </Modal>
   );
 }

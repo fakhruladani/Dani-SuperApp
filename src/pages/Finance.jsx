@@ -430,6 +430,13 @@ export default function Finance() {
   }, [recap.data, year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const doImport = async () => { const n = await api('import:csv'); if (n != null) app.toast(T('{n} transaksi diimpor', { n })); };
+  const [gsBusy, setGsBusy] = useState(false);
+  const gsOn = !!(app.settings.gsheet?.url && app.settings.gsheet?.key);
+  const syncSheet = async () => {
+    if (!gsOn) { app.nav('settings', { tab: 'gsheet' }); return; }
+    setGsBusy(true);
+    try { await api('gsheet:import'); } finally { setGsBusy(false); } // the result comes as a toast (gsheet:event)
+  };
 
   return (
     <div className="page">
@@ -444,6 +451,7 @@ export default function Finance() {
         </div>}
         <Seg tour="fin-tabs" label={T("Tampilan keuangan")} value={tab} onChange={setTab} options={[{ value: 'month', label: T("Bulanan") }, { value: 'recap', label: T("Rekap tahunan") }, { value: 'cats', label: T("Kategori & anggaran") }, { value: 'wealth', label: T("Total Wealth") }]} />
         <span className="grow" />
+        {tab !== 'wealth' && <button className="btn" onClick={syncSheet} disabled={gsBusy} title={gsOn ? T("Ambil transaksi baru dari Google Sheets") : T("Hubungkan Google Sheets")}><Icon name="refresh" size="sm" className={gsBusy ? 'spin' : ''} />{gsOn ? T("Sinkron Sheets") : T("Hubungkan Sheets")}</button>}
         {tab !== 'wealth' && <button className="btn" onClick={doImport} title={T("Impor transaksi dari CSV")} aria-label={T("Impor CSV")} style={{ padding: '0 10px' }}><Icon name="upload" size="sm" /></button>}
         {tab !== 'wealth' && <button className="btn" onClick={() => api('export:csv', year).then((n) => n != null && app.toast(T("CSV diekspor")))} title={T("Ekspor transaksi ke CSV")} aria-label={T("Ekspor CSV")} style={{ padding: '0 10px' }}><Icon name="download" size="sm" /></button>}
         <button className="btn" onClick={() => api('export:xlsx', year).then((p) => p && app.toast(T("Excel diekspor")))}><Icon name="table" size="sm" />{T("Ekspor Excel")}{tab !== 'wealth' ? ` ${year}` : ''}</button>

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { parseAmount, parseDate, parseSheet, decide } from '../shared/gsheet.js';
+import { parseAmount, parseDate, parseSheet, decide, planImport, parseConnCode, makeConnCode } from '../shared/gsheet.js';
 import * as db from '../electron/db.js';
 import * as gs from '../electron/gsheet.js';
 
@@ -45,6 +45,10 @@ test('the assistant trial rows map to transactions, a bad row is reported', () =
   const noId = { header: ['Waktu', 'Keterangan', 'Nominal'], rows: MUSE.rows.slice(0, 2).map((r) => r.slice(0, 3)) };
   assert.deepEqual(parseSheet(noId, { cats }).items.map((x) => x.id), ['gs-2026-11-25_20_57_47_1', 'gs-2026-11-25_20_57_47_2']);
   assert.equal(parseSheet({ header: ['Tanggal', 'Harga'], rows: [] }, {}).error, 'COLUMNS');
+  // close category names: the sheet says "Makanan" / "Transportasi", the app has "Makan" / "Transport"
+  const short = [{ id: 'm', kind: 'out', name: 'Makan', archived: 0 }, { id: 't', kind: 'out', name: 'Transport', archived: 0 }, { id: 'l', kind: 'out', name: 'Lainnya', archived: 0 }];
+  const close = parseSheet({ header: ['Waktu', 'Keterangan', 'Nominal', 'Kategori'], rows: [['2026-11-25', 'Telur', 50000, 'Makanan'], ['2026-11-25', 'Ojek', 12000, 'Transportasi'], ['2026-11-25', 'Pulsa', 20000, 'Tagihan']] }, { cats: short });
+  assert.deepEqual(close.items.map((x) => x.category_id), ['m', 't', 'l']);
 });
 
 test('import decision', () => {
@@ -99,6 +103,69 @@ test('importNow end to end: fetch, add, no duplicates, app edits and deletions w
   assert.equal(db.get('fin_tx', 'gs-Ra3'), null, 'deletion kept');
   assert.equal(db.get('fin_tx', 'gs-Ra6').category_id, db.list('fin_categories').find((c) => c.name === 'Transport').id, 'category guessed from "Bensin"');
   assert.ok(calls.every((u) => u.startsWith(URL_OK + '?key=')));
+  db.closeDb();
+  delete globalThis.__dsaFetch;
+});
+
+test('connection code: made by the Apps Script menu, read by the app', () => {
+  const url = 'https://script.google.com/macros/s/AKfycbx-abc_123/exec', key = 'a'.repeat(64);
+  // Utilities.base64EncodeWebSafe keeps "=" padding (the script strips it, but be lenient)
+  const fromScript = 'dsa-gs:' + Buffer.from(JSON.stringify({ u: url, k: key })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
+  assert.deepEqual(parseConnCode(fromScript), { url, key });
+  assert.deepEqual(parseConnCode('  ' + makeConnCode(url, key) + '\n'), { url, key }, 'pasted with spaces / newline');
+  assert.equal(parseConnCode('dsa-sync:abc'), null);
+  assert.equal(parseConnCode('dsa-gs:bm90IGpzb24'), null, 'not JSON');
+  assert.equal(parseConnCode('dsa-gs:' + Buffer.from('{"u":"x"}').toString('base64url')), null, 'no key');
+});
+
+test('history typed in the app and copied to the sheet is linked, not doubled', () => {
+  const app = [
+    { id: 't1', date: '2026-11-25', description: 'Jajan ', amount: 5000, kind: 'out', src: null },
+    { id: 't2', date: '2026-11-25', description: 'Telur', amount: 50000, kind: 'out', src: null },
+    { id: 't3', date: '2026-11-02', description: 'Jajan', amount: 4500, kind: 'out', src: null },
+    { id: 't4', date: '2026-11-02', description: 'Jajan', amount: 4500, kind: 'out', src: null }
+  ];
+  const sheet = { header: ['Waktu', 'Keterangan', 'Nominal', 'Jenis', 'Kategori', 'ID'], rows: [
+    ['2026-11-02 00:00:00', 'Jajan', 4500, 'keluar', 'Makanan', 'R1'],
+    ['2026-11-02 00:00:00', 'Jajan', 4500, 'keluar', 'Makanan', 'R2'],
+    ['2026-11-02 00:00:00', 'jajan', 4500, 'keluar', 'Makanan', 'R3'], // a third one the app does not have
+    ['2026-11-25 00:00:00', 'Telur', 50000, 'keluar', 'Makanan', 'R4'],
+    ['2026-11-25 00:00:00', 'Jajan', 5000, 'keluar', 'Makanan', 'R5'],
+    ['2026-11-25 22:01:23', 'Makan malam', '15000', 'keluar', 'Makanan', 'R6'], // written by the assistant
+    ['2026-11-27 08:00:00', 'Telur', 50000, 'keluar', 'Makanan', 'R7'] // after connecting: a new purchase
+  ] };
+  const { items } = parseSheet(sheet, { cats });
+  const opts = { local: () => null, deleted: () => false, existing: app, linkUntil: '2026-11-26' };
+  const act = (o) => planImport(items, o).map((x) => `${x.item.id}:${x.action}${x.linkTo ? '>' + x.linkTo : ''}`);
+  assert.deepEqual(act(opts), ['gs-R1:link>t3', 'gs-R2:link>t4', 'gs-R3:add', 'gs-R4:link>t2', 'gs-R5:link>t1', 'gs-R6:add', 'gs-R7:add']);
+  assert.deepEqual(act({ ...opts, linkUntil: '' }).filter((x) => x.includes('link')), [], 'no linking without a connect date');
+  assert.deepEqual(act({ ...opts, linked: { 'gs-R4': 't2' } })[3], 'gs-R4:keep', 'linked before: stays linked');
+  assert.deepEqual(act({ ...opts, linked: { 'gs-R1': 't3' } }).slice(0, 3), ['gs-R1:keep', 'gs-R2:link>t4', 'gs-R3:add'], 'a linked app row is not used twice');
+  const fromSheet = app.map((t) => ({ ...t, src: 'gs:x' }));
+  assert.ok(act({ ...opts, existing: fromSheet }).every((x) => !x.includes('link')), 'rows imported from the sheet are not link targets');
+});
+
+test('importNow links existing history once; deleting a linked transaction does not bring the row back', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-gs2-'));
+  let K = null;
+  await db.openDb({ dir, keyStore: { load: () => K, save: (k) => { K = k; } }, wasmPath: require.resolve('sql.js/dist/sql-wasm.wasm') });
+  const sheet = { header: ['Waktu', 'Keterangan', 'Nominal', 'Jenis', 'Kategori', 'ID'], rows: [
+    ['2026-11-25 00:00:00', 'Telur', 50000, 'keluar', 'Makanan', 'R4'],
+    ['2026-11-25 22:01:23', 'Makan malam', '15000', 'keluar', 'Makanan', 'R6']
+  ] };
+  globalThis.__dsaFetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify(sheet) });
+  db.upsert('fin_tx', { id: 'mine', date: '2026-11-25', description: 'Telur', amount: 50000, kind: 'out' });
+  db.setSetting('gsheet', { url: 'https://script.google.com/macros/s/abc/exec', key: 'k', since: '2026-11-01', auto: true, linkUntil: '2026-11-26' });
+  const t = await gs.test('https://script.google.com/macros/s/abc/exec', 'k', '2026-11-01');
+  assert.deepEqual(t.counts, { add: 1, update: 0, link: 1 });
+  let r = await gs.importNow({ quiet: true });
+  assert.deepEqual([r.added, r.linked], [1, 1]);
+  assert.equal(db.list('fin_tx').length, 2, 'Telur once, Makan malam added');
+  assert.deepEqual(db.getSetting('gsheetLinked'), { 'gs-R4': 'mine' });
+  db.remove('fin_tx', 'mine');
+  r = await gs.importNow({ quiet: true });
+  assert.deepEqual([r.added, r.linked], [0, 0]);
+  assert.equal(db.get('fin_tx', 'gs-R4'), null, 'deleted in the app: stays deleted');
   db.closeDb();
   delete globalThis.__dsaFetch;
 });
